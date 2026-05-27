@@ -480,12 +480,11 @@ async function sendMessage(userMsg) {
   scrollToBottom();
   conversationHistory.push({ role:'user', content:message });
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
       method:'POST',
       headers:{
   'Content-Type':'application/json',
-  'x-api-key':'TUTAJ_WKLEJ_SWOJ_KLUCZ',
-  'anthropic-version':'2023-06-01'
+  
 },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',

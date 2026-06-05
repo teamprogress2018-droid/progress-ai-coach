@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PROGRESS AI v2 — Asystent Trenera</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#0a0a0a; --bg2:#111; --bg3:#181818; --border:rgba(255,255,255,0.08);
@@ -200,7 +200,34 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .ba-card.main{background:rgba(232,48,42,0.06);border:1px solid rgba(232,48,42,0.15);}
 .ba-card.warn{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);}
 #screen-body::-webkit-scrollbar{width:4px;}
-#screen-body::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}</style>
+#screen-body::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}/* ===== MODUŁ POMIARY ===== */
+.meas-chart-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.meas-chart-btn.active{background:rgba(96,165,250,0.12);border-color:var(--bl);color:var(--bl);}
+.meas-chart-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.meas-chart-title{font-size:10px;font-family:'DM Mono',monospace;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+.meas-stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.meas-stat-label{font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.meas-stat-val{font-size:22px;font-weight:600;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
+.meas-stat-delta{font-size:11px;font-family:'DM Mono',monospace;margin-top:2px;}
+.meas-history-row{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:14px;}
+.meas-history-date{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--bl);line-height:1;white-space:nowrap;}
+.meas-history-month{font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;text-align:center;}
+.meas-history-data{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;}
+.meas-data-chip{background:var(--bg2);border-radius:6px;padding:5px 8px;}
+.meas-data-chip .mlabel{font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;}
+.meas-data-chip .mval{font-size:13px;font-weight:600;color:var(--tx);}
+.meas-data-chip .mdelta{font-size:10px;}
+.meas-del-btn{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:13px;padding:2px;flex-shrink:0;}
+.meas-del-btn:hover{color:var(--ac);}
+.meas-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+.meas-fg label{display:block;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;font-family:'DM Mono',monospace;}
+.meas-fg input,.meas-fg select,.meas-fg textarea{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--tx);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;}
+.meas-fg input:focus,.meas-fg select:focus,.meas-fg textarea:focus{border-color:var(--bl);}
+.meas-fg select option{background:#1a1a1a;}
+.meas-section-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--bl);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(96,165,250,0.15);}
+#screen-measurements::-webkit-scrollbar{width:4px;}
+#screen-measurements::-webkit-scrollbar-thumb{background:var(--bg3);}
+</style>
 </head>
 <body>
 <div class="app">
@@ -222,7 +249,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <button class="stab" onclick="showSideTab('filozofia',this)">🧠 Filozofia</button>
     <button class="stab" onclick="showSideTab('wiedza',this)">📚 Wiedza</button>
     <button class="stab" onclick="showSideTab('akcje',this)">⚡ Akcje</button>
-    <button class="stab" onclick="showSideTab('sylwetka',this)">🏋️ Sylwetka</button>
+    <button class="stab" onclick="showSideTab('sylwetka',this)">🏋️ Sylwetka</button><button class="stab" onclick="showSideTab('pomiary',this)">📏 Pomiary</button>
   </div>
 
   <!-- PANEL: KLIENT -->
@@ -331,6 +358,22 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   </div>
 
   <!-- PANEL: AKCJE --><!-- PANEL: SYLWETKA AI -->
+  <div class="sidebar-panel" id="panel-sylwetka">
+    <div class="section-title">Ocena Sylwetki AI</div>
+    <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">
+      Wgraj zdjęcie klienta — AI przeanalizuje sylwetkę i da konkretne rekomendacje.
+    </p>
+    <button class="quick-btn" style="width:100%;justify-content:center;background:rgba(232,48,42,0.1);border-color:var(--ac);color:var(--ac);" onclick="openBodyAssessment()">
+      <span>📸</span> Otwórz analizę sylwetki
+    </button>
+    <div style="margin-top:14px;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;line-height:1.7;">
+      ✓ Analiza kompozycji ciała<br>
+      ✓ Ocena proporcji mięśniowych<br>
+      ✓ Szacowany % tkanki tłuszczowej<br>
+      ✓ Plan priorytetów NSCA/NASM<br>
+      ✓ Wskazówki treningowe i żywieniowe
+    </div>
+  </div><!-- PANEL: SYLWETKA AI -->
   <div class="sidebar-panel" id="panel-sylwetka">
     <div class="section-title">Ocena Sylwetki AI</div>
     <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">
@@ -468,7 +511,95 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
       </div>
     </div>
   </div>
+<!-- EKRAN: ANALIZA SYLWETKI -->
+  <div id="screen-body" style="display:none;flex:1;overflow-y:auto;padding:20px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <button onclick="closeBodyAssessment()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ac);">OCENA SYLWETKI AI</div>
+    </div>
 
+    <div id="body-assess">
+      <div class="ba-steps">
+        <div class="ba-step active" id="ba-st1" onclick="baGoStep(1)">1 · Zdjęcia</div>
+        <div class="ba-step" id="ba-st2" onclick="baGoStep(2)">2 · Dane klienta</div>
+        <div class="ba-step" id="ba-st3" onclick="baGoStep(3)">3 · Analiza AI</div>
+      </div>
+
+      <div class="ba-pane active" id="ba-pane1">
+        <div class="ba-title">ZDJĘCIA DO ANALIZY</div>
+        <div class="ba-sub">Wgraj zdjęcia klienta w dobrym oświetleniu — przód, bok i/lub tył.</div>
+        <div class="ba-photo-grid">
+          <div class="ba-slot" id="ba-slot-front">
+            <div class="ba-slot-add"><div class="ba-icon">📷</div><span>Przód</span></div>
+            <div class="ba-slot-label">PRZÓD</div>
+            <input type="file" accept="image/*" onchange="baLoadPhoto('front',this)">
+          </div>
+          <div class="ba-slot" id="ba-slot-side">
+            <div class="ba-slot-add"><div class="ba-icon">📷</div><span>Bok</span></div>
+            <div class="ba-slot-label">BOK</div>
+            <input type="file" accept="image/*" onchange="baLoadPhoto('side',this)">
+          </div>
+          <div class="ba-slot" id="ba-slot-back">
+            <div class="ba-slot-add"><div class="ba-icon">📷</div><span>Tył</span></div>
+            <div class="ba-slot-label">TYŁ</div>
+            <input type="file" accept="image/*" onchange="baLoadPhoto('back',this)">
+          </div>
+        </div>
+        <div class="ba-tip"><strong>Wskazówki:</strong> Dobre oświetlenie, neutralne tło. Klient w sportowych strojach. Zdjęcia analizowane są bezpośrednio przez API Anthropic — nie trafiają na żaden zewnętrzny serwer.</div>
+        <button class="ba-btn" onclick="baGoStep(2)">Przejdź do danych →</button>
+      </div>
+
+      <div class="ba-pane" id="ba-pane2">
+        <div class="ba-title">DANE KLIENTA</div>
+        <div class="ba-sub">Im więcej danych podasz, tym trafniejsza analiza.</div>
+        <div class="ba-form-row">
+          <div class="ba-field"><label>Imię klienta</label><input id="ba-name" placeholder="np. Jan Kowalski"></div>
+          <div class="ba-field"><label>Wiek (lata)</label><input id="ba-age" type="number" placeholder="28"></div>
+        </div>
+        <div class="ba-form-row">
+          <div class="ba-field"><label>Waga (kg)</label><input id="ba-weight" type="number" placeholder="82" step="0.5"></div>
+          <div class="ba-field"><label>Wzrost (cm)</label><input id="ba-height" type="number" placeholder="178"></div>
+        </div>
+        <div class="ba-field" style="margin-bottom:12px;">
+          <label>Płeć</label>
+          <select id="ba-gender">
+            <option value="mężczyzna">Mężczyzna</option>
+            <option value="kobieta">Kobieta</option>
+          </select>
+        </div>
+        <div class="ba-field" style="margin-bottom:10px;"><label>Aktualny cel</label></div>
+        <div class="ba-goals">
+          <div class="ba-goal active" onclick="baSetGoal(this,'masa')">💪<br><span style="font-size:10px;">Budowa masy</span></div>
+          <div class="ba-goal" onclick="baSetGoal(this,'redukcja')">🔥<br><span style="font-size:10px;">Redukcja</span></div>
+          <div class="ba-goal" onclick="baSetGoal(this,'sila')">🏋️<br><span style="font-size:10px;">Siła</span></div>
+          <div class="ba-goal" onclick="baSetGoal(this,'kondycja')">🏃<br><span style="font-size:10px;">Kondycja</span></div>
+        </div>
+        <div class="ba-field" style="margin-bottom:16px;">
+          <label>Poziom zaawansowania</label>
+          <select id="ba-level">
+            <option value="poczatkujacy">Początkujący (0–1 rok)</option>
+            <option value="sredni" selected>Średniozaawansowany (1–3 lata)</option>
+            <option value="zaawansowany">Zaawansowany (3+ lat)</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="ba-btn-ghost" onclick="baGoStep(1)">← Wróć</button>
+          <button class="ba-btn" style="flex:1;" onclick="baStartAnalysis()">🔍 Analizuj sylwetkę AI</button>
+        </div>
+      </div>
+
+      <div class="ba-pane" id="ba-pane3">
+        <div id="ba-analyzing" class="ba-analyzing">
+          <div class="ba-pulse"><div class="ba-dot"></div></div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ac);">ANALIZUJĘ SYLWETKĘ...</div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:6px;" id="ba-status">Przesyłam zdjęcia do Claude Vision · NSCA/NASM</div>
+          </div>
+        </div>
+        <div id="ba-result" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
   <div class="typing-indicator" id="typing">
     <div style="width:32px;height:32px;border-radius:50%;background:rgba(232,48,42,0.15);color:var(--ac);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">AI</div>
     <div class="typing-dots"><span></span><span></span><span></span></div>
@@ -861,6 +992,365 @@ function baRenderResult(r,name){
       <button class="ba-btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('ba-result').innerText).then(()=>alert('Skopiowano!'))">📋 Kopiuj</button>
       <button class="ba-btn" style="flex:1;" onclick="window.print()">🖨 Drukuj</button>
     </div>`;
+}// ===== MODUŁ POMIARY =====
+// Firebase config — ta sama co w reszcie aplikacji
+const FIREBASE_API = 'https://firestore.googleapis.com/v1/projects/progress-live-fc83d/databases/(default)/documents';
+const FIREBASE_KEY = 'AIzaSyDrbke0QdB55k_4smzhKufQ75eAluu-r_8';
+
+let measClientId = 'default';
+let measEntries = [];
+let measCharts = {};
+let measCurrentChart = 'waga';
+
+function getMeasClientId() {
+  const name = document.getElementById('client-name').value.trim();
+  if (!name) return 'default';
+  return name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').substring(0, 40) || 'default';
+}
+
+function openMeasurements() {
+  measClientId = getMeasClientId();
+  const name = document.getElementById('client-name').value.trim() || 'Klient';
+  document.getElementById('meas-client-tag').textContent = '👤 ' + name;
+  document.getElementById('chat-area').style.display = 'none';
+  document.getElementById('typing').style.display = 'none';
+  document.querySelector('.input-area').style.display = 'none';
+  if (document.getElementById('screen-body')) document.getElementById('screen-body').style.display = 'none';
+  document.getElementById('screen-measurements').style.display = 'block';
+  // set today as default date
+  document.getElementById('mf-date').value = new Date().toISOString().split('T')[0];
+  loadMeasurements();
+}
+
+function closeMeasurements() {
+  document.getElementById('screen-measurements').style.display = 'none';
+  document.getElementById('chat-area').style.display = 'block';
+  document.getElementById('typing').style.display = '';
+  document.querySelector('.input-area').style.display = 'block';
+}
+
+function openAddMeasurement() {
+  document.getElementById('mf-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('meas-modal').style.display = 'block';
+}
+
+function closeMeasModal() {
+  document.getElementById('meas-modal').style.display = 'none';
+}
+
+// FIREBASE CRUD
+async function loadMeasurements() {
+  try {
+    const url = `${FIREBASE_API}/measurements/${measClientId}/entries?key=${FIREBASE_KEY}&orderBy=fields.date.stringValue`;
+    const r = await fetch(url);
+    const data = await r.json();
+    measEntries = (data.documents || []).map(d => firestoreDocToEntry(d)).sort((a,b) => a.date.localeCompare(b.date));
+    renderMeasHistory();
+    renderMeasCharts();
+  } catch(e) {
+    measEntries = [];
+    renderMeasHistory();
+  }
+}
+
+async function saveMeasurement() {
+  const entry = {
+    date: document.getElementById('mf-date').value || new Date().toISOString().split('T')[0],
+    time: document.getElementById('mf-time').value,
+    weight: parseFloat(document.getElementById('mf-weight').value) || null,
+    bmi: parseFloat(document.getElementById('mf-bmi').value) || null,
+    fatPct: parseFloat(document.getElementById('mf-fat-pct').value) || null,
+    fatKg: parseFloat(document.getElementById('mf-fat-kg').value) || null,
+    muscleKg: parseFloat(document.getElementById('mf-muscle-kg').value) || null,
+    boneKg: parseFloat(document.getElementById('mf-bone-kg').value) || null,
+    waterPct: parseFloat(document.getElementById('mf-water-pct').value) || null,
+    bmr: parseFloat(document.getElementById('mf-bmr').value) || null,
+    metAge: parseFloat(document.getElementById('mf-met-age').value) || null,
+    visceral: parseFloat(document.getElementById('mf-visceral').value) || null,
+    neck: parseFloat(document.getElementById('mf-neck').value) || null,
+    chest: parseFloat(document.getElementById('mf-chest').value) || null,
+    waist: parseFloat(document.getElementById('mf-waist').value) || null,
+    hips: parseFloat(document.getElementById('mf-hips').value) || null,
+    thighL: parseFloat(document.getElementById('mf-thigh-l').value) || null,
+    thighR: parseFloat(document.getElementById('mf-thigh-r').value) || null,
+    calfL: parseFloat(document.getElementById('mf-calf-l').value) || null,
+    calfR: parseFloat(document.getElementById('mf-calf-r').value) || null,
+    bicepL: parseFloat(document.getElementById('mf-bicep-l').value) || null,
+    bicepR: parseFloat(document.getElementById('mf-bicep-r').value) || null,
+    notes: document.getElementById('mf-notes').value.trim()
+  };
+  if (!entry.weight && !entry.fatPct && !entry.waist) {
+    alert('Uzupełnij przynajmniej wagę, % tłuszczu lub obwód talii.'); return;
+  }
+  const docId = entry.date + '_' + Date.now();
+  try {
+    const url = `${FIREBASE_API}/measurements/${measClientId}/entries/${docId}?key=${FIREBASE_KEY}`;
+    await fetch(url, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({fields: entryToFirestore(entry)})
+    });
+    closeMeasModal();
+    clearMeasForm();
+    await loadMeasurements();
+  } catch(e) {
+    alert('Błąd zapisu. Sprawdź połączenie.');
+  }
+}
+
+async function deleteMeasurement(docPath) {
+  if (!confirm('Usunąć ten pomiar?')) return;
+  try {
+    await fetch(`https://firestore.googleapis.com/v1/${docPath}?key=${FIREBASE_KEY}`, {method:'DELETE'});
+    await loadMeasurements();
+  } catch(e) { alert('Błąd usuwania.'); }
+}
+
+function clearMeasForm() {
+  ['mf-weight','mf-bmi','mf-fat-pct','mf-fat-kg','mf-muscle-kg','mf-bone-kg','mf-water-pct','mf-bmr','mf-met-age','mf-visceral','mf-neck','mf-chest','mf-waist','mf-hips','mf-thigh-l','mf-thigh-r','mf-calf-l','mf-calf-r','mf-bicep-l','mf-bicep-r','mf-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+// FIRESTORE SERIALIZATION
+function entryToFirestore(e) {
+  const f = {};
+  Object.keys(e).forEach(k => {
+    if (e[k] === null || e[k] === undefined || e[k] === '') return;
+    if (typeof e[k] === 'number') f[k] = {doubleValue: e[k]};
+    else f[k] = {stringValue: String(e[k])};
+  });
+  return f;
+}
+
+function firestoreDocToEntry(doc) {
+  const f = doc.fields || {};
+  const e = {_path: doc.name};
+  Object.keys(f).forEach(k => {
+    if (f[k].doubleValue !== undefined) e[k] = f[k].doubleValue;
+    else if (f[k].integerValue !== undefined) e[k] = parseFloat(f[k].integerValue);
+    else if (f[k].stringValue !== undefined) e[k] = f[k].stringValue;
+    else e[k] = null;
+  });
+  return e;
+}
+
+// HISTORY RENDER
+function renderMeasHistory() {
+  const el = document.getElementById('meas-history-list');
+  if (measEntries.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--tx3);font-size:13px;">Brak pomiarów. Kliknij <strong style="color:var(--bl)">+ Dodaj pomiar</strong> aby zacząć.</div>`;
+    return;
+  }
+  const sorted = [...measEntries].reverse();
+  el.innerHTML = sorted.map((e, i) => {
+    const prev = sorted[i+1];
+    const d = new Date(e.date);
+    const day = d.getDate();
+    const month = d.toLocaleDateString('pl',{month:'short',year:'numeric'});
+    const chips = [];
+    if (e.weight) chips.push({l:'Waga', v: e.weight+'kg', delta: prev?.weight ? (e.weight-prev.weight).toFixed(1) : null});
+    if (e.fatPct) chips.push({l:'% Tłuszczu', v: e.fatPct+'%', delta: prev?.fatPct ? (e.fatPct-prev.fatPct).toFixed(1) : null});
+    if (e.muscleKg) chips.push({l:'Mięśnie', v: e.muscleKg+'kg', delta: prev?.muscleKg ? (e.muscleKg-prev.muscleKg).toFixed(1) : null});
+    if (e.waist) chips.push({l:'Talia', v: e.waist+'cm', delta: prev?.waist ? (e.waist-prev.waist).toFixed(1) : null});
+    if (e.hips) chips.push({l:'Biodra', v: e.hips+'cm', delta: prev?.hips ? (e.hips-prev.hips).toFixed(1) : null});
+    if (e.bmi) chips.push({l:'BMI', v: e.bmi, delta: null});
+    if (e.waterPct) chips.push({l:'Woda', v: e.waterPct+'%', delta: null});
+    if (e.metAge) chips.push({l:'Wiek met.', v: e.metAge+'l', delta: null});
+    const chipsHTML = chips.map(c => {
+      let deltaHTML = '';
+      if (c.delta !== null) {
+        const n = parseFloat(c.delta);
+        const isGood = (c.l==='% Tłuszczu'||c.l==='Talia'||c.l==='Biodra') ? n<0 : n>0;
+        const color = n===0 ? 'var(--tx2)' : isGood ? 'var(--gr)' : 'var(--ac)';
+        const sign = n>0?'+':'';
+        deltaHTML = `<div class="mdelta" style="color:${color}">${sign}${c.delta}</div>`;
+      }
+      return `<div class="meas-data-chip"><div class="mlabel">${c.l}</div><div class="mval">${c.v}</div>${deltaHTML}</div>`;
+    }).join('');
+    return `<div class="meas-history-row">
+      <div style="text-align:center;min-width:44px;">
+        <div class="meas-history-date">${day}</div>
+        <div class="meas-history-month">${month}</div>
+      </div>
+      <div class="meas-history-data">${chipsHTML}</div>
+      ${e.notes ? `<div style="font-size:11px;color:var(--tx2);font-style:italic;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">📝 ${e.notes}</div>`:''}
+      <button class="meas-del-btn" onclick="deleteMeasurement('${e._path}')" title="Usuń pomiar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// CHARTS
+function measSwitchChart(name, btn) {
+  measCurrentChart = name;
+  document.querySelectorAll('.meas-chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.meas-chart-panel').forEach(p => p.style.display='none');
+  document.getElementById('meas-chart-'+name).style.display = 'block';
+  renderMeasCharts();
+}
+
+function renderMeasCharts() {
+  if (measEntries.length < 1) return;
+  const labels = measEntries.map(e => {
+    const d = new Date(e.date);
+    return d.toLocaleDateString('pl',{day:'numeric',month:'short'});
+  });
+  const chartDefaults = {
+    responsive:true,
+    plugins:{legend:{labels:{color:'#888',font:{size:11,family:'DM Sans'}}}},
+    scales:{
+      x:{ticks:{color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+      y:{ticks:{color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}}
+    }
+  };
+
+  // WAGA & TŁUSZCZ
+  if (measCurrentChart==='waga') {
+    destroyChart('chart-waga');
+    destroyChart('chart-fat');
+    if (measEntries.some(e=>e.weight)) {
+      measCharts['chart-waga'] = new Chart(document.getElementById('chart-waga'), {
+        type:'line', data:{
+          labels, datasets:[{label:'Waga (kg)', data:measEntries.map(e=>e.weight||null),
+          borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.08)',
+          pointBackgroundColor:'#60a5fa',pointRadius:4,tension:0.3,fill:true,spanGaps:true}]
+        }, options:{...chartDefaults, plugins:{...chartDefaults.plugins}}
+      });
+    }
+    if (measEntries.some(e=>e.fatPct)) {
+      measCharts['chart-fat'] = new Chart(document.getElementById('chart-fat'), {
+        type:'line', data:{
+          labels, datasets:[{label:'% Tłuszczu', data:measEntries.map(e=>e.fatPct||null),
+          borderColor:'#e8302a',backgroundColor:'rgba(232,48,42,0.08)',
+          pointBackgroundColor:'#e8302a',pointRadius:4,tension:0.3,fill:true,spanGaps:true}]
+        }, options:chartDefaults
+      });
+    }
+  }
+
+  // KOMPOZYCJA
+  if (measCurrentChart==='kompozycja') {
+    destroyChart('chart-kompozycja');
+    if (measEntries.some(e=>e.muscleKg||e.fatKg)) {
+      const datasets = [];
+      if (measEntries.some(e=>e.muscleKg)) datasets.push({label:'Masa mięśniowa (kg)',data:measEntries.map(e=>e.muscleKg||null),borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.1)',pointBackgroundColor:'#4ade80',pointRadius:4,tension:0.3,fill:true,spanGaps:true});
+      if (measEntries.some(e=>e.fatKg)) datasets.push({label:'Masa tłuszczowa (kg)',data:measEntries.map(e=>e.fatKg||null),borderColor:'#e8302a',backgroundColor:'rgba(232,48,42,0.08)',pointBackgroundColor:'#e8302a',pointRadius:4,tension:0.3,fill:true,spanGaps:true});
+      if (measEntries.some(e=>e.boneKg)) datasets.push({label:'Masa kostna (kg)',data:measEntries.map(e=>e.boneKg||null),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.06)',pointBackgroundColor:'#f59e0b',pointRadius:4,tension:0.3,spanGaps:true});
+      measCharts['chart-kompozycja'] = new Chart(document.getElementById('chart-kompozycja'), {
+        type:'line', data:{labels, datasets}, options:chartDefaults
+      });
+    }
+    // stats cards
+    const last = measEntries[measEntries.length-1];
+    const first = measEntries[0];
+    const statsEl = document.getElementById('meas-stats-cards');
+    const cards = [
+      {l:'Masa mięśniowa', v:last.muscleKg, unit:'kg', prev:first.muscleKg, good:'up'},
+      {l:'Masa tłuszczowa', v:last.fatKg, unit:'kg', prev:first.fatKg, good:'down'},
+      {l:'% Tłuszczu', v:last.fatPct, unit:'%', prev:first.fatPct, good:'down'},
+      {l:'Masa kostna', v:last.boneKg, unit:'kg', prev:first.boneKg, good:'up'},
+      {l:'% Wody', v:last.waterPct, unit:'%', prev:first.waterPct, good:'up'},
+      {l:'Wiek metaboliczny', v:last.metAge, unit:'l', prev:first.metAge, good:'down'},
+    ].filter(c=>c.v);
+    statsEl.innerHTML = cards.map(c=>{
+      const diff = c.prev ? (c.v-c.prev).toFixed(1) : null;
+      const isGood = diff ? (c.good==='down'? diff<0 : diff>0) : null;
+      const color = diff===null?'var(--tx)': isGood?'var(--gr)':'var(--ac)';
+      const sign = diff>0?'+':'';
+      return `<div class="meas-stat-card">
+        <div class="meas-stat-label">${c.l}</div>
+        <div class="meas-stat-val" style="color:${color}">${c.v}${c.unit}</div>
+        ${diff!==null?`<div class="meas-stat-delta" style="color:${color}">${sign}${diff} od początku</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // OBWODY
+  if (measCurrentChart==='obwody') {
+    destroyChart('chart-obwody');
+    const obwody = [
+      {key:'waist',label:'Talia',color:'#e8302a'},
+      {key:'hips',label:'Biodra',color:'#f59e0b'},
+      {key:'chest',label:'Klatka',color:'#60a5fa'},
+      {key:'thighL',label:'Udo L',color:'#4ade80'},
+      {key:'bicepL',label:'Biceps L',color:'#a78bfa'},
+      {key:'neck',label:'Szyja',color:'#34d399'},
+    ];
+    const datasets = obwody.filter(o=>measEntries.some(e=>e[o.key])).map(o=>({
+      label:o.label, data:measEntries.map(e=>e[o.key]||null),
+      borderColor:o.color, backgroundColor:o.color+'15',
+      pointBackgroundColor:o.color, pointRadius:3, tension:0.3, spanGaps:true
+    }));
+    if (datasets.length) {
+      measCharts['chart-obwody'] = new Chart(document.getElementById('chart-obwody'), {
+        type:'line', data:{labels, datasets}, options:chartDefaults
+      });
+    }
+  }
+
+  // OVERVIEW
+  if (measCurrentChart==='overview') {
+    const last = measEntries[measEntries.length-1];
+    const first = measEntries[0];
+    const ov = document.getElementById('meas-overview-cards');
+    const items = [
+      {l:'Waga',v:last.weight,u:'kg',p:first.weight,good:'up'},
+      {l:'% Tłuszczu',v:last.fatPct,u:'%',p:first.fatPct,good:'down'},
+      {l:'Mięśnie',v:last.muscleKg,u:'kg',p:first.muscleKg,good:'up'},
+      {l:'Talia',v:last.waist,u:'cm',p:first.waist,good:'down'},
+      {l:'Biodra',v:last.hips,u:'cm',p:first.hips,good:'down'},
+      {l:'BMI',v:last.bmi,u:'',p:first.bmi,good:'down'},
+      {l:'Woda',v:last.waterPct,u:'%',p:first.waterPct,good:'up'},
+      {l:'BMR',v:last.bmr,u:'kcal',p:first.bmr,good:'up'},
+    ].filter(c=>c.v);
+    ov.innerHTML = items.map(c=>{
+      const diff = c.p ? (c.v-c.p).toFixed(1) : null;
+      const isGood = diff ? (c.good==='down'?diff<0:diff>0) : null;
+      const color = diff===null?'var(--bl)': isGood?'var(--gr)':'var(--ac)';
+      const sign = parseFloat(diff)>0?'+':'';
+      return `<div class="meas-stat-card">
+        <div class="meas-stat-label">${c.l}</div>
+        <div class="meas-stat-val" style="color:${color}">${c.v}${c.u}</div>
+        ${diff!==null?`<div class="meas-stat-delta" style="color:${color}">${sign}${diff} od 1. pomiaru</div>`:''}
+      </div>`;
+    }).join('');
+    // radar
+    destroyChart('chart-radar');
+    if (measEntries.length >= 2) {
+      const radarKeys = ['weight','fatPct','muscleKg','waist','waterPct','bmr'];
+      const radarLabels = ['Waga','% Tłuszczu','Mięśnie','Talia','Woda %','BMR'];
+      const normalize = (val,min,max) => val ? Math.round(((val-min)/(max-min))*10) : 5;
+      const firstData = [
+        normalize(first.weight,50,120), normalize(first.fatPct,5,40),
+        normalize(first.muscleKg,20,80), normalize(first.waist,60,120),
+        normalize(first.waterPct,45,70), normalize(first.bmr,1200,2800)
+      ];
+      const lastData = [
+        normalize(last.weight,50,120), normalize(last.fatPct,5,40),
+        normalize(last.muscleKg,20,80), normalize(last.waist,60,120),
+        normalize(last.waterPct,45,70), normalize(last.bmr,1200,2800)
+      ];
+      measCharts['chart-radar'] = new Chart(document.getElementById('chart-radar'), {
+        type:'radar', data:{
+          labels:radarLabels,
+          datasets:[
+            {label:'Pierwszy pomiar',data:firstData,borderColor:'rgba(96,165,250,0.5)',backgroundColor:'rgba(96,165,250,0.06)',pointBackgroundColor:'#60a5fa'},
+            {label:'Ostatni pomiar',data:lastData,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.08)',pointBackgroundColor:'#4ade80'}
+          ]
+        }, options:{
+          responsive:true,
+          plugins:{legend:{labels:{color:'#888',font:{size:11}}}},
+          scales:{r:{ticks:{display:false},grid:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#888',font:{size:11}}}}
+        }
+      });
+    }
+  }
+}
+
+function destroyChart(id) {
+  if (measCharts[id]) { measCharts[id].destroy(); delete measCharts[id]; }
 }</script>
 </body>
 </html>

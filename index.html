@@ -959,7 +959,20 @@ async function sendMessage(userMsg) {
   const typing = document.getElementById('typing');
   typing.classList.add('visible');
   scrollToBottom();
+  // Buduj wiadomość z obrazami z bazy wiedzy jeśli są
+const images = knowledgeBase.filter(d => d.type === 'image');
+if (images.length > 0) {
+  const parts = [];
+  images.forEach(img => {
+    const b64 = img.content.replace('[IMAGE]','').split(',')[1];
+    const mt = img.content.replace('[IMAGE]','').split(';')[0].split(':')[1] || 'image/jpeg';
+    parts.push({type:'image', source:{type:'base64', media_type:mt, data:b64}});
+  });
+  parts.push({type:'text', text:message});
+  conversationHistory.push({ role:'user', content:parts });
+} else {
   conversationHistory.push({ role:'user', content:message });
+}
   try {
     const response = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
       method:'POST',

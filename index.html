@@ -1073,6 +1073,7 @@ function openBodyAssessment() {
 function closeBodyAssessment() {
   document.getElementById('screen-body').style.display = 'none';
   document.getElementById('chat-area').style.display = 'block';
+  document.getElementById('chat-area').style.flex = '1';
   document.getElementById('typing').style.display = '';
   document.querySelector('.input-area').style.display = 'block';
 }
@@ -1228,6 +1229,7 @@ function openMeasurements() {
 function closeMeasurements() {
   document.getElementById('screen-measurements').style.display = 'none';
   document.getElementById('chat-area').style.display = 'block';
+  document.getElementById('chat-area').style.flex = '1';
   document.getElementById('typing').style.display = '';
   document.querySelector('.input-area').style.display = 'block';
 }

@@ -344,10 +344,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     </div>
 <!-- YOUTUBE -->
 <div style="background:rgba(255,0,0,0.06);border:1px solid rgba(255,0,0,0.15);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
-  <div style="font-size:9px;color:#ff4444;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">▶ Dodaj film YouTube</div>
+  <div style="font-size:9px;color:#ff4444;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">content: `Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:
+
+${url}</div>
   <div style="display:flex;gap:6px;">
-    <input type="text" id="yt-url" placeholder="https://youtube.com/watch?v=..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:7px 9px;color:#f0ece6;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
-    <button onclick="addYouTube()" style="background:#ff4444;border:none;border-radius:6px;padding:7px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">▶ Pobierz</button>
+    <input type="text" id="yt-url" placeholder="Wklej transkrypcję lub napisy z YouTube..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:7px 9px;color:#f0ece6;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+    <button onclick="addYouTube()" style="background:#ff4444;border:none;border-radius:6px;padding:7px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">📝 Twórz notatki</button>
   </div>
   <div id="yt-status" style="font-size:10px;color:#888;font-family:'DM Mono',monospace;margin-top:5px;display:none;"></div>
 </div>

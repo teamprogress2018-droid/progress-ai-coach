@@ -601,7 +601,132 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         <div id="ba-result" style="display:none;"></div>
       </div>
     </div>
+  </div><!-- EKRAN: POMIARY -->
+<div id="screen-measurements" style="display:none;flex:1;overflow-y:auto;padding:20px;">
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <button onclick="closeMeasurements()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--bl);">SKŁAD CIAŁA & POSTĘPY</div>
+    <div id="meas-client-tag" style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;"></div>
+    <button onclick="openAddMeasurement()" style="margin-left:auto;background:var(--bl);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Dodaj pomiar</button>
   </div>
+
+  <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="meas-chart-btn active" onclick="measSwitchChart('waga',this)">⚖️ Waga & tłuszcz</button>
+    <button class="meas-chart-btn" onclick="measSwitchChart('kompozycja',this)">💪 Kompozycja ciała</button>
+    <button class="meas-chart-btn" onclick="measSwitchChart('obwody',this)">📐 Obwody ciała</button>
+    <button class="meas-chart-btn" onclick="measSwitchChart('overview',this)">📊 Przegląd</button>
+  </div>
+
+  <div id="meas-chart-waga" class="meas-chart-panel" style="display:block;">
+    <div class="meas-chart-card">
+      <div class="meas-chart-title">Waga ciała (kg)</div>
+      <canvas id="chart-waga" height="180"></canvas>
+    </div>
+    <div class="meas-chart-card" style="margin-top:12px;">
+      <div class="meas-chart-title">% Tkanki tłuszczowej</div>
+      <canvas id="chart-fat" height="180"></canvas>
+    </div>
+  </div>
+
+  <div id="meas-chart-kompozycja" class="meas-chart-panel" style="display:none;">
+    <div class="meas-chart-card">
+      <div class="meas-chart-title">Masa mięśniowa vs tłuszczowa (kg)</div>
+      <canvas id="chart-kompozycja" height="220"></canvas>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;" id="meas-stats-cards"></div>
+  </div>
+
+  <div id="meas-chart-obwody" class="meas-chart-panel" style="display:none;">
+    <div class="meas-chart-card">
+      <div class="meas-chart-title">Obwody ciała (cm)</div>
+      <canvas id="chart-obwody" height="240"></canvas>
+    </div>
+  </div>
+
+  <div id="meas-chart-overview" class="meas-chart-panel" style="display:none;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;" id="meas-overview-cards"></div>
+    <div class="meas-chart-card">
+      <div class="meas-chart-title">Zmiany od pierwszego pomiaru</div>
+      <canvas id="chart-radar" height="260"></canvas>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--tx2);margin-bottom:10px;">HISTORIA POMIARÓW</div>
+    <div id="meas-history-list"></div>
+  </div>
+</div>
+
+<!-- MODAL: DODAJ POMIAR -->
+<div id="meas-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;overflow-y:auto;padding:20px;">
+  <div style="max-width:620px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--bl);">NOWY POMIAR</div>
+      <button onclick="closeMeasModal()" style="background:none;border:none;color:var(--tx2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div class="meas-section-label">📅 DATA POMIARU</div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Data</label><input type="date" id="mf-date"></div>
+        <div class="meas-fg"><label>Pora dnia</label>
+          <select id="mf-time">
+            <option value="rano">Rano (na czczo)</option>
+            <option value="południe">Południe</option>
+            <option value="wieczór">Wieczór</option>
+          </select>
+        </div>
+      </div>
+      <div class="meas-section-label">⚖️ DANE Z WAGI TANITA</div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Waga (kg)</label><input type="number" id="mf-weight" placeholder="75.5" step="0.1"></div>
+        <div class="meas-fg"><label>BMI</label><input type="number" id="mf-bmi" placeholder="23.4" step="0.1"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>% Tkanki tłuszczowej</label><input type="number" id="mf-fat-pct" placeholder="18.5" step="0.1"></div>
+        <div class="meas-fg"><label>Masa tłuszczowa (kg)</label><input type="number" id="mf-fat-kg" placeholder="14.0" step="0.1"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Masa mięśniowa (kg)</label><input type="number" id="mf-muscle-kg" placeholder="58.0" step="0.1"></div>
+        <div class="meas-fg"><label>Masa kostna (kg)</label><input type="number" id="mf-bone-kg" placeholder="3.2" step="0.1"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>% Wody w ciele</label><input type="number" id="mf-water-pct" placeholder="62.0" step="0.1"></div>
+        <div class="meas-fg"><label>BMR (kcal)</label><input type="number" id="mf-bmr" placeholder="1820" step="1"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Wiek metaboliczny</label><input type="number" id="mf-met-age" placeholder="28" step="1"></div>
+        <div class="meas-fg"><label>Trzewna tkanka tłuszczowa</label><input type="number" id="mf-visceral" placeholder="4" step="1"></div>
+      </div>
+      <div class="meas-section-label" style="margin-top:16px;">📐 OBWODY CIAŁA (cm)</div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Szyja</label><input type="number" id="mf-neck" placeholder="38" step="0.5"></div>
+        <div class="meas-fg"><label>Klatka piersiowa</label><input type="number" id="mf-chest" placeholder="98" step="0.5"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Talia</label><input type="number" id="mf-waist" placeholder="82" step="0.5"></div>
+        <div class="meas-fg"><label>Biodra</label><input type="number" id="mf-hips" placeholder="95" step="0.5"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Udo lewe (cm)</label><input type="number" id="mf-thigh-l" placeholder="55" step="0.5"></div>
+        <div class="meas-fg"><label>Udo prawe (cm)</label><input type="number" id="mf-thigh-r" placeholder="55" step="0.5"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Łydka lewa (cm)</label><input type="number" id="mf-calf-l" placeholder="36" step="0.5"></div>
+        <div class="meas-fg"><label>Łydka prawa (cm)</label><input type="number" id="mf-calf-r" placeholder="36" step="0.5"></div>
+      </div>
+      <div class="meas-form-row">
+        <div class="meas-fg"><label>Biceps lewy (cm)</label><input type="number" id="mf-bicep-l" placeholder="34" step="0.5"></div>
+        <div class="meas-fg"><label>Biceps prawy (cm)</label><input type="number" id="mf-bicep-r" placeholder="34" step="0.5"></div>
+      </div>
+      <div class="meas-fg" style="margin-top:8px;"><label>Notatki do pomiaru</label><textarea id="mf-notes" rows="2" placeholder="np. Po wakacjach, wrócił do treningów..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button onclick="closeMeasModal()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 20px;color:var(--tx2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Anuluj</button>
+        <button onclick="saveMeasurement()" style="flex:1;background:var(--bl);border:none;border-radius:8px;padding:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">💾 Zapisz pomiar</button>
+      </div>
+    </div>
+  </div>
+</div>
   <div class="typing-indicator" id="typing">
     <div style="width:32px;height:32px;border-radius:50%;background:rgba(232,48,42,0.15);color:var(--ac);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">AI</div>
     <div class="typing-dots"><span></span><span></span><span></span></div>

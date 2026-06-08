@@ -1033,10 +1033,10 @@ const baPhotos = {front:null,side:null,back:null};
 let baGoal = 'masa';
 
 function openBodyAssessment() {
-  document.querySelector('.main').style.display = 'flex';
   document.getElementById('chat-area').style.display = 'none';
   document.getElementById('typing').style.display = 'none';
   document.querySelector('.input-area').style.display = 'none';
+  if (document.getElementById('screen-measurements')) document.getElementById('screen-measurements').style.display = 'none';
   document.getElementById('screen-body').style.display = 'block';
   // prefill z profilu klienta
   const n = document.getElementById('client-name').value;

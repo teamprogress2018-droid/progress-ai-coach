@@ -69,6 +69,33 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .quick-btns{display:flex;flex-direction:column;gap:5px;}
 .quick-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--tx);font-size:11px;cursor:pointer;text-align:left;transition:all 0.15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px;}
 .quick-btn:hover{background:rgba(232,48,42,0.08);border-color:var(--ac);color:var(--ac);}
+/* ACCORDION */
+.acc-header{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px;transition:all 0.15s;user-select:none;}
+.acc-header:hover{background:rgba(232,48,42,0.06);border-color:rgba(232,48,42,0.3);color:var(--ac);}
+.acc-arrow{font-size:12px;transition:transform 0.2s;}
+.acc-arrow.closed{transform:rotate(-90deg);}
+.acc-body{margin-bottom:8px;padding:2px 0;}
+.acc-body.hidden{display:none;}
+/* FORM HELPERS */
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fg-row .fg{margin-bottom:10px;}
+/* CHECKBOXES */
+.check-group{display:flex;flex-direction:column;gap:5px;padding:4px 0;}
+.chk{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);cursor:pointer;}
+.chk input[type=checkbox]{width:13px;height:13px;accent-color:var(--ac);cursor:pointer;flex-shrink:0;}
+.chk:hover{color:var(--tx);}
+/* SLIDER */
+.slider-row{display:flex;align-items:center;gap:10px;}
+.slider-row input[type=range]{flex:1;accent-color:var(--ac);height:3px;cursor:pointer;}
+.slider-val{font-size:11px;color:var(--tx2);white-space:nowrap;min-width:90px;font-family:'DM Mono',monospace;}
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;gap:10px;padding:4px 0;}
+.toggle{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border);border-radius:99px;transition:0.2s;cursor:pointer;}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:var(--tx3);border-radius:50%;transition:0.2s;}
+.toggle input:checked+.toggle-slider{background:rgba(232,48,42,0.2);border-color:var(--ac);}
+.toggle input:checked+.toggle-slider::before{transform:translateX(16px);background:var(--ac);}
 /* MAIN */
 .main{display:flex;flex-direction:column;overflow:hidden;position:relative;}
 .chat-area{flex:1;overflow-y:auto;padding:20px;padding-bottom:90px;scroll-behavior:smooth;}
@@ -231,37 +258,185 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 
   <!-- PANEL: KLIENT -->
   <div class="sidebar-panel active" id="panel-profil">
-    <div class="section-title">Profil klienta</div>
-    <div class="fg"><label>Imię klienta</label><input type="text" id="client-name" placeholder="np. Anna Kowalska"></div>
-    <div class="fg"><label>Wiek / Płeć</label><input type="text" id="client-age" placeholder="np. 28 lat, kobieta"></div>
-    <div class="fg"><label>Cel treningowy</label>
-      <select id="client-goal">
-        <option value="">— Wybierz cel —</option>
-        <option value="redukcja tkanki tłuszczowej">🔥 Redukcja tłuszczu</option>
-        <option value="budowa masy mięśniowej">💪 Budowa masy</option>
-        <option value="poprawa kondycji i wytrzymałości">🏃 Kondycja</option>
-        <option value="rehabilitacja i powrót do sprawności">🩺 Rehabilitacja</option>
-        <option value="ogólna poprawa zdrowia">❤️ Zdrowie ogólne</option>
-        <option value="przygotowanie do zawodów">🏆 Zawody</option>
-      </select>
+
+    <!-- SEKCJA 1: PROFIL PODSTAWOWY -->
+    <div class="acc-header" onclick="toggleAcc('acc-podstawowy')">
+      <span>👤 Profil podstawowy</span><span class="acc-arrow" id="arr-podstawowy">▾</span>
     </div>
-    <div class="fg"><label>Poziom zaawansowania</label>
-      <select id="client-level">
-        <option value="początkujący (brak doświadczenia)">🌱 Początkujący</option>
-        <option value="średniozaawansowany (1-2 lata)">⚡ Średniozaawansowany</option>
-        <option value="zaawansowany (3+ lata)">🔥 Zaawansowany</option>
-      </select>
+    <div class="acc-body" id="acc-podstawowy">
+      <div class="fg"><label>Imię klienta</label><input type="text" id="client-name" placeholder="np. Anna Kowalska"></div>
+      <div class="fg-row">
+        <div class="fg"><label>Wiek</label><input type="number" id="client-age-num" placeholder="28" min="10" max="80"></div>
+        <div class="fg"><label>Płeć</label>
+          <select id="client-gender">
+            <option value="mężczyzna">♂ Mężczyzna</option>
+            <option value="kobieta">♀ Kobieta</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Waga (kg)</label><input type="number" id="client-weight" placeholder="75" step="0.5"></div>
+        <div class="fg"><label>Wzrost (cm)</label><input type="number" id="client-height" placeholder="175"></div>
+      </div>
+      <div class="fg"><label>Szacowany % tkanki tłuszczowej</label>
+        <select id="client-bf">
+          <option value="">— Opcjonalnie —</option>
+          <option value="bardzo niski (<10% M / <18% K)">Bardzo niski (&lt;10% M / &lt;18% K)</option>
+          <option value="niski (10-15% M / 18-23% K)">Niski (10-15% M / 18-23% K)</option>
+          <option value="średni (15-20% M / 23-28% K)">Średni (15-20% M / 23-28% K)</option>
+          <option value="wysoki (20-25% M / 28-33% K)">Wysoki (20-25% M / 28-33% K)</option>
+          <option value="bardzo wysoki (>25% M / >33% K)">Bardzo wysoki (&gt;25% M / &gt;33% K)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Cel treningowy</label>
+        <select id="client-goal">
+          <option value="">— Wybierz cel —</option>
+          <option value="redukcja tkanki tłuszczowej">🔥 Redukcja tłuszczu</option>
+          <option value="budowa masy mięśniowej">💪 Budowa masy</option>
+          <option value="poprawa kondycji i wytrzymałości">🏃 Kondycja</option>
+          <option value="rehabilitacja i powrót do sprawności">🩺 Rehabilitacja</option>
+          <option value="ogólna poprawa zdrowia">❤️ Zdrowie ogólne</option>
+          <option value="przygotowanie do zawodów">🏆 Zawody</option>
+        </select>
+      </div>
+      <div class="fg"><label>Priorytetowa partia mięśniowa</label>
+        <select id="client-priority">
+          <option value="">— Brak priorytetu —</option>
+          <option value="klatka piersiowa">🫁 Klatka piersiowa</option>
+          <option value="plecy (szerokość i grubość)">🔙 Plecy</option>
+          <option value="ramiona (biceps/triceps)">💪 Ramiona</option>
+          <option value="barki (deltoid)">🏋️ Barki</option>
+          <option value="nogi (czworogłowe)">🦵 Nogi / czworogłowe</option>
+          <option value="pośladki i dwugłowe uda">🍑 Pośladki</option>
+          <option value="core i brzuch">⭕ Core / brzuch</option>
+          <option value="poprawa postawy ciała">🧍 Poprawa postawy</option>
+        </select>
+      </div>
     </div>
-    <div class="fg"><label>Ograniczenia / Kontuzje</label><textarea id="client-limits" rows="2" placeholder="np. ból kolan, brak czasu rano..."></textarea></div>
-    <div class="fg"><label>Sprzęt / Miejsce</label>
-      <select id="client-equipment">
-        <option value="siłownia z pełnym wyposażeniem">🏋️ Pełna siłownia</option>
-        <option value="trening w domu bez sprzętu">🏠 Dom (bez sprzętu)</option>
-        <option value="trening w domu z hantlami">🏠 Dom + hantle</option>
-        <option value="trening na świeżym powietrzu">🌿 Na zewnątrz</option>
-      </select>
+
+    <!-- SEKCJA 2: STAŻ & ZDROWIE -->
+    <div class="acc-header" onclick="toggleAcc('acc-staz')">
+      <span>🏥 Staż & Zdrowie</span><span class="acc-arrow" id="arr-staz">▾</span>
     </div>
-    <div class="fg"><label>Dodatkowe uwagi</label><textarea id="client-notes" rows="2" placeholder="np. pracuje zmianowo, stresuje się w pracy..."></textarea></div>
+    <div class="acc-body" id="acc-staz">
+      <div class="fg"><label>Staż treningowy</label>
+        <select id="client-level">
+          <option value="brak doświadczenia (debiutant, pierwsze miesiące)">🌱 Debiutant (&lt;6 mies.)</option>
+          <option value="początkujący (6-12 miesięcy treningu)">🌿 Początkujący (6-12 mies.)</option>
+          <option value="średniozaawansowany (1-3 lata regularnego treningu)">⚡ Średni (1-3 lata)</option>
+          <option value="zaawansowany (3-5 lat regularnego treningu)">🔥 Zaawansowany (3-5 lat)</option>
+          <option value="bardzo zaawansowany (5+ lat regularnego treningu)">💎 Ekspert (5+ lat)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Wady postawy</label>
+        <div class="check-group">
+          <label class="chk"><input type="checkbox" id="post-lordoza"> Hiperlordoza lędźwiowa</label>
+          <label class="chk"><input type="checkbox" id="post-kifoza"> Kifoza piersiowa</label>
+          <label class="chk"><input type="checkbox" id="post-kolana"> Koślawość kolan</label>
+          <label class="chk"><input type="checkbox" id="post-barki"> Wysunięte barki/głowa</label>
+        </div>
+      </div>
+      <div class="fg"><label>Wykluczone ruchy / kontuzje</label>
+        <div class="check-group">
+          <label class="chk"><input type="checkbox" id="excl-spine"> Osiowe obciążenie kręgosłupa</label>
+          <label class="chk"><input type="checkbox" id="excl-overhead"> Ruchy nad głowę</label>
+          <label class="chk"><input type="checkbox" id="excl-squat"> Głęboki przysiad</label>
+          <label class="chk"><input type="checkbox" id="excl-deadlift"> Martwy ciąg klasyczny</label>
+          <label class="chk"><input type="checkbox" id="excl-impact"> High-impact / bieganie</label>
+        </div>
+      </div>
+      <div class="fg"><label>Inne ograniczenia / uwagi zdrowotne</label><textarea id="client-limits" rows="2" placeholder="np. bóle kolan, rwas kulszowy, po operacji..."></textarea></div>
+    </div>
+
+    <!-- SEKCJA 3: STYL ŻYCIA -->
+    <div class="acc-header" onclick="toggleAcc('acc-styl')">
+      <span>🌙 Styl życia</span><span class="acc-arrow" id="arr-styl">▾</span>
+    </div>
+    <div class="acc-body" id="acc-styl">
+      <div class="fg"><label>Rodzaj pracy (NEAT)</label>
+        <select id="client-job">
+          <option value="praca siedząca (biuro, komputer)">💺 Siedząca (biuro)</option>
+          <option value="praca stojąca lub mieszana">🚶 Stojąca / mieszana</option>
+          <option value="praca fizyczna (aktywna)">⛏ Fizyczna / aktywna</option>
+        </select>
+      </div>
+      <div class="fg"><label>Jakość snu</label>
+        <div class="slider-row">
+          <input type="range" id="client-sleep" min="1" max="5" value="3" oninput="updateSlider('client-sleep','sleep-val',['😴 Fatalny','😕 Słaby','😐 Średni','🙂 Dobry','😊 Świetny'])">
+          <span class="slider-val" id="sleep-val">😐 Średni</span>
+        </div>
+      </div>
+      <div class="fg"><label>Poziom stresu</label>
+        <div class="slider-row">
+          <input type="range" id="client-stress" min="1" max="5" value="3" oninput="updateSlider('client-stress','stress-val',['🧘 Brak','😌 Niski','😐 Średni','😤 Wysoki','🤯 Bardzo wysoki'])">
+          <span class="slider-val" id="stress-val">😐 Średni</span>
+        </div>
+      </div>
+      <div class="fg"><label>Praca zmianowa / nocki</label>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="client-shifts"><span class="toggle-slider"></span></label>
+          <span style="font-size:11px;color:var(--tx2);">Tak — praca zmianowa lub nocna</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKCJA 4: LOGISTYKA TRENINGU -->
+    <div class="acc-header" onclick="toggleAcc('acc-logistyka')">
+      <span>⚙️ Logistyka treningu</span><span class="acc-arrow" id="arr-logistyka">▾</span>
+    </div>
+    <div class="acc-body" id="acc-logistyka">
+      <div class="fg"><label>Sprzęt / Miejsce</label>
+        <select id="client-equipment">
+          <option value="siłownia z pełnym wyposażeniem">🏋️ Pełna siłownia</option>
+          <option value="siłownia z podstawowym sprzętem (sztangi, hantle, maszyny)">🏋️ Siłownia podstawowa</option>
+          <option value="trening w domu bez sprzętu">🏠 Dom (bez sprzętu)</option>
+          <option value="trening w domu z hantlami i gumami">🏠 Dom + hantle/gumy</option>
+          <option value="trening na świeżym powietrzu">🌿 Na zewnątrz</option>
+        </select>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Dni treningowe / tydzień</label>
+          <select id="client-days">
+            <option value="">— Wybierz —</option>
+            <option value="2 dni w tygodniu">2 dni</option>
+            <option value="3 dni w tygodniu">3 dni</option>
+            <option value="4 dni w tygodniu">4 dni</option>
+            <option value="5 dni w tygodniu">5 dni</option>
+            <option value="6 dni w tygodniu">6 dni</option>
+          </select>
+        </div>
+        <div class="fg"><label>Czas treningu</label>
+          <select id="client-duration">
+            <option value="">— Wybierz —</option>
+            <option value="30 minut na trening">30 min</option>
+            <option value="45 minut na trening">45 min</option>
+            <option value="60 minut na trening">60 min</option>
+            <option value="75 minut na trening">75 min</option>
+            <option value="90+ minut na trening">90+ min</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Preferowany podział treningowy</label>
+        <select id="client-split">
+          <option value="pozwól wybrać AI optymalny podział">🤖 Wybierz za mnie (AI)</option>
+          <option value="FBW (Full Body Workout)">FBW — Full Body</option>
+          <option value="Upper/Lower Split">Upper / Lower</option>
+          <option value="Push/Pull/Legs (PPL)">Push / Pull / Legs</option>
+          <option value="Split 4-dniowy (A/B/C/D)">Split 4-dniowy</option>
+          <option value="Bro Split (1 partia / sesja)">Bro Split</option>
+        </select>
+      </div>
+      <div class="fg"><label>Metody intensyfikacji (zaznacz dostępne)</label>
+        <div class="check-group">
+          <label class="chk"><input type="checkbox" id="met-dropset"> Drop-sety</label>
+          <label class="chk"><input type="checkbox" id="met-super"> Super-serie</label>
+          <label class="chk"><input type="checkbox" id="met-rir"> RPE / RIR (skala intensywności)</label>
+          <label class="chk"><input type="checkbox" id="met-hiit"> HIIT / interwały</label>
+          <label class="chk"><input type="checkbox" id="met-circuit"> Trening obwodowy</label>
+        </div>
+      </div>
+    </div>
+
     <div class="section-title" style="margin-top:14px">Tryb asystenta</div>
     <div class="mode-grid">
       <button class="mode-btn active" onclick="setMode('trening',this)">💪<br>Plan Treningowy</button>
@@ -540,6 +715,10 @@ const modeLabels={trening:'💪 Trening',dieta:'🥗 Dieta',motywacja:'🧠 Moty
 const modePrompts={trening:'Jesteś ekspertem w treningu personalnym. Tworzysz skuteczne plany treningowe, dobierasz ćwiczenia i progresję obciążeń.',dieta:'Jesteś ekspertem w żywieniu sportowym. Tworzysz plany żywieniowe i edukujesz o odżywianiu.',motywacja:'Jesteś ekspertem w psychologii sportu i coachingu. Pomagasz radzić sobie z trudnymi sytuacjami z klientami.',analiza:'Jesteś ekspertem w analizie postępów. Oceniasz wyniki, identyfikujesz problemy i dostosowujesz programy.'};
 
 function showSideTab(tab,btn){document.querySelectorAll('.sidebar-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');btn.classList.add('active');}
+
+function toggleAcc(id){const body=document.getElementById(id);const arrow=document.getElementById('arr-'+id.replace('acc-',''));body.classList.toggle('hidden');arrow.classList.toggle('closed');}
+
+function updateSlider(inputId,valId,labels){const val=parseInt(document.getElementById(inputId).value);document.getElementById(valId).textContent=labels[val-1]||val;}
 function setMode(mode,btn){currentMode=mode;document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('mode-badge').textContent=modeLabels[mode];}
 function savePhilosophy(){document.getElementById('saved-badge').classList.add('show');setTimeout(()=>document.getElementById('saved-badge').classList.remove('show'),2000);}
 
@@ -547,7 +726,80 @@ function getPhilosophy(){const m=document.getElementById('phil-methodology').val
 
 function getKnowledgeContext(){if(knowledgeBase.length===0)return '';let ctx='\n\n===BAZA WIEDZY TRENERA===';knowledgeBase.forEach(doc=>{if(doc.type==='image'){ctx+=`\n\n[OBRAZ: ${doc.title}]: (zdjęcie dostępne w bazie)`;}else{ctx+=`\n\n[${doc.title}]:\n${doc.content.substring(0,1500)}`;}});ctx+='\n===KONIEC BAZY WIEDZY===';return ctx;}
 
-function getClientProfile(){const name=document.getElementById('client-name').value,age=document.getElementById('client-age').value,goal=document.getElementById('client-goal').value,level=document.getElementById('client-level').value,limits=document.getElementById('client-limits').value,equipment=document.getElementById('client-equipment').value,notes=document.getElementById('client-notes').value;if(!name&&!goal)return '';let p='\n\n===PROFIL KLIENTA===';if(name)p+=`\nImię: ${name}`;if(age)p+=`\nWiek/Płeć: ${age}`;if(goal)p+=`\nCel: ${goal}`;if(level)p+=`\nPoziom: ${level}`;if(limits)p+=`\nOgraniczenia: ${limits}`;if(equipment)p+=`\nSprzęt: ${equipment}`;if(notes)p+=`\nUwagi: ${notes}`;p+='\n===KONIEC PROFILU===';return p;}
+function getClientProfile(){
+  const name=document.getElementById('client-name').value;
+  const ageNum=document.getElementById('client-age-num').value;
+  const gender=document.getElementById('client-gender').value;
+  const weight=document.getElementById('client-weight').value;
+  const height=document.getElementById('client-height').value;
+  const bf=document.getElementById('client-bf').value;
+  const goal=document.getElementById('client-goal').value;
+  const priority=document.getElementById('client-priority').value;
+  const level=document.getElementById('client-level').value;
+  const limits=document.getElementById('client-limits').value;
+  const equipment=document.getElementById('client-equipment').value;
+  const days=document.getElementById('client-days').value;
+  const duration=document.getElementById('client-duration').value;
+  const split=document.getElementById('client-split').value;
+  const job=document.getElementById('client-job').value;
+  const sleepEl=document.getElementById('client-sleep');
+  const stressEl=document.getElementById('client-stress');
+  const sleepLabels=['Fatalny','Słaby','Średni','Dobry','Świetny'];
+  const stressLabels=['Brak','Niski','Średni','Wysoki','Bardzo wysoki'];
+  const sleep=sleepLabels[(sleepEl?.value||3)-1];
+  const stress=stressLabels[(stressEl?.value||3)-1];
+  const shifts=document.getElementById('client-shifts')?.checked;
+  // posture
+  const posture=[];
+  if(document.getElementById('post-lordoza')?.checked) posture.push('hiperlordoza lędźwiowa');
+  if(document.getElementById('post-kifoza')?.checked) posture.push('kifoza piersiowa');
+  if(document.getElementById('post-kolana')?.checked) posture.push('koślawość kolan');
+  if(document.getElementById('post-barki')?.checked) posture.push('wysunięte barki/głowa');
+  // excluded moves
+  const excl=[];
+  if(document.getElementById('excl-spine')?.checked) excl.push('brak osiowego obciążenia kręgosłupa');
+  if(document.getElementById('excl-overhead')?.checked) excl.push('brak ruchów nad głowę');
+  if(document.getElementById('excl-squat')?.checked) excl.push('brak głębokiego przysiadu');
+  if(document.getElementById('excl-deadlift')?.checked) excl.push('brak martwego ciągu klasycznego');
+  if(document.getElementById('excl-impact')?.checked) excl.push('brak high-impact/biegania');
+  // methods
+  const methods=[];
+  if(document.getElementById('met-dropset')?.checked) methods.push('drop-sety');
+  if(document.getElementById('met-super')?.checked) methods.push('super-serie');
+  if(document.getElementById('met-rir')?.checked) methods.push('RPE/RIR');
+  if(document.getElementById('met-hiit')?.checked) methods.push('HIIT');
+  if(document.getElementById('met-circuit')?.checked) methods.push('trening obwodowy');
+  if(!name&&!goal) return '';
+  let p='\n\n===PROFIL KLIENTA===';
+  if(name) p+=`\nImię: ${name}`;
+  if(ageNum) p+=`\nWiek: ${ageNum} lat`;
+  if(gender) p+=`\nPłeć: ${gender}`;
+  if(weight) p+=`\nWaga: ${weight} kg`;
+  if(height) p+=`\nWzrost: ${height} cm`;
+  if(bf) p+=`\n% tkanki tłuszczowej: ${bf}`;
+  if(goal) p+=`\nCel: ${goal}`;
+  if(priority) p+=`\nPriorytetowa partia: ${priority}`;
+  if(level) p+=`\nStaż treningowy: ${level}`;
+  if(equipment) p+=`\nSprzęt/Miejsce: ${equipment}`;
+  if(days) p+=`\nDni treningowe: ${days}`;
+  if(duration) p+=`\nCzas treningu: ${duration}`;
+  if(split) p+=`\nPreferowany podział: ${split}`;
+  if(methods.length) p+=`\nDostępne metody intensyfikacji: ${methods.join(', ')}`;
+  p+=`\n\n--- Styl życia ---`;
+  if(job) p+=`\nRodzaj pracy (NEAT): ${job}`;
+  p+=`\nJakość snu: ${sleep}`;
+  p+=`\nPoziom stresu: ${stress}`;
+  if(shifts) p+=`\nPraca zmianowa/nocna: TAK — uwzględnij przy planowaniu dni treningowych`;
+  if(posture.length) p+=`\nWady postawy: ${posture.join(', ')} — uwzględnij ćwiczenia korygujące`;
+  if(excl.length) p+=`\nWYKLUCZONE RUCHY: ${excl.join(', ')} — OBOWIĄZKOWO zamień na bezpieczne alternatywy`;
+  if(limits) p+=`\nDodatkowe ograniczenia: ${limits}`;
+  // auto-adjust volume hint
+  const stressVal=parseInt(stressEl?.value||3);
+  const sleepVal=parseInt(sleepEl?.value||3);
+  if(stressVal>=4||sleepVal<=2) p+=`\nUWAGA: Wysoki stres (${stress}) i/lub słaby sen (${sleep}) — obniż objętość treningową o 15-20%, skróć serie robocze, priorytetyzuj regenerację`;
+  p+='\n===KONIEC PROFILU===';
+  return p;
+}
 
 function getSystemPrompt(){return `Jesteś zaawansowanym asystentem AI dla trenera personalnego Piotra Urbaniaka z Progress Training Studio we Wrocławiu.\n\n${modePrompts[currentMode]}\n\nZawsze odpowiadaj po polsku. Bądź konkretny, profesjonalny ale ciepły. Gdy tworzysz plany treningowe podawaj serie, powtórzenia i przerwy. Formatuj odpowiedzi czytelnie.\n\nWAŻNE: Odpowiadaj ZAWSZE zgodnie z filozofią trenera i uwzględniaj bazę wiedzy jeśli są dostępne.${getPhilosophy()}${getKnowledgeContext()}${getClientProfile()}`;}
 

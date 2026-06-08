@@ -339,8 +339,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
       <div class="upload-zone-icon">📄</div>
       <div class="upload-zone-text">Kliknij aby wgrać plik</div>
-      <div class="upload-zone-sub">TXT, MD, CSV (max 500KB)</div>
-      <input type="file" id="file-upload" style="display:none" accept=".txt,.md,.csv" onchange="handleFileUpload(event)">
+      <div class="upload-zone-sub">TXT, MD, CSV, PDF, DOC, JPG, PNG (max 5MB)</div>
+      <input type="file" id="file-upload" style="display:none" accept=".txt,.md,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onchange="handleFileUpload(event)">
     </div>
 
     <div class="or-divider">— lub wklej tekst —</div>
@@ -799,7 +799,11 @@ function getKnowledgeContext() {
   if (knowledgeBase.length === 0) return '';
   let ctx = '\n\n===BAZA WIEDZY TRENERA===';
   knowledgeBase.forEach(doc => {
-    ctx += `\n\n[${doc.title}]:\n${doc.content.substring(0, 1500)}`;
+    if (doc.type === 'image') {
+      ctx += `\n\n[OBRAZ: ${doc.title}]: (zdjęcie dostępne w bazie)`;
+    } else {
+      ctx += `\n\n[${doc.title}]:\n${doc.content.substring(0, 1500)}`;
+    }
   });
   ctx += '\n===KONIEC BAZY WIEDZY===';
   return ctx;
@@ -840,12 +844,60 @@ WAŻNE: Odpowiadaj ZAWSZE zgodnie z filozofią trenera i uwzględniaj jego bazę
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (file.size > 500000) { alert('Plik za duży! Max 500KB.'); return; }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    addToKnowledgeBase(file.name, e.target.result);
-  };
-  reader.readAsText(file);
+  if (file.size > 5000000) { alert('Plik za duży! Max 5MB.'); return; }
+  
+  const isImage = file.type.startsWith('image/');
+  const isPDF = file.type === 'application/pdf';
+  const isWord = file.name.endsWith('.docx') || file.name.endsWith('.doc');
+  
+  if (isImage) {
+    // Obrazy — wysyłamy do Claude Vision jako base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      addToKnowledgeBase(file.name, '[IMAGE]' + base64, 'image');
+    };
+    reader.readAsDataURL(file);
+  } else if (isPDF) {
+    // PDF — wyciągamy tekst przez Claude
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      try {
+        const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2000,
+            messages: [{
+              role: 'user',
+              content: [{
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+              }, {
+                type: 'text',
+                text: 'Wyciągnij i zwróć cały tekst z tego dokumentu. Zachowaj strukturę.'
+              }]
+            }]
+          })
+        });
+        const data = await resp.json();
+        const text = data.content?.[0]?.text || 'Nie udało się odczytać PDF.';
+        addToKnowledgeBase(file.name, text);
+      } catch(e) {
+        alert('Błąd odczytu PDF.');
+      }
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // TXT, MD, CSV, DOC — jako tekst
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      addToKnowledgeBase(file.name, e.target.result);
+    };
+    reader.readAsText(file);
+  }
   event.target.value = '';
 }
 
@@ -884,7 +936,7 @@ function renderKnowledgeBase() {
   list.innerHTML = '<div class="section-title" style="margin-bottom:8px">Dodane dokumenty</div>' +
     knowledgeBase.map(doc => `
       <div class="kb-item">
-        <div class="kb-icon">📄</div>
+        <div class="kb-icon">${doc.type === 'image' ? '🖼️' : doc.title.endsWith('.pdf') ? '📕' : '📄'}</div>
         <div class="kb-info">
           <div class="kb-name">${doc.title}</div>
           <div class="kb-meta">${doc.content.length} znaków</div>

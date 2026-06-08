@@ -250,7 +250,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <button class="stab" onclick="showSideTab('filozofia',this)">🧠 Filozofia</button>
     <button class="stab" onclick="showSideTab('wiedza',this)">📚 Wiedza</button>
     <button class="stab" onclick="showSideTab('akcje',this)">⚡ Akcje</button>
-    <button class="stab" onclick="showSideTab('sylwetka',this)">🏋️ Sylwetka</button><button class="stab" onclick="showSideTab('pomiary',this)">📏 Pomiary</button>
+    
   </div>
 
   <!-- PANEL: KLIENT -->
@@ -410,7 +410,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 </div>
 
 <!-- EKRAN: ANALIZA SYLWETKI -->
-  <div id="screen-body" style="display:none;flex:1;overflow-y:auto;padding:20px;">
+  <div id="screen-body" style="display:none;position:fixed;top:56px;left:300px;right:0;bottom:0;overflow-y:auto;padding:20px;background:var(--bg);z-index:100;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
       <button onclick="closeBodyAssessment()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ac);">OCENA SYLWETKI AI</div>
@@ -515,7 +515,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     </div>
   </div>
 <!-- EKRAN: ANALIZA SYLWETKI -->
-  <div id="screen-body" style="display:none;flex:1;overflow-y:auto;padding:20px;">
+  <div id="screen-body" style="display:none;position:fixed;top:56px;left:300px;right:0;bottom:0;overflow-y:auto;padding:20px;background:var(--bg);z-index:100;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
       <button onclick="closeBodyAssessment()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ac);">OCENA SYLWETKI AI</div>

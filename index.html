@@ -115,7 +115,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 @keyframes dot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
 
 /* INPUT */
-.input-area{padding:14px 20px 16px;background:var(--bg2);border-top:1px solid var(--border);}
+.input-area{padding:14px 20px 16px;background:var(--bg2);border-top:1px solid var(--border);position:fixed;bottom:0;left:300px;right:0;z-index:50;}
+.chat-area{padding-bottom:80px;}
 .input-wrap{display:flex;gap:10px;align-items:flex-end;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 12px;transition:border-color 0.15s;}
 .input-wrap:focus-within{border-color:rgba(232,48,42,0.4);}
 #chat-input{flex:1;background:none;border:none;outline:none;color:var(--tx);font-size:13px;font-family:'DM Sans',sans-serif;resize:none;max-height:120px;line-height:1.5;}

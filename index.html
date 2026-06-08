@@ -358,22 +358,24 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   </div>
 
   <!-- PANEL: AKCJE --><!-- PANEL: SYLWETKA AI -->
-  <div class="sidebar-panel" id="panel-sylwetka">
-    <div class="section-title">Ocena Sylwetki AI</div>
-    <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">
-      Wgraj zdjęcie klienta — AI przeanalizuje sylwetkę i da konkretne rekomendacje.
-    </p>
-    <button class="quick-btn" style="width:100%;justify-content:center;background:rgba(232,48,42,0.1);border-color:var(--ac);color:var(--ac);" onclick="openBodyAssessment()">
-      <span>📸</span> Otwórz analizę sylwetki
-    </button>
-    <div style="margin-top:14px;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;line-height:1.7;">
-      ✓ Analiza kompozycji ciała<br>
-      ✓ Ocena proporcji mięśniowych<br>
-      ✓ Szacowany % tkanki tłuszczowej<br>
-      ✓ Plan priorytetów NSCA/NASM<br>
-      ✓ Wskazówki treningowe i żywieniowe
-    </div>
-  </div><!-- PANEL: SYLWETKA AI -->
+ 
+  </div><!-- PANEL: SYLWETKA AI --><!-- PANEL: POMIARY -->
+<div class="sidebar-panel" id="panel-pomiary">
+  <div class="section-title">Skład ciała & obwody</div>
+  <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">
+    Śledź postępy klientów — dane z wagi Tanita, obwody ciała i wykresy trendów.
+  </p>
+  <button class="quick-btn" style="width:100%;justify-content:center;background:rgba(96,165,250,0.1);border-color:var(--bl);color:var(--bl);" onclick="openMeasurements()">
+    <span>📏</span> Otwórz pomiary & wykresy
+  </button>
+  <div style="margin-top:14px;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;line-height:1.8;">
+    ✓ Dane z wagi Tanita (BIA)<br>
+    ✓ Obwody ciała (10 punktów)<br>
+    ✓ Wykresy trendów w czasie<br>
+    ✓ Masa mięśniowa vs tłuszczowa<br>
+    ✓ Firebase — dane trwałe
+  </div>
+</div>
   <div class="sidebar-panel" id="panel-sylwetka">
     <div class="section-title">Ocena Sylwetki AI</div>
     <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">

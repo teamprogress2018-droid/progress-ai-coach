@@ -975,170 +975,38 @@ function buildPlanPrompt(weeks) {
     8: {'w1':'Adaptacja','w2':'Adaptacja','w3':'Hipertrofia I','w4':'Hipertrofia I','w5':'Hipertrofia II','w6':'Siła','w7':'Deload','w8':'Szczyt'}
   };
   const ph = phases[weeks] || phases[1];
-
-  const exTemplate = weekNames.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
-
   const progInstruction = getProgressionInstruction(weeks);
   const progLabel = PROGRESSION_LABELS[planProgression]?.name || 'Auto';
 
-  return `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS).
-Wygeneruj plan treningowy na ${weeks} ${weeks===1?'tydzień':'tygodnie/tygodni'} z metodą progresji: ${progLabel}.
-Odpowiedz WYŁĄCZNIE czystym JSON bez markdown i bez komentarzy.
+  // Compact example - shorter JSON template
+  const wEx = weekNames.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
+  const wuEx = `[{"name":"Krążenia bioder","emoji":"🔄","sets":"2x","reps":"10","note":"mobilizacja"},{"name":"Aktywacja pośladków","emoji":"🍑","sets":"2x","reps":"15","note":"mostek biodrowy"}]`;
 
-Format (przykład dla 1 ćwiczenia):
-{"planTitle":"nazwa","split":"FBW","sessionsPerWeek":3,"philosophy":"1 zdanie","progressionNotes":"zasady i metoda progresji","warmupProtocol":"rozgrzewka","cooldownProtocol":"wyciszenie","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","exercises":[{"name":"Wyciskanie sztangi",${exTemplate}}]}]}
+  return `Trener personalny NSCA CSCS. Wygeneruj plan ${weeks} tyg. Metoda: ${progLabel}.
+TYLKO czysty JSON, bez markdown.
 
-ZASADY PROGRESJI — OBOWIĄZKOWE:
-${progInstruction}
+FORMAT:
+{"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi",${wEx}}]}]}
 
-POZOSTAŁE ZASADY:
-- Każde ćwiczenie ma klucze ${weekNames.join(',')} z polami: s(serie), r(powtórzenia), rest(przerwa), rpe(RPE 1-10), kg(ciężar % lub kg)
-- Każdy tydzień MUSI mieć inne parametry${weeks>=4?'\n- Ostatni tydzień = Deload (mniej serii, RPE 5-6)':''}${weeks>=8?'\n- Tydzień 8 = Szczyt (max ciężar, RPE 9-10)':''}
-- Dodaj 4-6 ćwiczeń na sesję
-- Uwzględnij wykluczone ruchy i zamień na bezpieczne alternatywy
-- W polu progressionNotes opisz zastosowaną metodę progresji i jak ją stosować
-- Dla KAŻDEJ sesji dodaj pole warmupExercises (tablica 5-7 ćwiczeń rozgrzewkowych)
+PROGRESJA: ${progInstruction}
 
-Format warmupExercises dla każdego ćwiczenia sesji:
-{"name":"Krążenia bioder","emoji":"🔄","sets":"2×","reps":"10 każda strona","note":"Mobilizacja stawu biodrowego"}
+ROZGRZEWKA (każda sesja, 4-5 ćw.):
+- warmupExercises: mobilizacja + aktywacja specyficzna dla tej sesji
+- Uwzględnij kontuzje z profilu (np. ból kolan → unikaj głębokiego przysiadu w rozgrzewce)
+- Wady postawy → ćwiczenia korekcyjne
 
-ZASADY ROZGRZEWKI (OBOWIĄZKOWE):
-- Uwzględnij kontuzje i dysfunkcje klienta z profilu
-- Jeśli wady postawy — dodaj ćwiczenia korekcyjne/aktywacyjne
-- Struktura: 1-2 ćw. mobilizacja ogólna, 2-3 ćw. mobilizacja specyficzna dla tej sesji, 2 ćw. aktywacja mięśni głównych
-- Przykłady: krążenia bioder, rozciąganie klatki/kręgosłupa, aktywacja pośladków (dla sesji nóg), aktywacja rotatorów (dla sesji push), bird-dog (core), dead bug
-- Dostosuj rozgrzewkę do kontuzji: np. przy bólu kolan unikaj głębokiego przysiadu w rozgrzewce
+CARDIO (jeśli cel=redukcja/kondycja):
+- Dodaj 1-2 sesje HIIT/cardio jako osobne sesje (nazwa zawiera "HIIT" lub "Cardio")
+- Format identyczny, "kg"=tętno np."80% HRmax", "r"=czas np."30s"
+- Progresja: w1-2 niżej→w3+ więcej interwałów/krótsza przerwa
 
-CARDIO & HIIT (OBOWIĄZKOWE dla redukcji / kondycji):
-- Jeśli cel klienta to redukcja lub kondycja — dodaj 1-2 sesje cardio/HIIT tygodniowo jako osobne sesje
-- Sesje cardio mają taką samą strukturę jak treningowe (warmupExercises + exercises z progresją tygodniową)
-- Dla sesji cardio ćwiczenia to interwały/protokoły, pole "s" = liczba interwałów/serii, "r" = czas lub dystans, "rest" = przerwa, "rpe" = intensywność, "kg" = tętno lub % max HR
-- Typy sesji cardio do wyboru zależnie od profilu:
-  * HIIT — np. {"name":"Sprint 30s / marsz 90s","s":"8","r":"30s sprint","rest":"90s","rpe":"8-9","kg":"85-90% HRmax"}
-  * Tabata — {"name":"Burpees Tabata","s":"8 rund","r":"20s praca","rest":"10s","rpe":"9","kg":"90% HRmax"}  
-  * LISS — {"name":"Marsz/bieg stały","s":"1","r":"30-45min","rest":"—","rpe":"5-6","kg":"65-70% HRmax"}
-  * Rower/Orbitrek interwały — seria sprintów z aktywnym odpoczynkiem
-  * Battle ropes / kettlebell circuits — obwody z progresją
-- Progresja cardio: w1-2 niższa intensywność/krótszy czas → w3-4 więcej interwałów → w5-6 krótsze przerwy → w7 Deload (LISS) → w8 max intensywność
-- Tętno: oblicz przybliżone strefy na podstawie wieku klienta (220 - wiek)`;
+ZASADY:
+- 4-5 ćwiczeń/sesję (krócej = lepiej dla tokenów)
+- Każdy tydzień INNE parametry${weeks>=4?'\n- Ostatni tydzień: Deload (s-1, RPE-2)':''}${weeks>=8?'\n- W8: Szczyt (max ciężar, niskie powt.)':''}
+- Uwzględnij wykluczone ruchy z profilu`;
 }
 
-async function callAPI(system, userMsg, maxTokens) {
-  const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      system: system,
-      messages: [{ role: 'user', content: userMsg }]
-    })
-  });
-  const data = await resp.json();
-  const raw = (data?.content||[]).map(b=>b.text||'').join('');
-  console.log('API raw length:', raw.length, 'first 100:', raw.substring(0,100));
-  // Extract JSON - from first { to last }
-  const first = raw.indexOf('{');
-  const last = raw.lastIndexOf('}');
-  if (first === -1) { console.error('No { found in response'); return null; }
-  // If JSON is truncated (no closing }), try to repair it
-  let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
-  try { return JSON.parse(jsonStr); }
-  catch(e) {
-    // Try to repair truncated JSON by adding closing brackets
-    console.warn('JSON parse failed, trying repair...', e.message);
-    let repaired = jsonStr;
-    // Count unclosed brackets
-    let opens = (repaired.match(/\[/g)||[]).length - (repaired.match(/\]/g)||[]).length;
-    let openb = (repaired.match(/\{/g)||[]).length - (repaired.match(/\}/g)||[]).length;
-    // Remove trailing partial entry (incomplete string or object)
-    repaired = repaired.replace(/,?\s*"[^"]*$/, '');
-    repaired = repaired.replace(/,\s*$/, '');
-    // Close open arrays and objects
-    for (let i=0; i<opens; i++) repaired += ']';
-    for (let i=0; i<openb; i++) repaired += '}';
-    try { 
-      const result = JSON.parse(repaired);
-      console.log('Repaired JSON OK, sessions:', result?.sessions?.length);
-      return result;
-    }
-    catch(e2) { console.error('Repair failed:', e2.message); return null; }
-  }
-}
 
-async function generatePlan() {
-  const profile = getClientProfile();
-  const philosophy = getPhilosophy();
-  if (!profile) { alert('Wpisz najpierw imię klienta w panelu Klient!'); return; }
-
-  document.getElementById('plan-loading').style.display = 'block';
-  document.getElementById('plan-content').innerHTML = '';
-  document.getElementById('plan-dl-btn').style.display = 'none';
-  document.getElementById('plan-pdf-btn').style.display = 'none';
-  document.getElementById('plan-expand-btn').style.display = 'none';
-  document.getElementById('plan-gen-btn').disabled = true;
-
-  let sIdx = 0;
-  const statusEl = document.getElementById('plan-status');
-  const ticker = setInterval(() => {
-    sIdx = (sIdx+1) % PLAN_STATUSES.length;
-    if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
-  }, 2000);
-
-  // Token budget - generous to avoid truncation
-  const tokenBudget = planWeeks === 1 ? 2500 : planWeeks === 4 ? 4000 : 5000;
-
-  let plan = null;
-  try {
-    const sysPrompt = buildPlanPrompt(planWeeks);
-    plan = await callAPI(
-      sysPrompt,
-      `Wygeneruj plan dla klienta. Zwróć TYLKO JSON.\n\n${profile}\n${philosophy}`,
-      tokenBudget
-    );
-  } catch(err) { plan = null; }
-
-  clearInterval(ticker);
-  document.getElementById('plan-loading').style.display = 'none';
-  document.getElementById('plan-gen-btn').disabled = false;
-
-  if (!plan || !plan.sessions) {
-    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
-      <div style="font-size:36px;margin-bottom:12px">❌</div>
-      <div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div>
-      <div style="font-size:12px;margin-bottom:16px;">Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.</div>
-      <button onclick="generatePlan()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;">🔄 Spróbuj ponownie</button>
-    </div>`;
-    return;
-  }
-
-  currentPlanData = plan;
-  renderPlan(plan);
-  document.getElementById('plan-dl-btn').style.display = 'inline-flex';
-  document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
-  // Show expand button only if not already at 8 weeks
-  if (planWeeks < 8) {
-    document.getElementById('plan-expand-btn').style.display = 'inline-flex';
-    document.getElementById('plan-expand-btn').textContent = planWeeks === 1 ? '📈 Rozszerz do 4 tyg.' : '📈 Rozszerz do 8 tyg.';
-  }
-}
-
-async function expandPlan() {
-  const nextWeeks = planWeeks === 1 ? 4 : 8;
-  // Set selector
-  document.querySelectorAll('.pw-btn').forEach((b,i) => {
-    b.classList.remove('pw-active');
-    if ((i===0&&nextWeeks===1)||(i===1&&nextWeeks===4)||(i===2&&nextWeeks===8)) b.classList.add('pw-active');
-  });
-  planWeeks = nextWeeks;
-  generatePlan();
-}
-
-const WEEK_NAMES_ALL = ['w1','w2','w3','w4','w5','w6','w7','w8'];
-const PHASE_COLORS = {
-  'Adaptacja':'var(--bl)', 'Hipertrofia':'var(--gr)', 'Siła':'var(--yw)',
-  'Deload':'var(--tx2)', 'Szczyt':'var(--ac)', 'Tydzień':'var(--ac)'
-};
 function getPhaseColor(phase) {
   for (const [k,v] of Object.entries(PHASE_COLORS)) { if ((phase||'').includes(k)) return v; }
   return 'var(--bl)';

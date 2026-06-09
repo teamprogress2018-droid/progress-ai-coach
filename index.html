@@ -798,7 +798,7 @@ function getClientProfile(){
   if(document.getElementById('met-rir')?.checked) methods.push('RPE/RIR');
   if(document.getElementById('met-hiit')?.checked) methods.push('HIIT');
   if(document.getElementById('met-circuit')?.checked) methods.push('trening obwodowy');
-  if(!name&&!goal) return '';
+  if(!name) return '';
   let p='\n\n===PROFIL KLIENTA===';
   if(name) p+=`\nImię: ${name}`;
   if(ageNum) p+=`\nWiek: ${ageNum} lat`;
@@ -965,19 +965,40 @@ async function callAPI(system, userMsg, maxTokens) {
   });
   const data = await resp.json();
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
-  // Extract JSON object - find first { to last }
+  console.log('API raw length:', raw.length, 'first 100:', raw.substring(0,100));
+  // Extract JSON - from first { to last }
   const first = raw.indexOf('{');
   const last = raw.lastIndexOf('}');
-  if (first === -1 || last === -1) return null;
-  const jsonStr = raw.substring(first, last+1);
+  if (first === -1) { console.error('No { found in response'); return null; }
+  // If JSON is truncated (no closing }), try to repair it
+  let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
   try { return JSON.parse(jsonStr); }
-  catch(e) { console.error('JSON parse error:', e, jsonStr.substring(0,200)); return null; }
+  catch(e) {
+    // Try to repair truncated JSON by adding closing brackets
+    console.warn('JSON parse failed, trying repair...', e.message);
+    let repaired = jsonStr;
+    // Count unclosed brackets
+    let opens = (repaired.match(/\[/g)||[]).length - (repaired.match(/\]/g)||[]).length;
+    let openb = (repaired.match(/\{/g)||[]).length - (repaired.match(/\}/g)||[]).length;
+    // Remove trailing partial entry (incomplete string or object)
+    repaired = repaired.replace(/,?\s*"[^"]*$/, '');
+    repaired = repaired.replace(/,\s*$/, '');
+    // Close open arrays and objects
+    for (let i=0; i<opens; i++) repaired += ']';
+    for (let i=0; i<openb; i++) repaired += '}';
+    try { 
+      const result = JSON.parse(repaired);
+      console.log('Repaired JSON OK, sessions:', result?.sessions?.length);
+      return result;
+    }
+    catch(e2) { console.error('Repair failed:', e2.message); return null; }
+  }
 }
 
 async function generatePlan() {
   const profile = getClientProfile();
   const philosophy = getPhilosophy();
-  if (!profile) { alert('Uzupełnij najpierw profil klienta (imię i cel)!'); return; }
+  if (!profile) { alert('Wpisz najpierw imię klienta w panelu Klient!'); return; }
 
   document.getElementById('plan-loading').style.display = 'block';
   document.getElementById('plan-content').innerHTML = '';
@@ -993,8 +1014,8 @@ async function generatePlan() {
     if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
   }, 2000);
 
-  // Token budget: 1tyg~1200, 4tyg~2500, 8tyg~3800
-  const tokenBudget = planWeeks === 1 ? 1500 : planWeeks === 4 ? 2800 : 3800;
+  // Token budget - generous to avoid truncation
+  const tokenBudget = planWeeks === 1 ? 2500 : planWeeks === 4 ? 4000 : 5000;
 
   let plan = null;
   try {

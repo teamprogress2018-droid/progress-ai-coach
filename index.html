@@ -1007,7 +1007,20 @@ ZASADY ROZGRZEWKI (OBOWIĄZKOWE):
 - Jeśli wady postawy — dodaj ćwiczenia korekcyjne/aktywacyjne
 - Struktura: 1-2 ćw. mobilizacja ogólna, 2-3 ćw. mobilizacja specyficzna dla tej sesji, 2 ćw. aktywacja mięśni głównych
 - Przykłady: krążenia bioder, rozciąganie klatki/kręgosłupa, aktywacja pośladków (dla sesji nóg), aktywacja rotatorów (dla sesji push), bird-dog (core), dead bug
-- Dostosuj rozgrzewkę do kontuzji: np. przy bólu kolan unikaj głębokiego przysiadu w rozgrzewce`;
+- Dostosuj rozgrzewkę do kontuzji: np. przy bólu kolan unikaj głębokiego przysiadu w rozgrzewce
+
+CARDIO & HIIT (OBOWIĄZKOWE dla redukcji / kondycji):
+- Jeśli cel klienta to redukcja lub kondycja — dodaj 1-2 sesje cardio/HIIT tygodniowo jako osobne sesje
+- Sesje cardio mają taką samą strukturę jak treningowe (warmupExercises + exercises z progresją tygodniową)
+- Dla sesji cardio ćwiczenia to interwały/protokoły, pole "s" = liczba interwałów/serii, "r" = czas lub dystans, "rest" = przerwa, "rpe" = intensywność, "kg" = tętno lub % max HR
+- Typy sesji cardio do wyboru zależnie od profilu:
+  * HIIT — np. {"name":"Sprint 30s / marsz 90s","s":"8","r":"30s sprint","rest":"90s","rpe":"8-9","kg":"85-90% HRmax"}
+  * Tabata — {"name":"Burpees Tabata","s":"8 rund","r":"20s praca","rest":"10s","rpe":"9","kg":"90% HRmax"}  
+  * LISS — {"name":"Marsz/bieg stały","s":"1","r":"30-45min","rest":"—","rpe":"5-6","kg":"65-70% HRmax"}
+  * Rower/Orbitrek interwały — seria sprintów z aktywnym odpoczynkiem
+  * Battle ropes / kettlebell circuits — obwody z progresją
+- Progresja cardio: w1-2 niższa intensywność/krótszy czas → w3-4 więcej interwałów → w5-6 krótsze przerwy → w7 Deload (LISS) → w8 max intensywność
+- Tętno: oblicz przybliżone strefy na podstawie wieku klienta (220 - wiek)`;
 }
 
 async function callAPI(system, userMsg, maxTokens) {
@@ -1168,8 +1181,16 @@ function renderPlan(plan) {
   (plan.sessions||[]).forEach((session, si) => {
     const warmup = plan.warmups && plan.warmups[si] ? plan.warmups[si] : null;
 
+    const isCardio = (session.sessionName||'').toLowerCase().includes('cardio') ||
+                     (session.sessionName||'').toLowerCase().includes('hiit') ||
+                     (session.sessionName||'').toLowerCase().includes('tabata') ||
+                     (session.sessionName||'').toLowerCase().includes('interwał');
+    const sessionColor = isCardio ? 'var(--yw)' : 'var(--ac)';
+    const sessionBg = isCardio ? 'rgba(245,158,11,0.06)' : 'var(--bg3)';
+    const sessionIcon = isCardio ? '🔥' : '💪';
+
     html += `<div id="plan-session-${si}" style="margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--tx);margin-bottom:10px;padding:8px 14px;background:var(--bg3);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;">${session.sessionName||''}</div>`;
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:${sessionColor};margin-bottom:10px;padding:8px 14px;background:${sessionBg};border-left:3px solid ${sessionColor};border-radius:0 8px 8px 0;">${sessionIcon} ${session.sessionName||''}</div>`;
 
     // WARMUP SECTION
     const warmupExercises = warmup?.exercises || session.warmupExercises || [];
@@ -1234,12 +1255,30 @@ function renderPlan(plan) {
               <span style="font-size:9px;color:${col};background:rgba(255,255,255,0.05);border-radius:4px;padding:1px 5px;">RPE ${rpe}</span>
               <span style="font-size:9px;color:var(--tx2);">${kg}</span>
             </div>
-            <div style="margin-top:5px;border-top:1px solid rgba(255,255,255,0.06);padding-top:4px;">
-              <input id="${logId}" type="number" placeholder="kg" step="0.5"
-                style="width:52px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:5px;padding:3px 5px;color:var(--tx);font-size:11px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
-                onchange="calcNext('${logId}','${nextId}','${sets}','${reps}','${planProgression}')"
-                onfocus="this.style.borderColor='${col}'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
-              <div id="${nextId}" style="font-size:9px;color:${col};margin-top:2px;min-height:13px;font-family:'DM Mono',monospace;"></div>
+            <div style="margin-top:5px;border-top:1px solid rgba(255,255,255,0.06);padding-top:5px;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;gap:3px;justify-content:center;">
+                <input id="edit_reps_${cellId}" type="text" value="${reps}"
+                  title="Edytuj powtórzenia"
+                  style="width:34px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 3px;color:var(--gr);font-size:10px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
+                  onchange="saveEdit('reps','${cellId}',this.value)"
+                  onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                  placeholder="powt.">
+                <input id="edit_rest_${cellId}" type="text" value="${rest}"
+                  title="Edytuj przerwę"
+                  style="width:38px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 3px;color:var(--bl);font-size:10px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
+                  onchange="saveEdit('rest','${cellId}',this.value)"
+                  onfocus="this.style.borderColor='var(--bl)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                  placeholder="przerw.">
+              </div>
+              <div style="display:flex;gap:3px;align-items:center;justify-content:center;">
+                <input id="${logId}" type="number" placeholder="kg" step="0.5"
+                  title="Wpisz wykonany ciężar → AI policzy następny"
+                  style="width:48px;background:rgba(232,48,42,0.06);border:1px solid rgba(232,48,42,0.2);border-radius:4px;padding:3px 4px;color:var(--tx);font-size:11px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
+                  onchange="calcNext('${logId}','${nextId}','${sets}','${reps}','${planProgression}')"
+                  onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='rgba(232,48,42,0.2)'"
+                  placeholder="✍kg">
+              </div>
+              <div id="${nextId}" style="font-size:9px;color:${col};min-height:12px;font-family:'DM Mono',monospace;text-align:center;font-weight:600;"></div>
             </div>
           </div>`:`<span style="color:var(--tx3);font-size:11px;">—</span>`}
         </td>`;
@@ -1250,6 +1289,15 @@ function renderPlan(plan) {
     html += `</tbody></table></div></div>`;
   });
 
+  // Legend
+  html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;">Legenda:</span>
+    <span style="font-size:10px;color:var(--tx2);">📋 <strong style="color:var(--tx);">Serie×Powt.</strong> — zaplanowane</span>
+    <span style="font-size:10px;color:var(--gr);">✏️ <strong style="color:var(--gr);">Powt.</strong> — edytuj powtórzenia</span>
+    <span style="font-size:10px;color:var(--bl);">⏱️ <strong style="color:var(--bl);">Przerwa</strong> — edytuj czas przerwy</span>
+    <span style="font-size:10px;color:var(--ac);">✍️ <strong style="color:var(--ac);">kg</strong> — wpisz wykonany ciężar → AI liczy następny</span>
+  </div>`;
+
   // Footer
   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">`;
   if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 PROTOKÓŁ ROZGRZEWKI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.warmupProtocol}</div></div>`;
@@ -1258,6 +1306,18 @@ function renderPlan(plan) {
   if (plan.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.progressionNotes}</div></div>`;
 
   document.getElementById('plan-content').innerHTML = html;
+}
+
+function saveEdit(field, cellId, value) {
+  // Visual feedback - flash the cell
+  const cell = document.getElementById(cellId);
+  if (cell) {
+    cell.style.outline = '1px solid var(--gr)';
+    setTimeout(() => cell.style.outline = '', 800);
+  }
+  // Could save to localStorage for persistence
+  const key = `plan_edit_${cellId}_${field}`;
+  try { localStorage.setItem(key, value); } catch(e) {}
 }
 
 function calcNext(logId, nextId, sets, reps, progType) {

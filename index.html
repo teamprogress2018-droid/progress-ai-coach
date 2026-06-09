@@ -748,6 +748,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 </div>
 <script>
 let currentMode='trening',conversationHistory=[],knowledgeBase=[];
+document.addEventListener('DOMContentLoaded',()=>{ loadKB(); });
 const modeLabels={trening:'💪 Trening',dieta:'🥗 Dieta',motywacja:'🧠 Motywacja',analiza:'📊 Analiza'};
 const modePrompts={trening:'Jesteś ekspertem w treningu personalnym. Tworzysz skuteczne plany treningowe, dobierasz ćwiczenia i progresję obciążeń.',dieta:'Jesteś ekspertem w żywieniu sportowym. Tworzysz plany żywieniowe i edukujesz o odżywianiu.',motywacja:'Jesteś ekspertem w psychologii sportu i coachingu. Pomagasz radzić sobie z trudnymi sytuacjami z klientami.',analiza:'Jesteś ekspertem w analizie postępów. Oceniasz wyniki, identyfikujesz problemy i dostosowujesz programy.'};
 
@@ -761,7 +762,17 @@ function savePhilosophy(){document.getElementById('saved-badge').classList.add('
 
 function getPhilosophy(){const m=document.getElementById('phil-methodology').value,e=document.getElementById('phil-exercises').value,p=document.getElementById('phil-psychology').value,n=document.getElementById('phil-nutrition').value;if(!m&&!e&&!p&&!n)return '';let ph='\n\n===FILOZOFIA TRENERA===';if(m)ph+=`\n\nGłówna metodologia:\n${m}`;if(e)ph+=`\n\nZasady doboru ćwiczeń:\n${e}`;if(p)ph+=`\n\nPodejście psychologiczne:\n${p}`;if(n)ph+=`\n\nFilozofia żywieniowa:\n${n}`;ph+='\n===KONIEC FILOZOFII===';return ph;}
 
-function getKnowledgeContext(){if(knowledgeBase.length===0)return '';let ctx='\n\n===BAZA WIEDZY TRENERA===';knowledgeBase.forEach(doc=>{if(doc.type==='image'){ctx+=`\n\n[OBRAZ: ${doc.title}]: (zdjęcie dostępne w bazie)`;}else{ctx+=`\n\n[${doc.title}]:\n${doc.content.substring(0,1500)}`;}});ctx+='\n===KONIEC BAZY WIEDZY===';return ctx;}
+function getKnowledgeContext(){
+  if(knowledgeBase.length===0)return '';
+  const textDocs = knowledgeBase.filter(d=>d.type!=='image');
+  const imgDocs = knowledgeBase.filter(d=>d.type==='image');
+  let ctx='\n\n===BAZA WIEDZY TRENERA===';
+  textDocs.forEach(doc=>{ctx+=`\n\n[${doc.title}]:\n${doc.content.substring(0,1500)}`;});
+  if(imgDocs.length>0) ctx+=`\n\n[OBRAZY W BAZIE: ${imgDocs.map(d=>d.title).join(', ')}] — zostaną przeanalizowane przez Claude Vision`;
+  ctx+='\n===KONIEC BAZY WIEDZY===';
+  return ctx;
+}
+function getKBImages(){return knowledgeBase.filter(d=>d.type==='image' && d.content && d.content.startsWith('[IMAGE]'));}
 
 function getClientProfile(){
   const name=document.getElementById('client-name').value;
@@ -849,8 +860,10 @@ function handleFileUpload(event){const file=event.target.files[0];if(!file)retur
 
 function addManualText(){const text=document.getElementById('manual-text').value.trim(),title=document.getElementById('manual-title').value.trim()||'Notatka '+(knowledgeBase.length+1);if(!text){alert('Wpisz tekst!');return;}addToKnowledgeBase(title,text);document.getElementById('manual-text').value='';document.getElementById('manual-title').value='';}
 
-function addToKnowledgeBase(title,content,type){const id=Date.now();knowledgeBase.push({id,title,content,type});renderKnowledgeBase();updateKBBadge();}
-function removeFromKnowledgeBase(id){knowledgeBase=knowledgeBase.filter(d=>d.id!==id);renderKnowledgeBase();updateKBBadge();}
+function saveKB(){try{const s=knowledgeBase.map(d=>d.type==='image'?{id:d.id,title:d.title,content:'[IMG]',type:'image_ref'}:d);localStorage.setItem('pb_kb',JSON.stringify(s));}catch(e){}}
+function loadKB(){try{const s=localStorage.getItem('pb_kb');if(s){knowledgeBase=JSON.parse(s).filter(d=>d.type!=='image_ref');renderKnowledgeBase();updateKBBadge();}}catch(e){}}
+function addToKnowledgeBase(title,content,type){const id=Date.now();knowledgeBase.push({id,title,content,type});saveKB();renderKnowledgeBase();updateKBBadge();}
+function removeFromKnowledgeBase(id){knowledgeBase=knowledgeBase.filter(d=>d.id!==id);saveKB();renderKnowledgeBase();updateKBBadge();}
 function updateKBBadge(){const badge=document.getElementById('kb-badge'),count=document.getElementById('kb-count');count.textContent=knowledgeBase.length+' dokumentów';badge.style.display=knowledgeBase.length>0?'inline-flex':'none';}
 function renderKnowledgeBase(){const list=document.getElementById('kb-list');if(knowledgeBase.length===0){list.innerHTML='';return;}list.innerHTML='<div class="section-title" style="margin-bottom:8px">Dodane dokumenty</div>'+knowledgeBase.map(doc=>`<div class="kb-item"><div class="kb-icon">${doc.type==='image'?'🖼️':doc.title.endsWith('.pdf')?'📕':'📄'}</div><div class="kb-info"><div class="kb-name">${doc.title}</div><div class="kb-meta">${doc.content.length} znaków</div></div><button class="kb-del" onclick="removeFromKnowledgeBase(${doc.id})" title="Usuń">✕</button></div>`).join('');}
 
@@ -858,172 +871,17 @@ function renderKnowledgeBase(){const list=document.getElementById('kb-list');if(
 async function addYouTube(){const url=document.getElementById('yt-url').value.trim();if(!url||url.length<20){alert('Wklej transkrypcję (minimum 20 znaków)!');return;}const status=document.getElementById('yt-status');status.style.display='block';status.textContent='⏳ Tworzę notatki...';try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:`Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:\n\n${url}`}]})});const data=await resp.json();const text=data.content?.[0]?.text||'';if(!text)throw new Error('Brak odpowiedzi');addToKnowledgeBase('YouTube: notatki',text);status.textContent='✅ Dodano do bazy wiedzy!';document.getElementById('yt-url').value='';setTimeout(()=>{status.style.display='none';},3000);}catch(e){status.textContent='❌ Błąd. Spróbuj ponownie.';}}
 
 // CHAT
-async function sendMessage(userMsg){const input=document.getElementById('chat-input');const message=userMsg||input.value.trim();if(!message)return;const welcome=document.getElementById('welcome');if(welcome)welcome.style.display='none';addMessage('user',message);if(!userMsg){input.value='';input.style.height='auto';}document.getElementById('send-btn').disabled=true;const typing=document.getElementById('typing');typing.classList.add('visible');scrollToBottom();const images=knowledgeBase.filter(d=>d.type==='image');if(images.length>0){const parts=[];images.forEach(img=>{const b64=img.content.replace('[IMAGE]','').split(',')[1];const mt=img.content.replace('[IMAGE]','').split(';')[0].split(':')[1]||'image/jpeg';parts.push({type:'image',source:{type:'base64',media_type:mt,data:b64}});});parts.push({type:'text',text:message});conversationHistory.push({role:'user',content:parts});}else{conversationHistory.push({role:'user',content:message});}try{const response=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:getSystemPrompt(),messages:conversationHistory})});const data=await response.json();const reply=data.content?.[0]?.text||'Przepraszam, wystąpił błąd.';conversationHistory.push({role:'assistant',content:reply});typing.classList.remove('visible');addMessage('ai',reply);}catch(err){typing.classList.remove('visible');addMessage('ai','⚠️ Błąd połączenia. Sprawdź internet i spróbuj ponownie.');}document.getElementById('send-btn').disabled=false;}
-
-function quickAction(text){sendMessage(text);}
-function clearChat(){conversationHistory=[];document.getElementById('chat-area').innerHTML='<div class="welcome" id="welcome"><div class="welcome-logo">AI<span> Coach</span></div><div class="welcome-sub" style="margin-bottom:12px">Asystent Trenera Personalnego v2.0</div><p style="font-size:12px;color:var(--tx3);line-height:1.7;margin-bottom:20px">Rozmowa wyczyszczona. Możesz zacząć od nowa.</p></div>';}
-function addMessage(role,text){const area=document.getElementById('chat-area');const now=new Date().toLocaleTimeString('pl',{hour:'2-digit',minute:'2-digit'});const msg=document.createElement('div');msg.className=`msg ${role}`;const avatar=role==='ai'?`<div class="msg-avatar">AI</div>`:`<div class="msg-avatar">P</div>`;msg.innerHTML=`${avatar}<div><div class="msg-bubble">${formatMessage(text)}</div><div class="msg-time">${now}</div></div>`;area.appendChild(msg);scrollToBottom();}
-function formatMessage(text){text=text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');text=text.replace(/\*(.+?)\*/g,'<em>$1</em>');text=text.replace(/^### (.+)$/gm,'<h3>$1</h3>');text=text.replace(/^## (.+)$/gm,'<h3>$1</h3>');text=text.replace(/^# (.+)$/gm,'<h3>$1</h3>');text=text.replace(/^- (.+)$/gm,'<li>$1</li>');text=text.replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>');text=text.replace(/\n\n/g,'</p><p>');text=text.replace(/\n/g,'<br>');return `<p>${text}</p>`;}
-function scrollToBottom(){const area=document.getElementById('chat-area');setTimeout(()=>area.scrollTop=area.scrollHeight,50);}
-function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
-function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
-
-// SYLWETKA AI
-const baPhotos={front:null,side:null,back:null};
-let baGoal='masa';
-function openBodyAssessment(){const n=document.getElementById('client-name').value;const a=document.getElementById('client-age').value;if(n)document.getElementById('ba-name').value=n;if(a){const m=a.match(/\d+/);if(m)document.getElementById('ba-age').value=m[0];}const g=document.getElementById('client-age').value.toLowerCase();if(g.includes('kobiet'))document.getElementById('ba-gender').value='kobieta';openOverlay('screen-body');}
-function closeBodyAssessment(){closeOverlay();}
-function baGoStep(n){[1,2,3].forEach(i=>{document.getElementById('ba-pane'+i).classList.toggle('active',i===n);const st=document.getElementById('ba-st'+i);st.classList.remove('active','done');if(i===n)st.classList.add('active');else if(i<n)st.classList.add('done');});}
-function baLoadPhoto(view,input){if(!input.files[0])return;const reader=new FileReader();reader.onload=e=>{baPhotos[view]=e.target.result;const slot=document.getElementById('ba-slot-'+view);const add=slot.querySelector('.ba-slot-add');if(add)add.style.display='none';let img=slot.querySelector('img');if(!img){img=document.createElement('img');slot.insertBefore(img,slot.querySelector('input'));}img.src=e.target.result;slot.style.borderColor='var(--ac)';slot.style.borderStyle='solid';};reader.readAsDataURL(input.files[0]);}
-function baSetGoal(btn,val){baGoal=val;document.querySelectorAll('.ba-goal').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-const baStatuses=['Przesyłam zdjęcia do Claude Vision...','Analizuję proporcje ciała...','Oceniam masę mięśniową i tkankę tłuszczową...','Generuję rekomendacje...','Przygotowuję plan priorytetów...'];
-const baSysPrompt=`Jesteś certyfikowanym dietetykiem sportowym i trenerem personalnym (NSCA CSCS, NASM CPT). Analizujesz sylwetkę klienta na podstawie zdjęcia.
-ZAWSZE odpowiadaj czystym JSON (bez markdown):
-{"recommendation":"masa|redukcja|utrzymanie|sila","summary":"2-3 zdania oceny","bodyType":"ektomorfik|mezomorfik|endomorfik|mieszany","estimatedBF":"zakres np '18-22%'","muscleLevel":"Niska|Średnia|Dobra|Wysoka","proportions":[{"name":"Klatka piersiowa","score":7,"note":"komentarz"},{"name":"Plecy / V-kształt","score":6,"note":"..."},{"name":"Ramiona","score":5,"note":"..."},{"name":"Core / brzuch","score":6,"note":"..."},{"name":"Nogi / czworogłowe","score":7,"note":"..."},{"name":"Pośladki","score":6,"note":"..."}],"priorities":[{"action":"rekomendacja","why":"uzasadnienie","type":"trening|dieta|cardio|suplementacja"},{"action":"...","why":"...","type":"..."},{"action":"...","why":"...","type":"..."},{"action":"...","why":"...","type":"..."}],"training":["wskazówka 1 z liczbami","wskazówka 2","wskazówka 3"],"nutrition":["wskazówka żywieniowa z liczbami","wskazówka 2","wskazówka 3"],"warnings":[]}
-Bądź konkretny — podawaj liczby.`;
-async function baStartAnalysis(){const name=document.getElementById('ba-name').value.trim()||'Klient';const age=document.getElementById('ba-age').value||'—';const weight=document.getElementById('ba-weight').value||'—';const height=document.getElementById('ba-height').value||'—';const gender=document.getElementById('ba-gender').value;const level=document.getElementById('ba-level').value;const hasPhoto=baPhotos.front||baPhotos.side||baPhotos.back;baGoStep(3);document.getElementById('ba-analyzing').style.display='flex';document.getElementById('ba-result').style.display='none';let sIdx=0;const statusEl=document.getElementById('ba-status');const ticker=setInterval(()=>{sIdx=(sIdx+1)%baStatuses.length;if(statusEl)statusEl.textContent=baStatuses[sIdx];},1800);const parts=[];const mainPhoto=baPhotos.front||baPhotos.side||baPhotos.back;if(mainPhoto){const b64=mainPhoto.split(',')[1];const mt=mainPhoto.split(';')[0].split(':')[1]||'image/jpeg';parts.push({type:'image',source:{type:'base64',media_type:mt,data:b64}});}parts.push({type:'text',text:`Przeanalizuj sylwetkę ${gender==='kobieta'?'klientki':'klienta'}:\nImię: ${name}\nWiek: ${age} lat\nWaga: ${weight} kg\nWzrost: ${height} cm\nPłeć: ${gender}\nCel: ${baGoal}\nPoziom: ${level}\n${!hasPhoto?'UWAGA: Brak zdjęcia — wygeneruj przykładową analizę dla tych parametrów.':'Przeanalizuj zdjęcie i podane dane.'}\nPodaj szczegółową analizę i konkretny plan działania.`});let result=null;try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:baSysPrompt,messages:[{role:'user',content:parts}]})});const data=await resp.json();const raw=(data?.content||[]).map(b=>b.text||'').join('');try{result=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){const m=raw.match(/\{[\s\S]+\}/);if(m)result=JSON.parse(m[0]);}}catch(err){result=null;}clearInterval(ticker);document.getElementById('ba-analyzing').style.display='none';const rEl=document.getElementById('ba-result');rEl.style.display='block';if(!result){rEl.innerHTML=`<div style="padding:40px;text-align:center;color:var(--tx2)"><div style="font-size:36px;margin-bottom:12px">❌</div><div style="font-weight:600;color:var(--ac);margin-bottom:8px">Błąd analizy</div><button class="ba-btn-ghost" style="margin-top:14px" onclick="baGoStep(1)">← Wróć</button></div>`;return;}baRenderResult(result,name);}
-function baRenderResult(r,name){const recC={masa:'var(--gr)',redukcja:'var(--ac)',utrzymanie:'var(--bl)',sila:'var(--yw)'};const recL={masa:'💪 Buduj masę mięśniową',redukcja:'🔥 Redukcja tkanki tłuszczowej',utrzymanie:'⚖️ Utrzymanie i rekompo',sila:'🏋️ Wzrost siły'};const ti={trening:'💪',dieta:'🥗',cardio:'🏃',suplementacja:'💊'};const col=recC[r.recommendation]||'var(--ac)';const lab=recL[r.recommendation]||r.recommendation;const propHTML=(r.proportions||[]).map(p=>{const pct=Math.round((p.score||5)/10*100);const c=p.score>=8?'var(--gr)':p.score>=6?'var(--bl)':p.score>=4?'var(--yw)':'var(--ac)';return `<div class="ba-muscle"><div class="mn">${p.name}</div><div class="mb"><div class="mf" style="width:${pct}%;background:${c};"></div></div><div class="mv"><span style="color:${c};font-weight:600;">${p.score}/10</span><span style="font-size:10px;color:var(--tx2);">${p.note||''}</span></div></div>`;}).join('');const prioHTML=(r.priorities||[]).map((p,i)=>{const numCls=p.type==='dieta'?'diet':p.type==='suplementacja'?'supp':'';const pCls=p.type==='trening'?'g':p.type==='dieta'?'b':p.type==='cardio'?'r':'p';return `<div class="ba-prio"><div class="ba-prio-num ${numCls}">${i+1}</div><div style="flex:1;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><span>${ti[p.type]||'•'}</span><span style="font-size:13px;font-weight:600;flex:1;">${p.action}</span><span class="ba-pill pill-${pCls}">${p.type}</span></div><div style="font-size:11px;color:var(--tx2);line-height:1.5;">→ ${p.why}</div></div></div>`;}).join('');const trainHTML=(r.training||[]).map(t=>`<div style="display:flex;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);line-height:1.5;"><span style="color:var(--gr);flex-shrink:0;">→</span><span>${t}</span></div>`).join('');const nutrHTML=(r.nutrition||[]).map(n=>`<div style="display:flex;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);line-height:1.5;"><span style="color:var(--bl);flex-shrink:0;">→</span><span>${n}</span></div>`).join('');const warnHTML=(r.warnings||[]).length?`<div class="ba-section"><div class="ba-section-title" style="color:var(--yw);">⚠️ OSTRZEŻENIA</div>${r.warnings.map(w=>`<div class="ba-card warn" style="font-size:12px;margin-bottom:6px;">${w}</div>`).join('')}</div>`:'';document.getElementById('ba-result').innerHTML=`<div style="background:var(--bg3);border-radius:10px;overflow:hidden;border:1px solid var(--border);"><div class="ba-result-header"><div style="flex:1;"><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:${col};">${lab}</div><div style="font-size:11px;color:var(--tx2);margin-top:3px;">${name} · Ocena AI · ${new Date().toLocaleDateString('pl-PL')}</div></div><div style="text-align:right;"><div class="ba-badge">${r.bodyType||'Mezomorfik'}</div><div style="font-size:10px;color:var(--tx2);margin-top:4px;">BF szac. ${r.estimatedBF||'—'}</div></div></div><div class="ba-section"><div class="ba-section-title" style="color:var(--ac);">📋 OCENA OGÓLNA</div><div class="ba-card main"><div style="font-size:13px;line-height:1.7;">${r.summary||''}</div><div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;"><span class="ba-pill pill-g">Masa mięśniowa: ${r.muscleLevel||'Średnia'}</span></div></div></div><div class="ba-section"><div class="ba-section-title" style="color:var(--bl);">💪 OCENA PARTII MIĘŚNIOWYCH</div><div class="ba-muscle-grid">${propHTML}</div></div><div class="ba-section"><div class="ba-section-title" style="color:var(--yw);">🎯 PRIORYTETY</div>${prioHTML}</div><div class="ba-section"><div class="ba-section-title" style="color:var(--gr);">🏋️ WSKAZÓWKI TRENINGOWE</div>${trainHTML}</div><div class="ba-section"><div class="ba-section-title" style="color:var(--bl);">🥗 WSKAZÓWKI ŻYWIENIOWE</div>${nutrHTML}</div>${warnHTML}</div><div class="ba-actions"><button class="ba-btn-ghost" onclick="baGoStep(1)">↺ Nowa analiza</button><button class="ba-btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('ba-result').innerText).then(()=>alert('Skopiowano!'))">📋 Kopiuj</button><button class="ba-btn" style="flex:1;" onclick="window.print()">🖨 Drukuj</button></div>`;}
-
-// POMIARY
-const FIREBASE_API='https://firestore.googleapis.com/v1/projects/progress-live-fc83d/databases/(default)/documents';
-const FIREBASE_KEY='AIzaSyDrbke0QdB55k_4smzhKufQ75eAluu-r_8';
-let measClientId='default',measEntries=[],measCharts={},measCurrentChart='waga';
-function getMeasClientId(){const name=document.getElementById('client-name').value.trim();if(!name)return 'default';return name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').substring(0,40)||'default';}
-function openMeasurements(){measClientId=getMeasClientId();const name=document.getElementById('client-name').value.trim()||'Klient';document.getElementById('meas-client-tag').textContent='👤 '+name;document.getElementById('mf-date').value=new Date().toISOString().split('T')[0];openOverlay('screen-measurements');loadMeasurements();}
-function closeMeasurements(){closeOverlay();}
-function openAddMeasurement(){document.getElementById('mf-date').value=new Date().toISOString().split('T')[0];document.getElementById('meas-modal').style.display='block';}
-function closeMeasModal(){document.getElementById('meas-modal').style.display='none';}
-async function loadMeasurements(){try{const url=`${FIREBASE_API}/measurements/${measClientId}/entries?key=${FIREBASE_KEY}&orderBy=fields.date.stringValue`;const r=await fetch(url);const data=await r.json();measEntries=(data.documents||[]).map(d=>firestoreDocToEntry(d)).sort((a,b)=>a.date.localeCompare(b.date));renderMeasHistory();renderMeasCharts();}catch(e){measEntries=[];renderMeasHistory();}}
-async function saveMeasurement(){const entry={date:document.getElementById('mf-date').value||new Date().toISOString().split('T')[0],time:document.getElementById('mf-time').value,weight:parseFloat(document.getElementById('mf-weight').value)||null,bmi:parseFloat(document.getElementById('mf-bmi').value)||null,fatPct:parseFloat(document.getElementById('mf-fat-pct').value)||null,fatKg:parseFloat(document.getElementById('mf-fat-kg').value)||null,muscleKg:parseFloat(document.getElementById('mf-muscle-kg').value)||null,boneKg:parseFloat(document.getElementById('mf-bone-kg').value)||null,waterPct:parseFloat(document.getElementById('mf-water-pct').value)||null,bmr:parseFloat(document.getElementById('mf-bmr').value)||null,metAge:parseFloat(document.getElementById('mf-met-age').value)||null,visceral:parseFloat(document.getElementById('mf-visceral').value)||null,neck:parseFloat(document.getElementById('mf-neck').value)||null,chest:parseFloat(document.getElementById('mf-chest').value)||null,waist:parseFloat(document.getElementById('mf-waist').value)||null,hips:parseFloat(document.getElementById('mf-hips').value)||null,thighL:parseFloat(document.getElementById('mf-thigh-l').value)||null,thighR:parseFloat(document.getElementById('mf-thigh-r').value)||null,calfL:parseFloat(document.getElementById('mf-calf-l').value)||null,calfR:parseFloat(document.getElementById('mf-calf-r').value)||null,bicepL:parseFloat(document.getElementById('mf-bicep-l').value)||null,bicepR:parseFloat(document.getElementById('mf-bicep-r').value)||null,notes:document.getElementById('mf-notes').value.trim()};if(!entry.weight&&!entry.fatPct&&!entry.waist){alert('Uzupełnij przynajmniej wagę, % tłuszczu lub obwód talii.');return;}const docId=entry.date+'_'+Date.now();try{const url=`${FIREBASE_API}/measurements/${measClientId}/entries/${docId}?key=${FIREBASE_KEY}`;await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:entryToFirestore(entry)})});closeMeasModal();clearMeasForm();await loadMeasurements();}catch(e){alert('Błąd zapisu. Sprawdź połączenie.');}}
-async function deleteMeasurement(docPath){if(!confirm('Usunąć ten pomiar?'))return;try{await fetch(`https://firestore.googleapis.com/v1/${docPath}?key=${FIREBASE_KEY}`,{method:'DELETE'});await loadMeasurements();}catch(e){alert('Błąd usuwania.');}}
-function clearMeasForm(){['mf-weight','mf-bmi','mf-fat-pct','mf-fat-kg','mf-muscle-kg','mf-bone-kg','mf-water-pct','mf-bmr','mf-met-age','mf-visceral','mf-neck','mf-chest','mf-waist','mf-hips','mf-thigh-l','mf-thigh-r','mf-calf-l','mf-calf-r','mf-bicep-l','mf-bicep-r','mf-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
-function entryToFirestore(e){const f={};Object.keys(e).forEach(k=>{if(e[k]===null||e[k]===undefined||e[k]==='')return;if(typeof e[k]==='number')f[k]={doubleValue:e[k]};else f[k]={stringValue:String(e[k])};});return f;}
-function firestoreDocToEntry(doc){const f=doc.fields||{};const e={_path:doc.name};Object.keys(f).forEach(k=>{if(f[k].doubleValue!==undefined)e[k]=f[k].doubleValue;else if(f[k].integerValue!==undefined)e[k]=parseFloat(f[k].integerValue);else if(f[k].stringValue!==undefined)e[k]=f[k].stringValue;else e[k]=null;});return e;}
-function renderMeasHistory(){const el=document.getElementById('meas-history-list');if(measEntries.length===0){el.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--tx3);font-size:13px;">Brak pomiarów. Kliknij <strong style="color:var(--bl)">+ Dodaj pomiar</strong> aby zacząć.</div>`;return;}const sorted=[...measEntries].reverse();el.innerHTML=sorted.map((e,i)=>{const prev=sorted[i+1];const d=new Date(e.date);const day=d.getDate();const month=d.toLocaleDateString('pl',{month:'short',year:'numeric'});const chips=[];if(e.weight)chips.push({l:'Waga',v:e.weight+'kg',delta:prev?.weight?(e.weight-prev.weight).toFixed(1):null});if(e.fatPct)chips.push({l:'% Tłuszczu',v:e.fatPct+'%',delta:prev?.fatPct?(e.fatPct-prev.fatPct).toFixed(1):null});if(e.muscleKg)chips.push({l:'Mięśnie',v:e.muscleKg+'kg',delta:prev?.muscleKg?(e.muscleKg-prev.muscleKg).toFixed(1):null});if(e.waist)chips.push({l:'Talia',v:e.waist+'cm',delta:prev?.waist?(e.waist-prev.waist).toFixed(1):null});if(e.hips)chips.push({l:'Biodra',v:e.hips+'cm',delta:prev?.hips?(e.hips-prev.hips).toFixed(1):null});if(e.bmi)chips.push({l:'BMI',v:e.bmi,delta:null});if(e.waterPct)chips.push({l:'Woda',v:e.waterPct+'%',delta:null});if(e.metAge)chips.push({l:'Wiek met.',v:e.metAge+'l',delta:null});const chipsHTML=chips.map(c=>{let deltaHTML='';if(c.delta!==null){const n=parseFloat(c.delta);const isGood=(c.l==='% Tłuszczu'||c.l==='Talia'||c.l==='Biodra')?n<0:n>0;const color=n===0?'var(--tx2)':isGood?'var(--gr)':'var(--ac)';const sign=n>0?'+':'';deltaHTML=`<div class="mdelta" style="color:${color}">${sign}${c.delta}</div>`;}return `<div class="meas-data-chip"><div class="mlabel">${c.l}</div><div class="mval">${c.v}</div>${deltaHTML}</div>`;}).join('');return `<div class="meas-history-row"><div style="text-align:center;min-width:44px;"><div class="meas-history-date">${day}</div><div class="meas-history-month">${month}</div></div><div class="meas-history-data">${chipsHTML}</div>${e.notes?`<div style="font-size:11px;color:var(--tx2);font-style:italic;margin-top:6px;">📝 ${e.notes}</div>`:''}<button class="meas-del-btn" onclick="deleteMeasurement('${e._path}')" title="Usuń">✕</button></div>`;}).join('');}
-function measSwitchChart(name,btn){measCurrentChart=name;document.querySelectorAll('.meas-chart-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.meas-chart-panel').forEach(p=>p.style.display='none');document.getElementById('meas-chart-'+name).style.display='block';renderMeasCharts();}
-function renderMeasCharts(){if(measEntries.length<1)return;const labels=measEntries.map(e=>{const d=new Date(e.date);return d.toLocaleDateString('pl',{day:'numeric',month:'short'});});const chartDefaults={responsive:true,plugins:{legend:{labels:{color:'#888',font:{size:11,family:'DM Sans'}}}},scales:{x:{ticks:{color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}}}};if(measCurrentChart==='waga'){destroyChart('chart-waga');destroyChart('chart-fat');if(measEntries.some(e=>e.weight)){measCharts['chart-waga']=new Chart(document.getElementById('chart-waga'),{type:'line',data:{labels,datasets:[{label:'Waga (kg)',data:measEntries.map(e=>e.weight||null),borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.08)',pointBackgroundColor:'#60a5fa',pointRadius:4,tension:0.3,fill:true,spanGaps:true}]},options:chartDefaults});}if(measEntries.some(e=>e.fatPct)){measCharts['chart-fat']=new Chart(document.getElementById('chart-fat'),{type:'line',data:{labels,datasets:[{label:'% Tłuszczu',data:measEntries.map(e=>e.fatPct||null),borderColor:'#e8302a',backgroundColor:'rgba(232,48,42,0.08)',pointBackgroundColor:'#e8302a',pointRadius:4,tension:0.3,fill:true,spanGaps:true}]},options:chartDefaults});}}if(measCurrentChart==='kompozycja'){destroyChart('chart-kompozycja');if(measEntries.some(e=>e.muscleKg||e.fatKg)){const datasets=[];if(measEntries.some(e=>e.muscleKg))datasets.push({label:'Masa mięśniowa (kg)',data:measEntries.map(e=>e.muscleKg||null),borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.1)',pointBackgroundColor:'#4ade80',pointRadius:4,tension:0.3,fill:true,spanGaps:true});if(measEntries.some(e=>e.fatKg))datasets.push({label:'Masa tłuszczowa (kg)',data:measEntries.map(e=>e.fatKg||null),borderColor:'#e8302a',backgroundColor:'rgba(232,48,42,0.08)',pointBackgroundColor:'#e8302a',pointRadius:4,tension:0.3,fill:true,spanGaps:true});if(measEntries.some(e=>e.boneKg))datasets.push({label:'Masa kostna (kg)',data:measEntries.map(e=>e.boneKg||null),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.06)',pointBackgroundColor:'#f59e0b',pointRadius:4,tension:0.3,spanGaps:true});measCharts['chart-kompozycja']=new Chart(document.getElementById('chart-kompozycja'),{type:'line',data:{labels,datasets},options:chartDefaults});}const last=measEntries[measEntries.length-1];const first=measEntries[0];const statsEl=document.getElementById('meas-stats-cards');const cards=[{l:'Masa mięśniowa',v:last.muscleKg,unit:'kg',prev:first.muscleKg,good:'up'},{l:'Masa tłuszczowa',v:last.fatKg,unit:'kg',prev:first.fatKg,good:'down'},{l:'% Tłuszczu',v:last.fatPct,unit:'%',prev:first.fatPct,good:'down'},{l:'Masa kostna',v:last.boneKg,unit:'kg',prev:first.boneKg,good:'up'},{l:'% Wody',v:last.waterPct,unit:'%',prev:first.waterPct,good:'up'},{l:'Wiek metaboliczny',v:last.metAge,unit:'l',prev:first.metAge,good:'down'}].filter(c=>c.v);statsEl.innerHTML=cards.map(c=>{const diff=c.prev?(c.v-c.prev).toFixed(1):null;const isGood=diff?(c.good==='down'?diff<0:diff>0):null;const color=diff===null?'var(--tx)':isGood?'var(--gr)':'var(--ac)';const sign=diff>0?'+':'';return `<div class="meas-stat-card"><div class="meas-stat-label">${c.l}</div><div class="meas-stat-val" style="color:${color}">${c.v}${c.unit}</div>${diff!==null?`<div class="meas-stat-delta" style="color:${color}">${sign}${diff} od początku</div>`:''}</div>`;}).join('');}if(measCurrentChart==='obwody'){destroyChart('chart-obwody');const obwody=[{key:'waist',label:'Talia',color:'#e8302a'},{key:'hips',label:'Biodra',color:'#f59e0b'},{key:'chest',label:'Klatka',color:'#60a5fa'},{key:'thighL',label:'Udo L',color:'#4ade80'},{key:'bicepL',label:'Biceps L',color:'#a78bfa'},{key:'neck',label:'Szyja',color:'#34d399'}];const datasets=obwody.filter(o=>measEntries.some(e=>e[o.key])).map(o=>({label:o.label,data:measEntries.map(e=>e[o.key]||null),borderColor:o.color,backgroundColor:o.color+'15',pointBackgroundColor:o.color,pointRadius:3,tension:0.3,spanGaps:true}));if(datasets.length){measCharts['chart-obwody']=new Chart(document.getElementById('chart-obwody'),{type:'line',data:{labels,datasets},options:chartDefaults});}}if(measCurrentChart==='overview'){const last=measEntries[measEntries.length-1];const first=measEntries[0];const ov=document.getElementById('meas-overview-cards');const items=[{l:'Waga',v:last.weight,u:'kg',p:first.weight,good:'up'},{l:'% Tłuszczu',v:last.fatPct,u:'%',p:first.fatPct,good:'down'},{l:'Mięśnie',v:last.muscleKg,u:'kg',p:first.muscleKg,good:'up'},{l:'Talia',v:last.waist,u:'cm',p:first.waist,good:'down'},{l:'Biodra',v:last.hips,u:'cm',p:first.hips,good:'down'},{l:'BMI',v:last.bmi,u:'',p:first.bmi,good:'down'},{l:'Woda',v:last.waterPct,u:'%',p:first.waterPct,good:'up'},{l:'BMR',v:last.bmr,u:'kcal',p:first.bmr,good:'up'}].filter(c=>c.v);ov.innerHTML=items.map(c=>{const diff=c.p?(c.v-c.p).toFixed(1):null;const isGood=diff?(c.good==='down'?diff<0:diff>0):null;const color=diff===null?'var(--bl)':isGood?'var(--gr)':'var(--ac)';const sign=parseFloat(diff)>0?'+':'';return `<div class="meas-stat-card"><div class="meas-stat-label">${c.l}</div><div class="meas-stat-val" style="color:${color}">${c.v}${c.u}</div>${diff!==null?`<div class="meas-stat-delta" style="color:${color}">${sign}${diff} od 1. pomiaru</div>`:''}</div>`;}).join('');destroyChart('chart-radar');if(measEntries.length>=2){const radarLabels=['Waga','% Tłuszczu','Mięśnie','Talia','Woda %','BMR'];const normalize=(val,min,max)=>val?Math.round(((val-min)/(max-min))*10):5;const firstData=[normalize(first.weight,50,120),normalize(first.fatPct,5,40),normalize(first.muscleKg,20,80),normalize(first.waist,60,120),normalize(first.waterPct,45,70),normalize(first.bmr,1200,2800)];const lastData=[normalize(last.weight,50,120),normalize(last.fatPct,5,40),normalize(last.muscleKg,20,80),normalize(last.waist,60,120),normalize(last.waterPct,45,70),normalize(last.bmr,1200,2800)];measCharts['chart-radar']=new Chart(document.getElementById('chart-radar'),{type:'radar',data:{labels:radarLabels,datasets:[{label:'Pierwszy pomiar',data:firstData,borderColor:'rgba(96,165,250,0.5)',backgroundColor:'rgba(96,165,250,0.06)',pointBackgroundColor:'#60a5fa'},{label:'Ostatni pomiar',data:lastData,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.08)',pointBackgroundColor:'#4ade80'}]},options:{responsive:true,plugins:{legend:{labels:{color:'#888',font:{size:11}}}},scales:{r:{ticks:{display:false},grid:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#888',font:{size:11}}}}}});}}}
-function destroyChart(id){if(measCharts[id]){measCharts[id].destroy();delete measCharts[id];}}
-
-// ===== PLAN 8 TYGODNI =====
-let currentPlanData = null;
-
-function openPlanScreen(){
-  const name = document.getElementById('client-name').value.trim() || 'Klient';
-  document.getElementById('plan-client-tag').textContent = '👤 ' + name;
-  document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3);">
-    <div style="font-size:48px;margin-bottom:16px;">📋</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:8px;">GOTOWY DO WYGENEROWANIA PLANU</div>
-    <div style="font-size:12px;line-height:1.7;max-width:400px;margin:0 auto;">Uzupełnij profil klienta po lewej stronie, a następnie kliknij <strong style="color:var(--ac)">Generuj plan AI</strong> aby otrzymać pełny plan treningowy na 8 tygodni z progresją.</div>
-  </div>`;
-  document.getElementById('plan-dl-btn').style.display = 'none';
-  document.getElementById('plan-pdf-btn').style.display = 'none';
-  openOverlay('screen-plan');
-}
-
-const PLAN_STATUSES = [
-  'Analizuję profil klienta...',
-  'Dobieramy optymalny podział treningowy...',
-  'Generuję ćwiczenia z progresją...',
-  'Finalizuję plan...',
-];
-
-let planWeeks = 1;
-let planProgression = 'ai';
-
-function setPlanWeeks(n, btn) {
-  planWeeks = n;
-  // Only reset active in week selector
-  btn.closest('#plan-weeks-selector').querySelectorAll('.pw-btn').forEach(b => b.classList.remove('pw-active'));
-  btn.classList.add('pw-active');
-}
-
-function setProgression(type, btn) {
-  planProgression = type;
-  btn.closest('#plan-prog-selector').querySelectorAll('.pw-btn').forEach(b => b.classList.remove('pw-active'));
-  btn.classList.add('pw-active');
-}
-
-const PROGRESSION_LABELS = {
-  ai:     { name: '🤖 AI Auto',       desc: 'AI dobiera optymalną metodę progresji na podstawie profilu klienta, stażu i celu' },
-  linear: { name: '📈 Liniowa',        desc: 'Co tydzień zwiększamy ciężar o 2.5-5%. Idealna dla początkujących.' },
-  dup:    { name: '🔄 DUP',            desc: 'Daily Undulating Periodization — każda sesja w tygodniu ma inny zakres powtórzeń (np. 5, 10, 15).' },
-  wave:   { name: '〰️ Falująca tygodniowa', desc: 'Weekly Undulating — tygodnie na objętość przeplatane z tygodniami na intensywność.' },
-  block:  { name: '🧱 Blokowa',        desc: 'Fazy: Akumulacja (wysokie serie) → Intensyfikacja (ciężej) → Realizacja (szczyt siły).' },
-  double: { name: '⏫ Podwójna',       desc: 'Najpierw zwiększaj powtórzenia do max, potem zwiększ ciężar i wróć do min powtórzeń.' },
-};
-
-function getProgressionInstruction(weeks) {
-  const prog = PROGRESSION_LABELS[planProgression];
-  if (planProgression === 'ai') {
-    return `Dobierz OPTYMALNĄ metodę progresji dla tego klienta na podstawie jego profilu (staż, cel, poziom). Uzasadnij wybór w polu progressionNotes.`;
-  }
-  const instructions = {
-    linear: `Stosuj PROGRESJĘ LINIOWĄ: każdy tydzień zwiększ ciężar o 2.5-5kg lub 2-3% przy zachowaniu tych samych serii i powtórzeń. Przy plateau zmniejsz ciężar o 10% i zacznij od nowa.`,
-    dup:    `Stosuj DUP (Daily Undulating Periodization): w obrębie każdego tygodnia każda sesja ma inny zakres powtórzeń — np. sesja A: 4-6 powt. (siłowa), sesja B: 8-12 powt. (hipertrofia), sesja C: 15-20 powt. (wytrzymałość). Ciężar dopasowany do zakresu.`,
-    wave:   `Stosuj FALUJĄCĄ PERIODYZACJĘ TYGODNIOWĄ: tygodnie nieparzyste (1,3,5,7) = wyższa objętość (więcej serii, umiarkowany ciężar, RPE 7-8), tygodnie parzyste (2,4,6,8) = wyższa intensywność (mniej serii, cięższy ciężar, RPE 8-9).`,
-    block:  `Stosuj PERIODYZACJĘ BLOKOWĄ: tygodnie 1-3 = Akumulacja (4-5 serii, 10-15 powt., RPE 6-7, ~65-70%), tygodnie 4-6 = Intensyfikacja (4 serie, 6-8 powt., RPE 8-9, ~75-85%), tydzień 7 = Deload, tydzień 8 = Realizacja/Szczyt (3-4 serie, 3-5 powt., RPE 9-10, ~85-95%).`,
-    double: `Stosuj PODWÓJNĄ PROGRESJĘ: zacznij od dolnej granicy powtórzeń (np. 3×8) z danym ciężarem. Co tydzień dodawaj 1 powtórzenie do każdej serii. Gdy osiągniesz górną granicę (np. 3×12), zwiększ ciężar o 2.5-5kg i wróć do dolnej granicy powtórzeń.`,
-  };
-  return instructions[planProgression] || instructions.linear;
-}
-
-function buildPlanPrompt(weeks) {
-  const weekNames = ['w1','w2','w3','w4','w5','w6','w7','w8'].slice(0, weeks);
-  const phases = {
-    1: {'w1':'Tydzień 1'},
-    4: {'w1':'Adaptacja','w2':'Hipertrofia I','w3':'Hipertrofia II','w4':'Deload'},
-    8: {'w1':'Adaptacja','w2':'Adaptacja','w3':'Hipertrofia I','w4':'Hipertrofia I','w5':'Hipertrofia II','w6':'Siła','w7':'Deload','w8':'Szczyt'}
-  };
-  const ph = phases[weeks] || phases[1];
-  const progInstruction = getProgressionInstruction(weeks);
-  const progLabel = PROGRESSION_LABELS[planProgression]?.name || 'Auto';
-
-  // Compact example - shorter JSON template
-  const wEx = weekNames.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
-  const wuEx = `[{"name":"Krążenia bioder","emoji":"🔄","sets":"2x","reps":"10","note":"mobilizacja"},{"name":"Aktywacja pośladków","emoji":"🍑","sets":"2x","reps":"15","note":"mostek biodrowy"}]`;
-
-  return `Trener personalny NSCA CSCS. Wygeneruj plan ${weeks} tyg. Metoda: ${progLabel}.
-TYLKO czysty JSON, bez markdown.
-
-FORMAT:
-{"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi",${wEx}}]}]}
-
-PROGRESJA: ${progInstruction}
-
-ROZGRZEWKA (każda sesja, 4-5 ćw.):
-- warmupExercises: mobilizacja + aktywacja specyficzna dla tej sesji
-- Uwzględnij kontuzje z profilu (np. ból kolan → unikaj głębokiego przysiadu w rozgrzewce)
-- Wady postawy → ćwiczenia korekcyjne
-
-CARDIO (jeśli cel=redukcja/kondycja):
-- Dodaj 1-2 sesje HIIT/cardio jako osobne sesje (nazwa zawiera "HIIT" lub "Cardio")
-- Format identyczny, "kg"=tętno np."80% HRmax", "r"=czas np."30s"
-- Progresja: w1-2 niżej→w3+ więcej interwałów/krótsza przerwa
-
-ZASADY:
-- 4-5 ćwiczeń/sesję (krócej = lepiej dla tokenów)
-- Każdy tydzień INNE parametry${weeks>=4?'\n- Ostatni tydzień: Deload (s-1, RPE-2)':''}${weeks>=8?'\n- W8: Szczyt (max ciężar, niskie powt.)':''}
-- Uwzględnij wykluczone ruchy z profilu`;
-}
-
-async function callAPI(system, userMsg, maxTokens) {
-  const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      system: system,
-      messages: [{ role: 'user', content: userMsg }]
-    })
+async function sendMessage(userMsg){const input=document.getElementById('chat-input');const message=userMsg||input.value.trim();if(!message)return;const welcome=document.getElementById('welcome');if(welcome)welcome.style.display='none';addMessage('user',message);if(!userMsg){input.value='';input.style.height='auto';}document.getElementById('send-btn').disabled=true;const typing=document.getElementById('typing');typing.classList.add('visible');scrollToBottom();const kbImages=getKBImages();
+if(kbImages.length>0){
+  const parts=[];
+  kbImages.slice(0,3).forEach(img=>{
+    try{const raw=img.content.replace('[IMAGE]','');const b64=raw.split(',')[1];const mt=raw.split(';')[0].split(':')[1]||'image/jpeg';
+    if(b64)parts.push({type:'image',source:{type:'base64',media_type:mt,data:b64}});}catch(e){}
   });
-  const data = await resp.json();
-  const raw = (data?.content||[]).map(b=>b.text||'').join('');
-  console.log('API raw length:', raw.length, 'preview:', raw.substring(0,120));
-  const first = raw.indexOf('{');
-  const last = raw.lastIndexOf('}');
-  if (first === -1) { console.error('No { in response'); return null; }
-  let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
+  parts.push({type:'text',text:message});
+  conversationHistory.push({role:'user',content:parts});
+}else{conversationHistory.push({role:'user',content:message});}
+
   try { return JSON.parse(jsonStr); }
   catch(e) {
     console.warn('JSON parse failed, repairing...', e.message);

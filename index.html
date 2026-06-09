@@ -1121,165 +1121,266 @@ function renderPlan(plan) {
   const phases = plan.phases || {};
   const weekKeys = Object.keys(phases);
 
-  // Header card
+  // ── HEADER ──────────────────────────────────────────────────────────────
   let html = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${plan.planTitle||'Plan Treningowy'}</div>
-    <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--ac);">${plan.planTitle||'Plan Treningowy'}</div>
+    <div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;">
       <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${plan.split||''}</span>
       <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${plan.sessionsPerWeek||''} sesji / tydzień</span>
       <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">📅 ${weekKeys.length} ${weekKeys.length===1?'tydzień':'tyg.'}</span>
     </div>
     ${plan.philosophy?`<div style="font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px;">${plan.philosophy}</div>`:''}
-    ${plan.progressionType?`<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    ${plan.progressionType?`<div style="margin-top:8px;">
       <span style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);border-radius:6px;padding:3px 10px;font-size:10px;font-family:'DM Mono',monospace;color:var(--yw);">${(PROGRESSION_LABELS[plan.progressionType]||PROGRESSION_LABELS.ai).name}</span>
-      <span style="font-size:11px;color:var(--tx3);">${(PROGRESSION_LABELS[plan.progressionType]||PROGRESSION_LABELS.ai).desc}</span>
     </div>`:''}
   </div>`;
 
-  // Week navigator
+  // ── WEEK NAVIGATOR ───────────────────────────────────────────────────────
   if (weekKeys.length > 1) {
-    html += `<div style="display:grid;grid-template-columns:repeat(${weekKeys.length},1fr);gap:4px;margin-bottom:16px;">`;
-    weekKeys.forEach((wk,i) => {
+    html += `<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;" id="week-nav">`;
+    weekKeys.forEach((wk, i) => {
       const phase = phases[wk]||'';
       const col = getPhaseColor(phase);
-      html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onclick="scrollToSession(0)" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${i+1}</div>
-        <div style="font-size:8px;color:var(--tx3);font-family:'DM Mono',monospace;">${phase.split(' ')[0]}</div>
-      </div>`;
+      const isDeload = phase.toLowerCase().includes('deload');
+      html += `<button onclick="showWeek(${i})" id="wbtn-${i}"
+        style="padding:6px 14px;border-radius:8px;border:1px solid ${i===0?col:'var(--border)'};background:${i===0?`rgba(${col},0.1)`:'var(--bg3)'};color:${i===0?col:'var(--tx2)'};font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;${isDeload?'opacity:0.7':''}">
+        W${i+1} <span style="font-size:9px;">${phase}</span>
+      </button>`;
     });
     html += `</div>`;
   }
 
-  // Sessions
-  (plan.sessions||[]).forEach((session, si) => {
-    const warmup = plan.warmups && plan.warmups[si] ? plan.warmups[si] : null;
-
-    const isCardio = (session.sessionName||'').toLowerCase().includes('cardio') ||
-                     (session.sessionName||'').toLowerCase().includes('hiit') ||
-                     (session.sessionName||'').toLowerCase().includes('tabata') ||
-                     (session.sessionName||'').toLowerCase().includes('interwał');
-    const sessionColor = isCardio ? 'var(--yw)' : 'var(--ac)';
-    const sessionBg = isCardio ? 'rgba(245,158,11,0.06)' : 'var(--bg3)';
-    const sessionIcon = isCardio ? '🔥' : '💪';
-
-    html += `<div id="plan-session-${si}" style="margin-bottom:28px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:${sessionColor};margin-bottom:10px;padding:8px 14px;background:${sessionBg};border-left:3px solid ${sessionColor};border-radius:0 8px 8px 0;">${sessionIcon} ${session.sessionName||''}</div>`;
-
-    // WARMUP SECTION
-    const warmupExercises = warmup?.exercises || session.warmupExercises || [];
-    if (warmupExercises.length > 0) {
-      html += `<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:14px;margin-bottom:12px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--yw);margin-bottom:10px;">🔥 ROZGRZEWKA — MOBILIZACJA & AKTYWACJA</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          ${warmupExercises.map(ex => `
-            <div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;">
-              <span style="font-size:16px;">${ex.emoji||'🔸'}</span>
-              <div style="flex:1;">
-                <div style="font-size:12px;font-weight:600;color:var(--tx);">${ex.name||''}</div>
-                ${ex.note?`<div style="font-size:10px;color:var(--tx3);margin-top:1px;">${ex.note}</div>`:''}
-              </div>
-              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--yw);background:rgba(245,158,11,0.1);border-radius:5px;padding:3px 8px;white-space:nowrap;">${ex.sets||''} ${ex.reps||''}</div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-    }
-
-    // MAIN TABLE
-    html += `<div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:${weekKeys.length>1?850:500}px;">
-        <thead>
-          <tr style="background:rgba(255,255,255,0.04);">
-            <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--border);min-width:170px;position:sticky;left:0;background:#181818;z-index:1;">Ćwiczenie</th>
-            ${weekKeys.map((wk,i)=>{
-              const phase=phases[wk]||'';
-              const col=getPhaseColor(phase);
-              const isDeload=phase.toLowerCase().includes('deload');
-              return `<th style="padding:8px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;border-bottom:1px solid var(--border);min-width:${weekKeys.length===1?'auto':'110px'};${isDeload?'opacity:0.6':''}">
-                ${weekKeys.length>1?`W${i+1}<br><span style="font-size:8px;font-weight:400;">${phase}</span>`:phase}
-              </th>`;
-            }).join('')}
-          </tr>
-        </thead>
-        <tbody>`;
-
-    (session.exercises||[]).forEach((ex, ei) => {
-      html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-        <td style="padding:9px 12px;color:var(--tx);font-weight:500;position:sticky;left:0;background:#181818;z-index:1;">${ex.name||''}</td>`;
-
-      weekKeys.forEach((wk, wi) => {
-        const p = ex[wk]||{};
-        const phase=phases[wk]||'';
-        const col=getPhaseColor(phase);
-        const isDeload=phase.toLowerCase().includes('deload');
-        const sets=p.s||p.sets;
-        const reps=p.r||p.reps;
-        const rest=p.rest||'';
-        const rpe=p.rpe||'';
-        const kg=p.kg||p.weight||'';
-        const cellId = `cell_${si}_${ei}_${wi}`;
-        const logId = `log_${si}_${ei}_${wi}`;
-        const nextId = `next_${si}_${ei}_${wi}`;
-
-        html += `<td style="padding:5px 4px;text-align:center;${isDeload?'opacity:0.65':''}">
-          ${sets?`<div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:5px 3px;" id="${cellId}">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;line-height:1.1;color:${col};">${sets}×${reps}</div>
-            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;">${rest}</div>
-            <div style="display:flex;justify-content:center;gap:4px;margin-top:2px;flex-wrap:wrap;">
-              <span style="font-size:9px;color:${col};background:rgba(255,255,255,0.05);border-radius:4px;padding:1px 5px;">RPE ${rpe}</span>
-              <span style="font-size:9px;color:var(--tx2);">${kg}</span>
-            </div>
-            <div style="margin-top:5px;border-top:1px solid rgba(255,255,255,0.06);padding-top:5px;display:flex;flex-direction:column;gap:3px;">
-              <div style="display:flex;gap:3px;justify-content:center;">
-                <input id="edit_reps_${cellId}" type="text" value="${reps}"
-                  title="Edytuj powtórzenia"
-                  style="width:34px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 3px;color:var(--gr);font-size:10px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
-                  onchange="saveEdit('reps','${cellId}',this.value)"
-                  onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
-                  placeholder="powt.">
-                <input id="edit_rest_${cellId}" type="text" value="${rest}"
-                  title="Edytuj przerwę"
-                  style="width:38px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 3px;color:var(--bl);font-size:10px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
-                  onchange="saveEdit('rest','${cellId}',this.value)"
-                  onfocus="this.style.borderColor='var(--bl)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
-                  placeholder="przerw.">
-              </div>
-              <div style="display:flex;gap:3px;align-items:center;justify-content:center;">
-                <input id="${logId}" type="number" placeholder="kg" step="0.5"
-                  title="Wpisz wykonany ciężar → AI policzy następny"
-                  style="width:48px;background:rgba(232,48,42,0.06);border:1px solid rgba(232,48,42,0.2);border-radius:4px;padding:3px 4px;color:var(--tx);font-size:11px;font-family:'DM Mono',monospace;text-align:center;outline:none;"
-                  onchange="calcNext('${logId}','${nextId}','${sets}','${reps}','${planProgression}')"
-                  onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='rgba(232,48,42,0.2)'"
-                  placeholder="✍kg">
-              </div>
-              <div id="${nextId}" style="font-size:9px;color:${col};min-height:12px;font-family:'DM Mono',monospace;text-align:center;font-weight:600;"></div>
-            </div>
-          </div>`:`<span style="color:var(--tx3);font-size:11px;">—</span>`}
-        </td>`;
-      });
-      html += `</tr>`;
-    });
-
-    html += `</tbody></table></div></div>`;
-  });
-
-  // Legend
-  html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
-    <span style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;">Legenda:</span>
-    <span style="font-size:10px;color:var(--tx2);">📋 <strong style="color:var(--tx);">Serie×Powt.</strong> — zaplanowane</span>
-    <span style="font-size:10px;color:var(--gr);">✏️ <strong style="color:var(--gr);">Powt.</strong> — edytuj powtórzenia</span>
-    <span style="font-size:10px;color:var(--bl);">⏱️ <strong style="color:var(--bl);">Przerwa</strong> — edytuj czas przerwy</span>
-    <span style="font-size:10px;color:var(--ac);">✍️ <strong style="color:var(--ac);">kg</strong> — wpisz wykonany ciężar → AI liczy następny</span>
+  // ── LEGEND ───────────────────────────────────────────────────────────────
+  html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-bottom:16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">LEGENDA:</span>
+    <span style="font-size:10px;color:var(--gr);">✏️ <b style="color:var(--gr);">Powt.</b> — edytuj</span>
+    <span style="font-size:10px;color:var(--bl);">⏱️ <b style="color:var(--bl);">Przerwa</b> — edytuj</span>
+    <span style="font-size:10px;color:var(--ac);">⚖️ <b style="color:var(--ac);">Wpisz kg</b> → AI liczy następny ciężar</span>
   </div>`;
 
-  // Footer
+  // ── WEEK PANELS ───────────────────────────────────────────────────────────
+  weekKeys.forEach((wk, wi) => {
+    const phase = phases[wk]||'';
+    const col = getPhaseColor(phase);
+    const isDeload = phase.toLowerCase().includes('deload');
+    const isVisible = wi === 0;
+
+    html += `<div id="week-panel-${wi}" style="display:${isVisible?'block':'none'};">`;
+
+    // Phase badge
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:${col};">TYDZIEŃ ${wi+1}</div>
+      <div style="background:${isDeload?'rgba(136,136,136,0.12)':'rgba('+col+',0.1)'};border:1px solid ${col};border-radius:6px;padding:3px 10px;font-size:10px;font-family:'DM Mono',monospace;color:${col};">${phase}</div>
+    </div>`;
+
+    // Sessions in this week
+    (plan.sessions||[]).forEach((session, si) => {
+      const warmupExs = session.warmupExercises || [];
+      const isCardio = (session.sessionName||'').toLowerCase().includes('hiit') ||
+                       (session.sessionName||'').toLowerCase().includes('cardio') ||
+                       (session.sessionName||'').toLowerCase().includes('interwał') ||
+                       (session.sessionName||'').toLowerCase().includes('tabata');
+      const sessionCol = isCardio ? 'var(--yw)' : col;
+      const sessionIcon = isCardio ? '🔥' : '💪';
+
+      html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;">
+        <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <span style="font-size:16px;">${sessionIcon}</span>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:${sessionCol};">${session.sessionName||''}</div>
+        </div>`;
+
+      // Warmup block
+      if (warmupExs.length > 0) {
+        html += `<div style="padding:12px 16px;background:rgba(245,158,11,0.03);border-bottom:1px solid var(--border);">
+          <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--yw);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔥 Rozgrzewka — mobilizacja & aktywacja</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;">
+            ${warmupExs.map(ex=>`
+              <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.02);border-radius:6px;padding:6px 10px;">
+                <span style="font-size:18px;">${ex.emoji||'🔸'}</span>
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--tx);">${ex.name||''}</div>
+                  <div style="font-size:10px;color:var(--yw);font-family:'DM Mono',monospace;">${ex.sets||''} ${ex.reps||''}</div>
+                  ${ex.note?`<div style="font-size:9px;color:var(--tx3);">${ex.note}</div>`:''}
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      // Exercise cards (Fitebo style)
+      html += `<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">`;
+
+      (session.exercises||[]).forEach((ex, ei) => {
+        const p = ex[wk] || {};
+        const sets = p.s || p.sets || 3;
+        const reps = p.r || p.reps || '10';
+        const rest = p.rest || '90s';
+        const rpe = p.rpe || '';
+        const kg = p.kg || p.weight || '';
+        const setsNum = parseInt(sets) || 3;
+        const cellBase = `ex_${si}_${ei}_${wi}`;
+
+        // Determine if cardio exercise
+        const isCardioEx = isCardio;
+
+        html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <!-- Exercise header -->
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);">
+            <div style="width:26px;height:26px;border-radius:50%;background:${sessionCol};color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">${ei+1}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--tx);flex:1;">${ex.name||''}</div>
+            ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;">RPE ${rpe}</div>`:''}
+          </div>
+          <!-- Params row -->
+          <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;padding:8px 12px;border-right:1px solid var(--border);">
+              <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">Serie</div>
+              <div style="font-size:15px;font-weight:700;color:${sessionCol};font-family:'Bebas Neue',sans-serif;">${sets}</div>
+            </div>
+            <div style="flex:1;padding:8px 12px;border-right:1px solid var(--border);">
+              <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">Powtórzenia</div>
+              <input id="reps_${cellBase}" type="text" value="${reps}"
+                style="font-size:14px;font-weight:600;color:var(--gr);background:transparent;border:none;outline:none;width:100%;font-family:'DM Sans',sans-serif;cursor:text;"
+                onchange="saveEdit('reps','${cellBase}',this.value)">
+            </div>
+            <div style="flex:1;padding:8px 12px;border-right:1px solid var(--border);">
+              <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">Przerwa</div>
+              <input id="rest_${cellBase}" type="text" value="${rest}"
+                style="font-size:14px;font-weight:600;color:var(--bl);background:transparent;border:none;outline:none;width:100%;font-family:'DM Sans',sans-serif;cursor:text;"
+                onchange="saveEdit('rest','${cellBase}',this.value)">
+            </div>
+            <div style="flex:1;padding:8px 12px;">
+              <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">${isCardioEx?'Tętno':'Ciężar ref.'}</div>
+              <div style="font-size:13px;color:var(--tx2);">${kg}</div>
+            </div>
+          </div>
+          <!-- Series log table -->
+          <div style="padding:10px 14px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="padding:4px 8px;text-align:left;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;width:40px;">Seria</th>
+                  <th style="padding:4px 8px;text-align:left;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;">${isCardioEx?'Czas / Dystans':'Powtórzenia'}</th>
+                  <th style="padding:4px 8px;text-align:left;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;">${isCardioEx?'Tętno / RPE':'Obciążenie (kg)'}</th>
+                  <th style="padding:4px 8px;text-align:left;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;width:80px;">Następny</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${Array.from({length: setsNum}, (_,si2) => `
+                  <tr style="border-top:1px solid rgba(255,255,255,0.04);">
+                    <td style="padding:6px 8px;">
+                      <div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.06);color:var(--tx2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">${si2+1}</div>
+                    </td>
+                    <td style="padding:6px 8px;">
+                      <input type="text" placeholder="${isCardioEx?reps:'powt.'}"
+                        style="width:70px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:5px 8px;color:var(--tx);font-size:12px;font-family:'DM Mono',monospace;outline:none;"
+                        onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </td>
+                    <td style="padding:6px 8px;">
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <input type="number" id="kg_${cellBase}_${si2}" placeholder="${isCardioEx?'bpm':'kg'}" step="0.5"
+                          style="width:70px;background:rgba(255,255,255,0.04);border:1px solid rgba(232,48,42,0.2);border-radius:5px;padding:5px 8px;color:var(--tx);font-size:12px;font-family:'DM Mono',monospace;outline:none;"
+                          onchange="calcNextSeries('kg_${cellBase}_${si2}','next_${cellBase}_${si2}','${sets}','${reps}','${planProgression}')"
+                          onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='rgba(232,48,42,0.2)'">
+                        <span style="font-size:10px;color:var(--tx3);">${isCardioEx?'':'kg'}</span>
+                      </div>
+                    </td>
+                    <td style="padding:6px 8px;">
+                      <div id="next_${cellBase}_${si2}" style="font-size:10px;color:${sessionCol};font-family:'DM Mono',monospace;font-weight:600;"></div>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      });
+
+      html += `</div></div>`; // close exercises + session card
+    });
+
+    html += `</div>`; // close week panel
+  });
+
+  // ── FOOTER ───────────────────────────────────────────────────────────────
   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">`;
-  if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 PROTOKÓŁ ROZGRZEWKI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.warmupProtocol}</div></div>`;
-  if (plan.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.cooldownProtocol}</div></div>`;
+  if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 PROTOKÓŁ ROZGRZEWKI</div><div style="font-size:12px;color:var(--tx2);line-height:1.7;">${plan.warmupProtocol}</div></div>`;
+  if (plan.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.7;">${plan.cooldownProtocol}</div></div>`;
   html += `</div>`;
-  if (plan.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.progressionNotes}</div></div>`;
+  if (plan.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.7;">${plan.progressionNotes}</div></div>`;
 
   document.getElementById('plan-content').innerHTML = html;
+
+  // Init week switcher active state
+  if (weekKeys.length > 1) showWeek(0);
 }
+
+function showWeek(wi) {
+  const plan = currentPlanData;
+  if (!plan) return;
+  const phases = plan.phases || {};
+  const weekKeys = Object.keys(phases);
+
+  // Hide all week panels
+  weekKeys.forEach((_,i) => {
+    const panel = document.getElementById(`week-panel-${i}`);
+    if (panel) panel.style.display = 'none';
+    const btn = document.getElementById(`wbtn-${i}`);
+    if (btn) {
+      btn.style.background = 'var(--bg3)';
+      btn.style.color = 'var(--tx2)';
+      btn.style.borderColor = 'var(--border)';
+    }
+  });
+
+  // Show selected
+  const panel = document.getElementById(`week-panel-${wi}`);
+  if (panel) panel.style.display = 'block';
+  const btn = document.getElementById(`wbtn-${wi}`);
+  if (btn) {
+    const col = getPhaseColor(phases[weekKeys[wi]]||'');
+    btn.style.borderColor = col;
+    btn.style.color = col;
+    btn.style.background = `rgba(255,255,255,0.05)`;
+  }
+}
+
+function calcNextSeries(inputId, nextId, sets, reps, progType) {
+  const input = document.getElementById(inputId);
+  const nextEl = document.getElementById(nextId);
+  if (!input || !nextEl) return;
+  const kg = parseFloat(input.value);
+  if (!kg || kg <= 0) { nextEl.textContent = ''; return; }
+
+  const repsStr = String(reps);
+  let nextKg = kg;
+  let hint = '';
+
+  switch(progType) {
+    case 'linear':
+      nextKg = Math.round((kg + 2.5) * 2) / 2;
+      hint = `→ ${nextKg}kg`;
+      break;
+    case 'double':
+      const repsNum = parseInt(repsStr.split('-')[0]) || 10;
+      const maxReps = parseInt(repsStr.split('-')[1]) || repsNum + 4;
+      // For double progression, suggest adding a rep first
+      hint = `+1 powt. lub → ${Math.round((kg+2.5)*2)/2}kg`;
+      break;
+    case 'dup':
+      nextKg = Math.round(kg * 1.025 * 2) / 2;
+      hint = `→ ${nextKg}kg`;
+      break;
+    case 'wave':
+    case 'block':
+      nextKg = Math.round(kg * 1.03 * 2) / 2;
+      hint = `→ ${nextKg}kg`;
+      break;
+    default:
+      nextKg = Math.round(kg * 1.025 * 2) / 2;
+      hint = `→ ${nextKg}kg`;
+  }
+  nextEl.textContent = hint;
+}
+
 
 function saveEdit(field, cellId, value) {
   // Visual feedback - flash the cell
@@ -1293,53 +1394,6 @@ function saveEdit(field, cellId, value) {
   try { localStorage.setItem(key, value); } catch(e) {}
 }
 
-function calcNext(logId, nextId, sets, reps, progType) {
-  const input = document.getElementById(logId);
-  const nextEl = document.getElementById(nextId);
-  if (!input || !nextEl) return;
-  const kg = parseFloat(input.value);
-  if (!kg || kg <= 0) { nextEl.textContent = ''; return; }
-  const setsNum = parseInt(sets) || 3;
-  const repsStr = String(reps);
-  const repsNum = parseInt(repsStr.split('-')[0]) || 10;
-
-  let nextKg = kg;
-  let nextReps = repsNum;
-  let hint = '';
-
-  switch(progType) {
-    case 'linear':
-      // Add 2.5kg for upper body, 5kg for lower
-      nextKg = kg + 2.5;
-      hint = `→ ${nextKg}kg`;
-      break;
-    case 'double':
-      // Double progression: first add reps, then weight
-      nextReps = repsNum + 1;
-      const maxReps = parseInt(repsStr.split('-')[1]) || repsNum + 4;
-      if (nextReps > maxReps) {
-        nextKg = kg + 2.5;
-        nextReps = parseInt(repsStr.split('-')[0]) || repsNum;
-        hint = `→ ${nextKg}kg × ${nextReps} powt. (reset)`;
-      } else {
-        hint = `→ ${kg}kg × ${nextReps} powt.`;
-      }
-      break;
-    case 'dup':
-      nextKg = Math.round(kg * 1.025 * 2) / 2; // +2.5%
-      hint = `→ ${nextKg}kg (+2.5%)`;
-      break;
-    case 'wave':
-    case 'block':
-      nextKg = Math.round(kg * 1.03 * 2) / 2; // +3%
-      hint = `→ ${nextKg}kg (+3%)`;
-      break;
-    default: // ai / auto
-      nextKg = Math.round(kg * 1.025 * 2) / 2;
-      hint = `→ ${nextKg}kg`;
-  }
-  nextEl.textContent = hint;
-}
 
 
 function scrollToSession(i) {

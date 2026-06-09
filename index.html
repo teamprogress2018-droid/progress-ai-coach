@@ -1234,7 +1234,9 @@ function renderPlan(plan) {
           <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">
             <div style="flex:1;padding:8px 12px;border-right:1px solid var(--border);">
               <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">Serie</div>
-              <div style="font-size:15px;font-weight:700;color:${sessionCol};font-family:'Bebas Neue',sans-serif;">${sets}</div>
+              <input id="sets_${cellBase}" type="number" value="${setsNum}" min="1" max="10"
+                style="font-size:15px;font-weight:700;color:${sessionCol};background:transparent;border:none;outline:none;width:40px;font-family:'Bebas Neue',sans-serif;cursor:text;"
+                onchange="updateSets('${cellBase}',this.value,'${reps}','${planProgression}','${sessionCol}')">
             </div>
             <div style="flex:1;padding:8px 12px;border-right:1px solid var(--border);">
               <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">Powtórzenia</div>
@@ -1264,7 +1266,7 @@ function renderPlan(plan) {
                   <th style="padding:4px 8px;text-align:left;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;width:80px;">Następny</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="tbody_${cellBase}" data-cardio="${isCardioEx?'1':'0'}">
                 ${Array.from({length: setsNum}, (_,si2) => `
                   <tr style="border-top:1px solid rgba(255,255,255,0.04);">
                     <td style="padding:6px 8px;">
@@ -1341,6 +1343,37 @@ function showWeek(wi) {
     btn.style.color = col;
     btn.style.background = `rgba(255,255,255,0.05)`;
   }
+}
+
+function updateSets(cellBase, newSets, reps, progType, col) {
+  const setsNum = Math.max(1, Math.min(10, parseInt(newSets)||3));
+  const tbody = document.getElementById('tbody_' + cellBase);
+  if (!tbody) return;
+  // Check if it's cardio
+  const isCardio = tbody.dataset.cardio === '1';
+  tbody.innerHTML = Array.from({length: setsNum}, (_,si2) => `
+    <tr style="border-top:1px solid rgba(255,255,255,0.04);">
+      <td style="padding:6px 8px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.06);color:var(--tx2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">${si2+1}</div>
+      </td>
+      <td style="padding:6px 8px;">
+        <input type="text" placeholder="${isCardio?reps:'powt.'}"
+          style="width:70px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:5px 8px;color:var(--tx);font-size:12px;font-family:'DM Mono',monospace;outline:none;"
+          onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+      </td>
+      <td style="padding:6px 8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="kg_${cellBase}_${si2}" placeholder="${isCardio?'bpm':'kg'}" step="0.5"
+            style="width:70px;background:rgba(255,255,255,0.04);border:1px solid rgba(232,48,42,0.2);border-radius:5px;padding:5px 8px;color:var(--tx);font-size:12px;font-family:'DM Mono',monospace;outline:none;"
+            onchange="calcNextSeries('kg_${cellBase}_${si2}','next_${cellBase}_${si2}','${setsNum}','${reps}','${progType}')"
+            onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='rgba(232,48,42,0.2)'">
+          <span style="font-size:10px;color:var(--tx3);">${isCardio?'':'kg'}</span>
+        </div>
+      </td>
+      <td style="padding:6px 8px;">
+        <div id="next_${cellBase}_${si2}" style="font-size:10px;color:${col};font-family:'DM Mono',monospace;font-weight:600;"></div>
+      </td>
+    </tr>`).join('');
 }
 
 function calcNextSeries(inputId, nextId, sets, reps, progType) {

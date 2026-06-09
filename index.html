@@ -229,6 +229,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .overlay-screen{display:none;position:fixed;top:56px;left:300px;right:0;bottom:0;overflow-y:auto;padding:20px;background:var(--bg);z-index:100;}
 .overlay-screen::-webkit-scrollbar{width:4px;}
 .overlay-screen::-webkit-scrollbar-thumb{background:var(--bg3);}
+.pw-btn{background:transparent;border:none;border-radius:6px;padding:5px 10px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.pw-btn.pw-active{background:var(--ac);color:#fff;}
+.pw-btn:hover:not(.pw-active){background:rgba(255,255,255,0.06);color:var(--tx);}
 </style>
 </head>
 <body>
@@ -715,10 +718,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <button onclick="closeOverlay()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ac);">PLAN TRENINGOWY — 8 TYGODNI</div>
     <div id="plan-client-tag" style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;"></div>
-    <div style="margin-left:auto;display:flex;gap:8px;">
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+      <div id="plan-weeks-selector" style="display:flex;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px;">
+        <button onclick="setPlanWeeks(1,this)" class="pw-btn pw-active">1 tyg.</button>
+        <button onclick="setPlanWeeks(4,this)" class="pw-btn">4 tyg.</button>
+        <button onclick="setPlanWeeks(8,this)" class="pw-btn">8 tyg.</button>
+      </div>
       <button onclick="generatePlan()" id="plan-gen-btn" style="background:var(--ac);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🤖 Generuj plan AI</button>
-      <button onclick="downloadPlanExcel()" id="plan-dl-btn" style="display:none;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 16px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz Excel</button>
-      <button onclick="downloadPlanPDF()" id="plan-pdf-btn" style="display:none;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:7px 16px;color:var(--bl);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj / PDF</button>
+      <button onclick="expandPlan()" id="plan-expand-btn" style="display:none;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:7px 14px;color:var(--yw);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📈 Rozszerz progresję</button>
+      <button onclick="downloadPlanExcel()" id="plan-dl-btn" style="display:none;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 14px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz CSV</button>
+      <button onclick="downloadPlanPDF()" id="plan-pdf-btn" style="display:none;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:7px 14px;color:var(--bl);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj</button>
     </div>
   </div>
   <div id="plan-loading" style="display:none;text-align:center;padding:60px 20px;">
@@ -904,25 +913,46 @@ function openPlanScreen(){
 }
 
 const PLAN_STATUSES = [
-  'Analizuję profil klienta i filozofię trenera...',
+  'Analizuję profil klienta...',
   'Dobieramy optymalny podział treningowy...',
-  'Projektuję ćwiczenia i progresję...',
-  'Finalizuję plan 8 tygodni...',
+  'Generuję ćwiczenia z progresją...',
+  'Finalizuję plan...',
 ];
 
-const PLAN_SYS_V2 = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT).
-Wygeneruj plan treningowy na 8 tygodni. Odpowiedz WYŁĄCZNIE czystym JSON bez żadnego markdown.
-Format:
-{"planTitle":"nazwa","split":"podział","sessionsPerWeek":3,"philosophy":"1 zdanie","progressionNotes":"zasady progresji","warmupProtocol":"rozgrzewka 2 zdania","cooldownProtocol":"wyciszenie 1 zdanie","phases":{"w1":"Adaptacja","w2":"Adaptacja","w3":"Hipertrofia I","w4":"Hipertrofia I","w5":"Hipertrofia II","w6":"Siła","w7":"Deload","w8":"Szczyt"},"sessions":[{"sessionName":"Trening A — Push","exercises":[{"name":"Wyciskanie sztangi","w1":{"s":3,"r":"12","rest":"90s","rpe":"6","kg":"60%"},"w2":{"s":3,"r":"11","rest":"90s","rpe":"7","kg":"65%"},"w3":{"s":4,"r":"10","rest":"90s","rpe":"7","kg":"67%"},"w4":{"s":4,"r":"10","rest":"2min","rpe":"8","kg":"70%"},"w5":{"s":4,"r":"8","rest":"2min","rpe":"8","kg":"72%"},"w6":{"s":4,"r":"8","rest":"2min","rpe":"9","kg":"75%"},"w7":{"s":2,"r":"12","rest":"60s","rpe":"5","kg":"55%"},"w8":{"s":5,"r":"5","rest":"3min","rpe":"9","kg":"80%"}}]}]}
-ZASADY:
-- Każde ćwiczenie ma dane dla w1-w8 (każdy tydzień INNY — progresja)
-- w7=Deload (mniej serii, niższy RPE)
-- w8=Szczyt (max ciężar, niskie powtórzenia)
-- Dodaj 4-6 ćwiczeń na sesję
-- Uwzględnij wykluczone ruchy i zastąp je alternatywami
-- Jeśli wady postawy — dodaj 1-2 ćwiczenia korygujące`;
+let planWeeks = 1;
 
-async function callAPI(system, userMsg, maxTokens){
+function setPlanWeeks(n, btn) {
+  planWeeks = n;
+  document.querySelectorAll('.pw-btn').forEach(b => b.classList.remove('pw-active'));
+  btn.classList.add('pw-active');
+}
+
+function buildPlanPrompt(weeks) {
+  const weekNames = ['w1','w2','w3','w4','w5','w6','w7','w8'].slice(0, weeks);
+  const phases = {
+    1: {'w1':'Tydzień 1'},
+    4: {'w1':'Adaptacja','w2':'Hipertrofia I','w3':'Hipertrofia II','w4':'Deload'},
+    8: {'w1':'Adaptacja','w2':'Adaptacja','w3':'Hipertrofia I','w4':'Hipertrofia I','w5':'Hipertrofia II','w6':'Siła','w7':'Deload','w8':'Szczyt'}
+  };
+  const ph = phases[weeks] || phases[1];
+
+  const exTemplate = weekNames.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
+
+  return `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS).
+Wygeneruj plan treningowy na ${weeks} ${weeks===1?'tydzień':'tygodnie/tygodni'}.
+Odpowiedz WYŁĄCZNIE czystym JSON bez markdown i bez komentarzy.
+
+Format (przykład dla 1 ćwiczenia):
+{"planTitle":"nazwa","split":"FBW","sessionsPerWeek":3,"philosophy":"1 zdanie","progressionNotes":"zasady","warmupProtocol":"rozgrzewka","cooldownProtocol":"wyciszenie","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","exercises":[{"name":"Wyciskanie sztangi",${exTemplate}}]}]}
+
+ZASADY:
+- Każde ćwiczenie ma klucze ${weekNames.join(',')} z polami: s(serie), r(powtórzenia), rest(przerwa), rpe(RPE 1-10), kg(ciężar % lub kg)
+- Każdy tydzień MUSI mieć inne parametry (progresja)${weeks>=4?'\n- Ostatni tydzień = Deload (mniej serii, RPE 5-6)':''}${weeks>=8?'\n- Tydzień 8 = Szczyt (max ciężar, RPE 9-10)':''}
+- Dodaj 4-6 ćwiczeń na sesję
+- Uwzględnij wykluczone ruchy i zamień na bezpieczne alternatywy`;
+}
+
+async function callAPI(system, userMsg, maxTokens) {
   const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -935,22 +965,16 @@ async function callAPI(system, userMsg, maxTokens){
   });
   const data = await resp.json();
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
-  // Strip all markdown code fences aggressively
-  const cleaned = raw.replace(/^[\s\S]*?(\{)/,'$1').replace(/\}[\s\S]*$/,'}').trim();
-  try { return JSON.parse(cleaned); }
-  catch(e) {
-    // Try stripping backticks and retrying
-    const cleaned2 = raw.replace(/`{1,3}(?:json)?/gi,'').trim();
-    try { return JSON.parse(cleaned2); }
-    catch(e2) {
-      const m = raw.match(/\{[\s\S]*\}/);
-      if(m) { try { return JSON.parse(m[0]); } catch(e3){} }
-    }
-  }
-  return null;
+  // Extract JSON object - find first { to last }
+  const first = raw.indexOf('{');
+  const last = raw.lastIndexOf('}');
+  if (first === -1 || last === -1) return null;
+  const jsonStr = raw.substring(first, last+1);
+  try { return JSON.parse(jsonStr); }
+  catch(e) { console.error('JSON parse error:', e, jsonStr.substring(0,200)); return null; }
 }
 
-async function generatePlan(){
+async function generatePlan() {
   const profile = getClientProfile();
   const philosophy = getPhilosophy();
   if (!profile) { alert('Uzupełnij najpierw profil klienta (imię i cel)!'); return; }
@@ -959,18 +983,26 @@ async function generatePlan(){
   document.getElementById('plan-content').innerHTML = '';
   document.getElementById('plan-dl-btn').style.display = 'none';
   document.getElementById('plan-pdf-btn').style.display = 'none';
+  document.getElementById('plan-expand-btn').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = true;
 
   let sIdx = 0;
   const statusEl = document.getElementById('plan-status');
-  const ticker = setInterval(()=>{ sIdx=(sIdx+1)%PLAN_STATUSES.length; if(statusEl) statusEl.textContent=PLAN_STATUSES[sIdx]; }, 2500);
+  const ticker = setInterval(() => {
+    sIdx = (sIdx+1) % PLAN_STATUSES.length;
+    if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
+  }, 2000);
+
+  // Token budget: 1tyg~1200, 4tyg~2500, 8tyg~3800
+  const tokenBudget = planWeeks === 1 ? 1500 : planWeeks === 4 ? 2800 : 3800;
 
   let plan = null;
   try {
+    const sysPrompt = buildPlanPrompt(planWeeks);
     plan = await callAPI(
-      PLAN_SYS_V2,
-      `Wygeneruj plan 8-tygodniowy dla klienta. Zwróć TYLKO JSON.\n\n${profile}\n\n${philosophy}`,
-      3500
+      sysPrompt,
+      `Wygeneruj plan dla klienta. Zwróć TYLKO JSON.\n\n${profile}\n${philosophy}`,
+      tokenBudget
     );
   } catch(err) { plan = null; }
 
@@ -979,7 +1011,12 @@ async function generatePlan(){
   document.getElementById('plan-gen-btn').disabled = false;
 
   if (!plan || !plan.sessions) {
-    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:12px">❌</div><div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div><div style="font-size:12px">Spróbuj ponownie.</div></div>`;
+    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
+      <div style="font-size:36px;margin-bottom:12px">❌</div>
+      <div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div>
+      <div style="font-size:12px;margin-bottom:16px;">Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.</div>
+      <button onclick="generatePlan()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;">🔄 Spróbuj ponownie</button>
+    </div>`;
     return;
   }
 
@@ -987,85 +1024,117 @@ async function generatePlan(){
   renderPlan(plan);
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
   document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
+  // Show expand button only if not already at 8 weeks
+  if (planWeeks < 8) {
+    document.getElementById('plan-expand-btn').style.display = 'inline-flex';
+    document.getElementById('plan-expand-btn').textContent = planWeeks === 1 ? '📈 Rozszerz do 4 tyg.' : '📈 Rozszerz do 8 tyg.';
+  }
 }
 
-const WEEK_NAMES = ['w1','w2','w3','w4','w5','w6','w7','w8'];
-const PHASE_COLORS = {'Adaptacja':'var(--bl)','Hipertrofia':'var(--gr)','Siła':'var(--yw)','Deload':'var(--tx2)','Szczyt':'var(--ac)','Retest':'var(--ac)'};
-function getPhaseColor(phase){ for(const[k,v] of Object.entries(PHASE_COLORS)){if((phase||'').includes(k))return v;} return 'var(--ac)'; }
+async function expandPlan() {
+  const nextWeeks = planWeeks === 1 ? 4 : 8;
+  // Set selector
+  document.querySelectorAll('.pw-btn').forEach((b,i) => {
+    b.classList.remove('pw-active');
+    if ((i===0&&nextWeeks===1)||(i===1&&nextWeeks===4)||(i===2&&nextWeeks===8)) b.classList.add('pw-active');
+  });
+  planWeeks = nextWeeks;
+  generatePlan();
+}
+
+const WEEK_NAMES_ALL = ['w1','w2','w3','w4','w5','w6','w7','w8'];
+const PHASE_COLORS = {
+  'Adaptacja':'var(--bl)', 'Hipertrofia':'var(--gr)', 'Siła':'var(--yw)',
+  'Deload':'var(--tx2)', 'Szczyt':'var(--ac)', 'Tydzień':'var(--ac)'
+};
+function getPhaseColor(phase) {
+  for (const [k,v] of Object.entries(PHASE_COLORS)) { if ((phase||'').includes(k)) return v; }
+  return 'var(--bl)';
+}
 
 function renderPlan(plan) {
   const phases = plan.phases || {};
+  const weekKeys = Object.keys(phases);
 
   let html = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${plan.planTitle||'Plan Treningowy'}</div>
     <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
       <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${plan.split||''}</span>
       <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${plan.sessionsPerWeek||''} sesji / tydzień</span>
+      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">📅 ${weekKeys.length} ${weekKeys.length===1?'tydzień':'tygodnie/tygodni'}</span>
     </div>
     ${plan.philosophy?`<div style="font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px;">${plan.philosophy}</div>`:''}
   </div>`;
 
-  // Week navigator
-  html += `<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:16px;">`;
-  WEEK_NAMES.forEach((wk,i) => {
-    const phase = phases[wk] || '';
-    const col = getPhaseColor(phase);
-    html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onclick="scrollToSession(${i})" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${i+1}</div>
-      <div style="font-size:8px;color:var(--tx3);font-family:'DM Mono',monospace;">${phase.split(' ')[0]}</div>
-    </div>`;
-  });
-  html += `</div>`;
+  // Week navigator (only if >1 week)
+  if (weekKeys.length > 1) {
+    html += `<div style="display:grid;grid-template-columns:repeat(${weekKeys.length},1fr);gap:4px;margin-bottom:16px;">`;
+    weekKeys.forEach((wk, i) => {
+      const phase = phases[wk] || '';
+      const col = getPhaseColor(phase);
+      html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onclick="scrollToSession(0)" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${i+1}</div>
+        <div style="font-size:8px;color:var(--tx3);font-family:'DM Mono',monospace;">${phase.split(' ')[0]}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
 
-  // Sessions - each as horizontal progression table
+  // Sessions
   (plan.sessions||[]).forEach((session, si) => {
     html += `<div id="plan-session-${si}" style="margin-bottom:24px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--tx);margin-bottom:10px;padding:8px 14px;background:var(--bg3);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;">${session.sessionName||''}</div>
       <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:800px;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:${weekKeys.length>1?800:400}px;">
         <thead>
           <tr style="background:rgba(255,255,255,0.04);">
             <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--border);min-width:170px;position:sticky;left:0;background:#181818;z-index:1;">Ćwiczenie</th>
-            ${WEEK_NAMES.map((wk,i)=>{
+            ${weekKeys.map((wk, i) => {
               const phase = phases[wk]||'';
               const col = getPhaseColor(phase);
-              const isDeload = phase.includes('Deload');
-              return `<th style="padding:8px 6px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;border-bottom:1px solid var(--border);min-width:95px;${isDeload?'opacity:0.6':''}">W${i+1}<br><span style="font-size:8px;font-weight:400;letter-spacing:0;">${phase}</span></th>`;
+              const isDeload = phase.toLowerCase().includes('deload');
+              return `<th style="padding:8px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;border-bottom:1px solid var(--border);min-width:${weekKeys.length===1?'auto':'100px'};${isDeload?'opacity:0.6':''}">
+                ${weekKeys.length>1?`W${i+1}<br><span style="font-size:8px;font-weight:400;">${phase}</span>`:phase}
+              </th>`;
             }).join('')}
           </tr>
         </thead>
         <tbody>`;
 
-    (session.exercises||[]).forEach((ex) => {
+    (session.exercises||[]).forEach(ex => {
       html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
         <td style="padding:9px 12px;color:var(--tx);font-weight:500;position:sticky;left:0;background:#181818;z-index:1;">${ex.name||''}</td>`;
-      WEEK_NAMES.forEach(wk => {
+
+      weekKeys.forEach(wk => {
         const p = ex[wk] || {};
         const phase = phases[wk]||'';
         const col = getPhaseColor(phase);
-        const isDeload = phase.includes('Deload');
-        const hasDat = p.s || p.sets;
-        const sets = p.s || p.sets || '—';
-        const reps = p.r || p.reps || '—';
+        const isDeload = phase.toLowerCase().includes('deload');
+        const sets = p.s || p.sets;
+        const reps = p.r || p.reps;
         const rest = p.rest || '';
         const rpe = p.rpe || '';
         const kg = p.kg || p.weight || '';
+
         html += `<td style="padding:5px 4px;text-align:center;${isDeload?'opacity:0.65':''}">
-          ${hasDat ? `<div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:5px 3px;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;line-height:1.1;color:${col};">${sets}×${reps}</div>
-            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:1px;">${rest}</div>
-            <div style="font-size:9px;color:${col};font-family:'DM Mono',monospace;">RPE ${rpe}</div>
-            <div style="font-size:9px;color:var(--tx2);">${kg}</div>
-          </div>` : '<div style="color:var(--tx3);font-size:11px;">—</div>'}
+          ${sets ? `<div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:6px 4px;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1.1;color:${col};">${sets}×${reps}</div>
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px;">${rest}</div>
+            <div style="display:flex;justify-content:center;gap:6px;margin-top:2px;">
+              <span style="font-size:9px;color:${col};background:rgba(255,255,255,0.05);border-radius:4px;padding:1px 5px;">RPE ${rpe}</span>
+              <span style="font-size:9px;color:var(--tx2);">${kg}</span>
+            </div>
+          </div>` : '<span style="color:var(--tx3);font-size:11px;">—</span>'}
         </td>`;
       });
+
       html += `</tr>`;
     });
 
     html += `</tbody></table></div></div>`;
   });
 
-  // Footer info
+  // Footer
   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">`;
   if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 ROZGRZEWKA</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.warmupProtocol}</div></div>`;
   if (plan.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.cooldownProtocol}</div></div>`;
@@ -1074,11 +1143,11 @@ function renderPlan(plan) {
 
   document.getElementById('plan-content').innerHTML = html;
 }
+
 function scrollToSession(i) {
   const el = document.getElementById('plan-session-'+i);
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
-function scrollToWeek(n) { scrollToSession(n-1); }
 
 function downloadPlanPDF() { window.print(); }
 
@@ -1087,25 +1156,23 @@ function downloadPlanExcel() {
   const plan = currentPlanData;
   const name = document.getElementById('client-name').value.trim() || 'Klient';
   const phases = plan.phases || {};
+  const weekKeys = Object.keys(phases);
 
   let csv = '﻿';
   csv += `PLAN TRENINGOWY — ${plan.planTitle||''}
 `;
-  csv += `Klient: ${name} | Podział: ${plan.split||''} | ${plan.sessionsPerWeek||''} sesji/tydzień
+  csv += `Klient: ${name} | ${plan.split||''} | ${plan.sessionsPerWeek||''} sesji/tydzień | ${weekKeys.length} tyg.
 
-`;
-
-  const phaseRow = `Fazy:;${WEEK_NAMES.map(wk=>phases[wk]||'').join(';')}
 `;
 
   (plan.sessions||[]).forEach(session => {
     csv += `
 ${session.sessionName||''}
 `;
-    csv += `Ćwiczenie;${WEEK_NAMES.map((wk,i)=>`W${i+1} ${phases[wk]||''}`).join(';')}
+    csv += `Ćwiczenie;${weekKeys.map((wk,i)=>`W${i+1} ${phases[wk]||''}`).join(';')}
 `;
     (session.exercises||[]).forEach(ex => {
-      const cells = WEEK_NAMES.map(wk => {
+      const cells = weekKeys.map(wk => {
         const p = ex[wk] || {};
         const s = p.s||p.sets, r = p.r||p.reps, rpe = p.rpe, kg = p.kg||p.weight;
         return s ? `${s}x${r} RPE${rpe} ${kg}` : '—';
@@ -1114,7 +1181,6 @@ ${session.sessionName||''}
 `;
     });
   });
-
   csv += `
 ZASADY PROGRESJI
 ${plan.progressionNotes||''}
@@ -1123,16 +1189,12 @@ ${plan.progressionNotes||''}
 ROZGRZEWKA
 ${plan.warmupProtocol||''}
 `;
-  csv += `
-WYCISZENIE
-${plan.cooldownProtocol||''}
-`;
 
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Plan_${name.replace(/\s+/g,'_')}_8tyg.csv`;
+  a.download = `Plan_${name.replace(/\s+/g,'_')}_${weekKeys.length}tyg.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

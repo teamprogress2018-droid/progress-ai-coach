@@ -906,29 +906,23 @@ function openPlanScreen(){
 const PLAN_STATUSES = [
   'Analizuję profil klienta i filozofię trenera...',
   'Dobieramy optymalny podział treningowy...',
-  'Projektuję progresję obciążeń na 8 tygodni...',
-  'Kalkuluję serie, powtórzenia i przerwy...',
-  'Uwzględniam wykluczenia i kontuzje...',
-  'Finalizuję plan z RPE i wskazówkami...',
+  'Projektuję ćwiczenia i progresję...',
+  'Finalizuję plan 8 tygodni...',
 ];
 
-// Plan generation uses 2-call approach to avoid proxy timeout
-// Call 1: Get plan structure (sessions + exercises list)
-// Call 2: Get full 8-week progression table
-const PLAN_SYS_STRUCT = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT).
-Odpowiedz WYŁĄCZNIE czystym JSON bez markdown.
+const PLAN_SYS_V2 = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT).
+Wygeneruj plan treningowy na 8 tygodni. Odpowiedz WYŁĄCZNIE czystym JSON bez żadnego markdown.
 Format:
-{"planTitle":"nazwa","split":"podział","sessionsPerWeek":3,"philosophy":"1 zdanie","progressionNotes":"zasady","warmupProtocol":"rozgrzewka","cooldownProtocol":"wyciszenie","phases":{"w1":"Adaptacja","w2":"Adaptacja","w3":"Hipertrofia I","w4":"Hipertrofia I","w5":"Hipertrofia II","w6":"Siła","w7":"Deload","w8":"Szczyt"},"sessions":[{"sessionName":"Trening A — Push","exercises":["Wyciskanie sztangi leżąc","Rozpiętki hantle","Wyciskanie żołnierskie","Boczne unoszenie hantli","Triceps wyciąg górny","Pompki diamentowe"]}]}
-Uwzględnij wykluczone ruchy z profilu i zastąp je alternatywami. Jeśli wady postawy — dodaj ćwiczenia korygujące. Dobierz optymalny podział dla klienta.`;
+{"planTitle":"nazwa","split":"podział","sessionsPerWeek":3,"philosophy":"1 zdanie","progressionNotes":"zasady progresji","warmupProtocol":"rozgrzewka 2 zdania","cooldownProtocol":"wyciszenie 1 zdanie","phases":{"w1":"Adaptacja","w2":"Adaptacja","w3":"Hipertrofia I","w4":"Hipertrofia I","w5":"Hipertrofia II","w6":"Siła","w7":"Deload","w8":"Szczyt"},"sessions":[{"sessionName":"Trening A — Push","exercises":[{"name":"Wyciskanie sztangi","w1":{"s":3,"r":"12","rest":"90s","rpe":"6","kg":"60%"},"w2":{"s":3,"r":"11","rest":"90s","rpe":"7","kg":"65%"},"w3":{"s":4,"r":"10","rest":"90s","rpe":"7","kg":"67%"},"w4":{"s":4,"r":"10","rest":"2min","rpe":"8","kg":"70%"},"w5":{"s":4,"r":"8","rest":"2min","rpe":"8","kg":"72%"},"w6":{"s":4,"r":"8","rest":"2min","rpe":"9","kg":"75%"},"w7":{"s":2,"r":"12","rest":"60s","rpe":"5","kg":"55%"},"w8":{"s":5,"r":"5","rest":"3min","rpe":"9","kg":"80%"}}]}]}
+ZASADY:
+- Każde ćwiczenie ma dane dla w1-w8 (każdy tydzień INNY — progresja)
+- w7=Deload (mniej serii, niższy RPE)
+- w8=Szczyt (max ciężar, niskie powtórzenia)
+- Dodaj 4-6 ćwiczeń na sesję
+- Uwzględnij wykluczone ruchy i zastąp je alternatywami
+- Jeśli wady postawy — dodaj 1-2 ćwiczenia korygujące`;
 
-const PLAN_SYS_PROG = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT).
-Dla podanej listy ćwiczeń wygeneruj PROGRESJĘ na 8 tygodni.
-Odpowiedz WYŁĄCZNIE czystym JSON bez markdown.
-Format dla każdego ćwiczenia:
-{"progressions":{"NazwaCwiczenia":{"w1":{"sets":3,"reps":"12","rest":"90s","rpe":"6","weight":"60%"},"w2":{"sets":3,"reps":"11","rest":"90s","rpe":"7","weight":"65%"},"w3":{"sets":4,"reps":"10","rest":"90s","rpe":"7","weight":"67%"},"w4":{"sets":4,"reps":"10","rest":"90s","rpe":"8","weight":"70%"},"w5":{"sets":4,"reps":"8","rest":"2min","rpe":"8","weight":"72%"},"w6":{"sets":4,"reps":"8","rest":"2min","rpe":"9","weight":"75%"},"w7":{"sets":2,"reps":"12","rest":"60s","rpe":"5","weight":"55%"},"w8":{"sets":4,"reps":"6","rest":"3min","rpe":"9","weight":"80%"}}}}
-ZASADY: w1-2=Adaptacja(niskie RPE), w3-4=Hipertrofia(wyższe serie), w5-6=Siła(ciężej), w7=Deload(-40% obj.), w8=Szczyt(max ciężar). Każdy tydzień MUSI różnić się od poprzedniego.`;
-
-async function callAPI(system, userMsg, maxTokens=2000){
+async function callAPI(system, userMsg, maxTokens){
   const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -942,14 +936,17 @@ async function callAPI(system, userMsg, maxTokens=2000){
   const data = await resp.json();
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
   try { return JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-  catch(e) { const m = raw.match(/\{[\s\S]+\}/); if(m) return JSON.parse(m[0]); }
+  catch(e) {
+    const m = raw.match(/\{[\s\S]+\}/);
+    if(m) { try { return JSON.parse(m[0]); } catch(e2){} }
+  }
   return null;
 }
 
 async function generatePlan(){
   const profile = getClientProfile();
   const philosophy = getPhilosophy();
-  if (!profile) { alert('Uzupełnij najpierw profil klienta!'); return; }
+  if (!profile) { alert('Uzupełnij najpierw profil klienta (imię i cel)!'); return; }
 
   document.getElementById('plan-loading').style.display = 'block';
   document.getElementById('plan-content').innerHTML = '';
@@ -957,46 +954,30 @@ async function generatePlan(){
   document.getElementById('plan-pdf-btn').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = true;
 
+  let sIdx = 0;
   const statusEl = document.getElementById('plan-status');
+  const ticker = setInterval(()=>{ sIdx=(sIdx+1)%PLAN_STATUSES.length; if(statusEl) statusEl.textContent=PLAN_STATUSES[sIdx]; }, 2500);
 
-  let struct = null, prog = null;
+  let plan = null;
   try {
-    // CALL 1: Get plan structure
-    statusEl.textContent = 'Analizuję profil i dobieramy podział treningowy...';
-    struct = await callAPI(PLAN_SYS_STRUCT,
-      `Profil klienta:
-${profile}
-${philosophy}
-Dobierz optymalny plan i listę ćwiczeń. Zwróć TYLKO JSON.`,
-      2000);
+    plan = await callAPI(
+      PLAN_SYS_V2,
+      `Wygeneruj plan 8-tygodniowy dla klienta. Zwróć TYLKO JSON.\n\n${profile}\n\n${philosophy}`,
+      3500
+    );
+  } catch(err) { plan = null; }
 
-    if (!struct || !struct.sessions) throw new Error('Brak struktury planu');
-
-    // CALL 2: Get progressions for all exercises
-    statusEl.textContent = 'Kalkuluję progresję na 8 tygodni...';
-    const allExercises = struct.sessions.flatMap(s => s.exercises).join(', ');
-    prog = await callAPI(PLAN_SYS_PROG,
-      `Wygeneruj progresję 8-tygodniową dla tych ćwiczeń:
-${allExercises}
-
-Kontekst: ${struct.split}, ${struct.sessionsPerWeek} sesji/tydzień, cel klienta: ${profile.substring(0,200)}
-Zwróć TYLKO JSON.`,
-      4000);
-
-  } catch(err) { struct = null; }
-
+  clearInterval(ticker);
   document.getElementById('plan-loading').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = false;
 
-  if (!struct || !struct.sessions) {
-    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:12px">❌</div><div style="color:var(--ac);font-weight:600;">Błąd generowania planu</div><div style="font-size:12px;margin-top:8px;">Spróbuj ponownie lub uprość profil klienta.</div></div>`;
+  if (!plan || !plan.sessions) {
+    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:12px">❌</div><div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div><div style="font-size:12px">Spróbuj ponownie.</div></div>`;
     return;
   }
 
-  // Merge progression data into struct
-  const progressions = prog?.progressions || {};
-  currentPlanData = {struct, progressions};
-  renderPlan(struct, progressions);
+  currentPlanData = plan;
+  renderPlan(plan);
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
   document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
 }
@@ -1005,17 +986,16 @@ const WEEK_NAMES = ['w1','w2','w3','w4','w5','w6','w7','w8'];
 const PHASE_COLORS = {'Adaptacja':'var(--bl)','Hipertrofia':'var(--gr)','Siła':'var(--yw)','Deload':'var(--tx2)','Szczyt':'var(--ac)','Retest':'var(--ac)'};
 function getPhaseColor(phase){ for(const[k,v] of Object.entries(PHASE_COLORS)){if((phase||'').includes(k))return v;} return 'var(--ac)'; }
 
-function renderPlan(struct, progressions) {
-  const phases = struct.phases || {};
+function renderPlan(plan) {
+  const phases = plan.phases || {};
 
-  // Header
   let html = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${struct.planTitle||'Plan Treningowy'}</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${plan.planTitle||'Plan Treningowy'}</div>
     <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${struct.split||''}</span>
-      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${struct.sessionsPerWeek||''} sesji / tydzień</span>
+      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${plan.split||''}</span>
+      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${plan.sessionsPerWeek||''} sesji / tydzień</span>
     </div>
-    ${struct.philosophy?`<div style="font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px;">${struct.philosophy}</div>`:''}
+    ${plan.philosophy?`<div style="font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px;">${plan.philosophy}</div>`:''}
   </div>`;
 
   // Week navigator
@@ -1023,47 +1003,53 @@ function renderPlan(struct, progressions) {
   WEEK_NAMES.forEach((wk,i) => {
     const phase = phases[wk] || '';
     const col = getPhaseColor(phase);
-    html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;" onclick="scrollToWeek(${i+1})">
+    html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onclick="scrollToSession(${i})" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${i+1}</div>
       <div style="font-size:8px;color:var(--tx3);font-family:'DM Mono',monospace;">${phase.split(' ')[0]}</div>
     </div>`;
   });
   html += `</div>`;
 
-  // For each session, render 8-week table
-  (struct.sessions||[]).forEach(session => {
-    html += `<div id="session-${session.sessionName?.replace(/\s/g,'_')}" style="margin-bottom:20px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--tx);margin-bottom:10px;padding:8px 12px;background:var(--bg3);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;">${session.sessionName||''}</div>
+  // Sessions - each as horizontal progression table
+  (plan.sessions||[]).forEach((session, si) => {
+    html += `<div id="plan-session-${si}" style="margin-bottom:24px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--tx);margin-bottom:10px;padding:8px 14px;background:var(--bg3);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;">${session.sessionName||''}</div>
       <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:900px;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:800px;">
         <thead>
           <tr style="background:rgba(255,255,255,0.04);">
-            <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--border);min-width:160px;position:sticky;left:0;background:#181818;">Ćwiczenie</th>
+            <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--border);min-width:170px;position:sticky;left:0;background:#181818;z-index:1;">Ćwiczenie</th>
             ${WEEK_NAMES.map((wk,i)=>{
               const phase = phases[wk]||'';
               const col = getPhaseColor(phase);
-              return `<th style="padding:8px 6px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;border-bottom:1px solid var(--border);min-width:90px;">W${i+1}<br><span style="font-size:8px;font-weight:400;">${phase}</span></th>`;
+              const isDeload = phase.includes('Deload');
+              return `<th style="padding:8px 6px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;border-bottom:1px solid var(--border);min-width:95px;${isDeload?'opacity:0.6':''}">W${i+1}<br><span style="font-size:8px;font-weight:400;letter-spacing:0;">${phase}</span></th>`;
             }).join('')}
           </tr>
         </thead>
         <tbody>`;
 
-    (session.exercises||[]).forEach((exName, ei) => {
-      const exProg = progressions[exName] || {};
+    (session.exercises||[]).forEach((ex) => {
       html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-        <td style="padding:8px 12px;color:var(--tx);font-weight:500;position:sticky;left:0;background:#181818;">${exName}</td>`;
+        <td style="padding:9px 12px;color:var(--tx);font-weight:500;position:sticky;left:0;background:#181818;z-index:1;">${ex.name||''}</td>`;
       WEEK_NAMES.forEach(wk => {
-        const p = exProg[wk] || {};
+        const p = ex[wk] || {};
         const phase = phases[wk]||'';
         const col = getPhaseColor(phase);
         const isDeload = phase.includes('Deload');
-        html += `<td style="padding:6px;text-align:center;${isDeload?'opacity:0.6':''}">
-          <div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:5px 4px;font-size:10px;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:${col};">${p.sets||'—'}×${p.reps||'—'}</div>
-            <div style="color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;">${p.rest||''}</div>
-            <div style="color:${col};font-size:9px;">RPE ${p.rpe||''}</div>
-            <div style="color:var(--tx2);font-size:9px;">${p.weight||''}</div>
-          </div>
+        const hasDat = p.s || p.sets;
+        const sets = p.s || p.sets || '—';
+        const reps = p.r || p.reps || '—';
+        const rest = p.rest || '';
+        const rpe = p.rpe || '';
+        const kg = p.kg || p.weight || '';
+        html += `<td style="padding:5px 4px;text-align:center;${isDeload?'opacity:0.65':''}">
+          ${hasDat ? `<div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:5px 3px;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;line-height:1.1;color:${col};">${sets}×${reps}</div>
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:1px;">${rest}</div>
+            <div style="font-size:9px;color:${col};font-family:'DM Mono',monospace;">RPE ${rpe}</div>
+            <div style="font-size:9px;color:var(--tx2);">${kg}</div>
+          </div>` : '<div style="color:var(--tx3);font-size:11px;">—</div>'}
         </td>`;
       });
       html += `</tr>`;
@@ -1072,60 +1058,67 @@ function renderPlan(struct, progressions) {
     html += `</tbody></table></div></div>`;
   });
 
-  // Footer
+  // Footer info
   html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">`;
-  if (struct.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 ROZGRZEWKA</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${struct.warmupProtocol}</div></div>`;
-  if (struct.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${struct.cooldownProtocol}</div></div>`;
+  if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 ROZGRZEWKA</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.warmupProtocol}</div></div>`;
+  if (plan.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.cooldownProtocol}</div></div>`;
   html += `</div>`;
-  if (struct.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${struct.progressionNotes}</div></div>`;
+  if (plan.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.progressionNotes}</div></div>`;
 
   document.getElementById('plan-content').innerHTML = html;
 }
-
-function scrollToWeek(n) {
-  const el = document.getElementById('week-'+n);
+function scrollToSession(i) {
+  const el = document.getElementById('plan-session-'+i);
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
+function scrollToWeek(n) { scrollToSession(n-1); }
 
 function downloadPlanPDF() { window.print(); }
 
 function downloadPlanExcel() {
   if (!currentPlanData) return;
-  const {struct, progressions} = currentPlanData;
+  const plan = currentPlanData;
   const name = document.getElementById('client-name').value.trim() || 'Klient';
-  const phases = struct.phases || {};
-  
+  const phases = plan.phases || {};
+
   let csv = '﻿';
-  csv += `PLAN TRENINGOWY — ${struct.planTitle||''}
+  csv += `PLAN TRENINGOWY — ${plan.planTitle||''}
 `;
-  csv += `Klient: ${name} | Podział: ${struct.split||''} | ${struct.sessionsPerWeek||''} sesji/tydzień
+  csv += `Klient: ${name} | Podział: ${plan.split||''} | ${plan.sessionsPerWeek||''} sesji/tydzień
 
 `;
 
-  (struct.sessions||[]).forEach(session => {
+  const phaseRow = `Fazy:;${WEEK_NAMES.map(wk=>phases[wk]||'').join(';')}
+`;
+
+  (plan.sessions||[]).forEach(session => {
     csv += `
 ${session.sessionName||''}
 `;
-    csv += `Ćwiczenie;W1 ${phases.w1||''};W2 ${phases.w2||''};W3 ${phases.w3||''};W4 ${phases.w4||''};W5 ${phases.w5||''};W6 ${phases.w6||''};W7 ${phases.w7||''};W8 ${phases.w8||''}
+    csv += `Ćwiczenie;${WEEK_NAMES.map((wk,i)=>`W${i+1} ${phases[wk]||''}`).join(';')}
 `;
-    (session.exercises||[]).forEach(exName => {
-      const exProg = progressions[exName] || {};
+    (session.exercises||[]).forEach(ex => {
       const cells = WEEK_NAMES.map(wk => {
-        const p = exProg[wk] || {};
-        return p.sets ? `${p.sets}x${p.reps} RPE${p.rpe} ${p.weight}` : '—';
+        const p = ex[wk] || {};
+        const s = p.s||p.sets, r = p.r||p.reps, rpe = p.rpe, kg = p.kg||p.weight;
+        return s ? `${s}x${r} RPE${rpe} ${kg}` : '—';
       });
-      csv += `${exName};${cells.join(';')}
+      csv += `${ex.name||''};${cells.join(';')}
 `;
     });
   });
 
   csv += `
 ZASADY PROGRESJI
-${struct.progressionNotes||''}
+${plan.progressionNotes||''}
 `;
   csv += `
 ROZGRZEWKA
-${struct.warmupProtocol||''}
+${plan.warmupProtocol||''}
+`;
+  csv += `
+WYCISZENIE
+${plan.cooldownProtocol||''}
 `;
 
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});

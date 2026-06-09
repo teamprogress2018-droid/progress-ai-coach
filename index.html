@@ -1006,6 +1006,105 @@ ZASADY:
 - Uwzględnij wykluczone ruchy z profilu`;
 }
 
+async function callAPI(system, userMsg, maxTokens) {
+  const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      system: system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await resp.json();
+  const raw = (data?.content||[]).map(b=>b.text||'').join('');
+  console.log('API raw length:', raw.length, 'preview:', raw.substring(0,120));
+  const first = raw.indexOf('{');
+  const last = raw.lastIndexOf('}');
+  if (first === -1) { console.error('No { in response'); return null; }
+  let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
+  try { return JSON.parse(jsonStr); }
+  catch(e) {
+    console.warn('JSON parse failed, repairing...', e.message);
+    let rep = jsonStr;
+    rep = rep.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
+    const opens = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
+    const openb = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
+    for (let i=0;i<opens;i++) rep+=']';
+    for (let i=0;i<openb;i++) rep+='}';
+    try { const r=JSON.parse(rep); console.log('Repair OK'); return r; }
+    catch(e2) { console.error('Repair failed:', e2.message); return null; }
+  }
+}
+
+async function generatePlan() {
+  const profile = getClientProfile();
+  const philosophy = getPhilosophy();
+  if (!profile) { alert('Wpisz najpierw imię klienta w panelu Klient!'); return; }
+
+  document.getElementById('plan-loading').style.display = 'block';
+  document.getElementById('plan-content').innerHTML = '';
+  document.getElementById('plan-dl-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none';
+  document.getElementById('plan-expand-btn').style.display = 'none';
+  document.getElementById('plan-gen-btn').disabled = true;
+
+  let sIdx = 0;
+  const statusEl = document.getElementById('plan-status');
+  const ticker = setInterval(() => {
+    sIdx = (sIdx+1) % PLAN_STATUSES.length;
+    if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
+  }, 2000);
+
+  const tokenBudget = planWeeks === 1 ? 4000 : planWeeks === 4 ? 5000 : 6000;
+
+  let plan = null;
+  try {
+    const sysPrompt = buildPlanPrompt(planWeeks);
+    plan = await callAPI(
+      sysPrompt,
+      `Wygeneruj plan. TYLKO JSON.\n\n${profile}\n${philosophy}`,
+      tokenBudget
+    );
+  } catch(err) { console.error('generatePlan error:', err); plan = null; }
+
+  clearInterval(ticker);
+  document.getElementById('plan-loading').style.display = 'none';
+  document.getElementById('plan-gen-btn').disabled = false;
+
+  if (!plan || !plan.sessions) {
+    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
+      <div style="font-size:36px;margin-bottom:12px">❌</div>
+      <div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div>
+      <div style="font-size:12px;margin-bottom:16px;">Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.</div>
+      <button onclick="generatePlan()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;">🔄 Spróbuj ponownie</button>
+    </div>`;
+    return;
+  }
+
+  currentPlanData = plan;
+  renderPlan(plan);
+  document.getElementById('plan-dl-btn').style.display = 'inline-flex';
+  document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
+  if (planWeeks < 8) {
+    document.getElementById('plan-expand-btn').style.display = 'inline-flex';
+    document.getElementById('plan-expand-btn').textContent = planWeeks === 1 ? '📈 Rozszerz do 4 tyg.' : '📈 Rozszerz do 8 tyg.';
+  }
+}
+
+async function expandPlan() {
+  const nextWeeks = planWeeks === 1 ? 4 : 8;
+  document.querySelectorAll('#plan-weeks-selector .pw-btn').forEach((b,i) => {
+    b.classList.remove('pw-active');
+    if ((i===0&&nextWeeks===1)||(i===1&&nextWeeks===4)||(i===2&&nextWeeks===8)) b.classList.add('pw-active');
+  });
+  planWeeks = nextWeeks;
+  generatePlan();
+}
+
+
+
 
 function getPhaseColor(phase) {
   for (const [k,v] of Object.entries(PHASE_COLORS)) { if ((phase||'').includes(k)) return v; }

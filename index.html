@@ -920,9 +920,10 @@ async function generatePlan() {
   let plan = null;
   try {
     const sysPrompt = buildPlanPrompt(planWeeks);
+    const kbCtx = getKnowledgeContext();
     plan = await callAPI(
       sysPrompt,
-      `Wygeneruj plan. TYLKO JSON.\n\n${profile}\n${philosophy}`,
+      `Wygeneruj plan. TYLKO JSON.\n\n${profile}\n${philosophy}${kbCtx ? '\n\n' + kbCtx : ''}`,
       tokenBudget
     );
   } catch(err) { console.error('generatePlan error:', err); plan = null; }

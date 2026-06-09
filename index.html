@@ -245,6 +245,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   <div class="status-label">ONLINE</div>
   <button class="topbar-btn" onclick="openMeasurements()">📏 Pomiary</button>
   <button class="topbar-btn red" onclick="openBodyAssessment()">📸 Sylwetka</button>
+  <button class="topbar-btn" style="background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.3);color:var(--gr);" onclick="openPlanScreen()">📋 Plan 8 tyg.</button>
 </div>
 
 <!-- SIDEBAR -->
@@ -708,6 +709,25 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   </div>
 </div>
 
+<!-- OVERLAY: PLAN 8 TYGODNI -->
+<div id="screen-plan" class="overlay-screen">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <button onclick="closeOverlay()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ac);">PLAN TRENINGOWY — 8 TYGODNI</div>
+    <div id="plan-client-tag" style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;"></div>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button onclick="generatePlan()" id="plan-gen-btn" style="background:var(--ac);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🤖 Generuj plan AI</button>
+      <button onclick="downloadPlanExcel()" id="plan-dl-btn" style="display:none;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 16px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz Excel</button>
+      <button onclick="downloadPlanPDF()" id="plan-pdf-btn" style="display:none;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:7px 16px;color:var(--bl);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj / PDF</button>
+    </div>
+  </div>
+  <div id="plan-loading" style="display:none;text-align:center;padding:60px 20px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--ac);margin-bottom:12px;">GENERUJĘ PLAN...</div>
+    <div style="font-size:12px;color:var(--tx2);font-family:'DM Mono',monospace;" id="plan-status">Analizuję profil klienta i filozofię trenera...</div>
+  </div>
+  <div id="plan-content"></div>
+</div>
+
 </div>
 <script>
 let currentMode='trening',conversationHistory=[],knowledgeBase=[];
@@ -866,6 +886,269 @@ function renderMeasHistory(){const el=document.getElementById('meas-history-list
 function measSwitchChart(name,btn){measCurrentChart=name;document.querySelectorAll('.meas-chart-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.meas-chart-panel').forEach(p=>p.style.display='none');document.getElementById('meas-chart-'+name).style.display='block';renderMeasCharts();}
 function renderMeasCharts(){if(measEntries.length<1)return;const labels=measEntries.map(e=>{const d=new Date(e.date);return d.toLocaleDateString('pl',{day:'numeric',month:'short'});});const chartDefaults={responsive:true,plugins:{legend:{labels:{color:'#888',font:{size:11,family:'DM Sans'}}}},scales:{x:{ticks:{color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#555',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}}}};if(measCurrentChart==='waga'){destroyChart('chart-waga');destroyChart('chart-fat');if(measEntries.some(e=>e.weight)){measCharts['chart-waga']=new Chart(document.getElementById('chart-waga'),{type:'line',data:{labels,datasets:[{label:'Waga (kg)',data:measEntries.map(e=>e.weight||null),borderColor:'#60a5fa',backgroundColor:'rgba(96,165,250,0.08)',pointBackgroundColor:'#60a5fa',pointRadius:4,tension:0.3,fill:true,spanGaps:true}]},options:chartDefaults});}if(measEntries.some(e=>e.fatPct)){measCharts['chart-fat']=new Chart(document.getElementById('chart-fat'),{type:'line',data:{labels,datasets:[{label:'% Tłuszczu',data:measEntries.map(e=>e.fatPct||null),borderColor:'#e8302a',backgroundColor:'rgba(232,48,42,0.08)',pointBackgroundColor:'#e8302a',pointRadius:4,tension:0.3,fill:true,spanGaps:true}]},options:chartDefaults});}}if(measCurrentChart==='kompozycja'){destroyChart('chart-kompozycja');if(measEntries.some(e=>e.muscleKg||e.fatKg)){const datasets=[];if(measEntries.some(e=>e.muscleKg))datasets.push({label:'Masa mięśniowa (kg)',data:measEntries.map(e=>e.muscleKg||null),borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.1)',pointBackgroundColor:'#4ade80',pointRadius:4,tension:0.3,fill:true,spanGaps:true});if(measEntries.some(e=>e.fatKg))datasets.push({label:'Masa tłuszczowa (kg)',data:measEntries.map(e=>e.fatKg||null),borderColor:'#e8302a',backgroundColor:'rgba(232,48,42,0.08)',pointBackgroundColor:'#e8302a',pointRadius:4,tension:0.3,fill:true,spanGaps:true});if(measEntries.some(e=>e.boneKg))datasets.push({label:'Masa kostna (kg)',data:measEntries.map(e=>e.boneKg||null),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.06)',pointBackgroundColor:'#f59e0b',pointRadius:4,tension:0.3,spanGaps:true});measCharts['chart-kompozycja']=new Chart(document.getElementById('chart-kompozycja'),{type:'line',data:{labels,datasets},options:chartDefaults});}const last=measEntries[measEntries.length-1];const first=measEntries[0];const statsEl=document.getElementById('meas-stats-cards');const cards=[{l:'Masa mięśniowa',v:last.muscleKg,unit:'kg',prev:first.muscleKg,good:'up'},{l:'Masa tłuszczowa',v:last.fatKg,unit:'kg',prev:first.fatKg,good:'down'},{l:'% Tłuszczu',v:last.fatPct,unit:'%',prev:first.fatPct,good:'down'},{l:'Masa kostna',v:last.boneKg,unit:'kg',prev:first.boneKg,good:'up'},{l:'% Wody',v:last.waterPct,unit:'%',prev:first.waterPct,good:'up'},{l:'Wiek metaboliczny',v:last.metAge,unit:'l',prev:first.metAge,good:'down'}].filter(c=>c.v);statsEl.innerHTML=cards.map(c=>{const diff=c.prev?(c.v-c.prev).toFixed(1):null;const isGood=diff?(c.good==='down'?diff<0:diff>0):null;const color=diff===null?'var(--tx)':isGood?'var(--gr)':'var(--ac)';const sign=diff>0?'+':'';return `<div class="meas-stat-card"><div class="meas-stat-label">${c.l}</div><div class="meas-stat-val" style="color:${color}">${c.v}${c.unit}</div>${diff!==null?`<div class="meas-stat-delta" style="color:${color}">${sign}${diff} od początku</div>`:''}</div>`;}).join('');}if(measCurrentChart==='obwody'){destroyChart('chart-obwody');const obwody=[{key:'waist',label:'Talia',color:'#e8302a'},{key:'hips',label:'Biodra',color:'#f59e0b'},{key:'chest',label:'Klatka',color:'#60a5fa'},{key:'thighL',label:'Udo L',color:'#4ade80'},{key:'bicepL',label:'Biceps L',color:'#a78bfa'},{key:'neck',label:'Szyja',color:'#34d399'}];const datasets=obwody.filter(o=>measEntries.some(e=>e[o.key])).map(o=>({label:o.label,data:measEntries.map(e=>e[o.key]||null),borderColor:o.color,backgroundColor:o.color+'15',pointBackgroundColor:o.color,pointRadius:3,tension:0.3,spanGaps:true}));if(datasets.length){measCharts['chart-obwody']=new Chart(document.getElementById('chart-obwody'),{type:'line',data:{labels,datasets},options:chartDefaults});}}if(measCurrentChart==='overview'){const last=measEntries[measEntries.length-1];const first=measEntries[0];const ov=document.getElementById('meas-overview-cards');const items=[{l:'Waga',v:last.weight,u:'kg',p:first.weight,good:'up'},{l:'% Tłuszczu',v:last.fatPct,u:'%',p:first.fatPct,good:'down'},{l:'Mięśnie',v:last.muscleKg,u:'kg',p:first.muscleKg,good:'up'},{l:'Talia',v:last.waist,u:'cm',p:first.waist,good:'down'},{l:'Biodra',v:last.hips,u:'cm',p:first.hips,good:'down'},{l:'BMI',v:last.bmi,u:'',p:first.bmi,good:'down'},{l:'Woda',v:last.waterPct,u:'%',p:first.waterPct,good:'up'},{l:'BMR',v:last.bmr,u:'kcal',p:first.bmr,good:'up'}].filter(c=>c.v);ov.innerHTML=items.map(c=>{const diff=c.p?(c.v-c.p).toFixed(1):null;const isGood=diff?(c.good==='down'?diff<0:diff>0):null;const color=diff===null?'var(--bl)':isGood?'var(--gr)':'var(--ac)';const sign=parseFloat(diff)>0?'+':'';return `<div class="meas-stat-card"><div class="meas-stat-label">${c.l}</div><div class="meas-stat-val" style="color:${color}">${c.v}${c.u}</div>${diff!==null?`<div class="meas-stat-delta" style="color:${color}">${sign}${diff} od 1. pomiaru</div>`:''}</div>`;}).join('');destroyChart('chart-radar');if(measEntries.length>=2){const radarLabels=['Waga','% Tłuszczu','Mięśnie','Talia','Woda %','BMR'];const normalize=(val,min,max)=>val?Math.round(((val-min)/(max-min))*10):5;const firstData=[normalize(first.weight,50,120),normalize(first.fatPct,5,40),normalize(first.muscleKg,20,80),normalize(first.waist,60,120),normalize(first.waterPct,45,70),normalize(first.bmr,1200,2800)];const lastData=[normalize(last.weight,50,120),normalize(last.fatPct,5,40),normalize(last.muscleKg,20,80),normalize(last.waist,60,120),normalize(last.waterPct,45,70),normalize(last.bmr,1200,2800)];measCharts['chart-radar']=new Chart(document.getElementById('chart-radar'),{type:'radar',data:{labels:radarLabels,datasets:[{label:'Pierwszy pomiar',data:firstData,borderColor:'rgba(96,165,250,0.5)',backgroundColor:'rgba(96,165,250,0.06)',pointBackgroundColor:'#60a5fa'},{label:'Ostatni pomiar',data:lastData,borderColor:'#4ade80',backgroundColor:'rgba(74,222,128,0.08)',pointBackgroundColor:'#4ade80'}]},options:{responsive:true,plugins:{legend:{labels:{color:'#888',font:{size:11}}}},scales:{r:{ticks:{display:false},grid:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#888',font:{size:11}}}}}});}}}
 function destroyChart(id){if(measCharts[id]){measCharts[id].destroy();delete measCharts[id];}}
+
+// ===== PLAN 8 TYGODNI =====
+let currentPlanData = null;
+
+function openPlanScreen(){
+  const name = document.getElementById('client-name').value.trim() || 'Klient';
+  document.getElementById('plan-client-tag').textContent = '👤 ' + name;
+  document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3);">
+    <div style="font-size:48px;margin-bottom:16px;">📋</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:8px;">GOTOWY DO WYGENEROWANIA PLANU</div>
+    <div style="font-size:12px;line-height:1.7;max-width:400px;margin:0 auto;">Uzupełnij profil klienta po lewej stronie, a następnie kliknij <strong style="color:var(--ac)">Generuj plan AI</strong> aby otrzymać pełny plan treningowy na 8 tygodni z progresją.</div>
+  </div>`;
+  document.getElementById('plan-dl-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none';
+  openOverlay('screen-plan');
+}
+
+const PLAN_STATUSES = [
+  'Analizuję profil klienta i filozofię trenera...',
+  'Dobieramy optymalny podział treningowy...',
+  'Projektuję progresję obciążeń na 8 tygodni...',
+  'Kalkuluję serie, powtórzenia i przerwy...',
+  'Uwzględniam wykluczenia i kontuzje...',
+  'Finalizuję plan z RPE i wskazówkami...',
+];
+
+const PLAN_SYS = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT) z wieloletnim doświadczeniem w periodyzacji.
+
+Wygeneruj KOMPLETNY plan treningowy na 8 tygodni dla klienta na podstawie profilu. 
+
+ZWRÓĆ WYŁĄCZNIE czysty JSON (bez markdown, bez komentarzy) w dokładnie tym formacie:
+{
+  "planTitle": "Nazwa planu (np. Hipertrofia — Push/Pull/Legs 4x)",
+  "split": "np. Push/Pull/Legs",
+  "sessionsPerWeek": 4,
+  "philosophy": "1-2 zdania o podejściu do tego planu",
+  "weeks": [
+    {
+      "weekNum": 1,
+      "phase": "Adaptacja",
+      "focus": "Krótki opis fazy (np. Nauka techniki, niskie obciążenie)",
+      "sessions": [
+        {
+          "sessionName": "Trening A — Push (Klatka, Barki, Triceps)",
+          "exercises": [
+            {
+              "name": "Wyciskanie sztangi leżąc",
+              "sets": 3,
+              "reps": "10-12",
+              "rest": "90s",
+              "rpe": "6-7",
+              "weight": "60-70% 1RM",
+              "notes": "Skupienie na technice"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "progressionNotes": "Ogólne zasady progresji stosowane w tym planie",
+  "warmupProtocol": "Protokół rozgrzewki (2-3 zdania)",
+  "cooldownProtocol": "Protokół wyciszenia (1-2 zdania)"
+}
+
+ZASADY PROGRESJI (OBOWIĄZKOWE):
+- Tygodnie 1-2: Faza Adaptacji — niższy RPE (6-7), nauka wzorców ruchowych
+- Tygodnie 3-4: Faza Hipertrofii I — wzrost objętości, RPE 7-8
+- Tygodnie 5-6: Faza Hipertrofii II / Siły — wzrost intensywności, RPE 8-9
+- Tydzień 7: Deload — redukcja objętości o 40%, RPE 5-6
+- Tydzień 8: Szczyt / Retest — maksymalna intensywność, RPE 9-10
+
+Każdy tydzień MUSI różnić się od poprzedniego: zmień serie, powtórzenia, przerwy, RPE lub wagę.
+Każde ćwiczenie musi mieć konkretne wartości dla każdego tygodnia.
+Uwzględnij wykluczone ruchy z profilu i zastąp je bezpiecznymi alternatywami.
+Jeśli klient ma wady postawy — dodaj ćwiczenia korygujące.`;
+
+async function generatePlan(){
+  const profile = getClientProfile();
+  const philosophy = getPhilosophy();
+  if (!profile) { alert('Uzupełnij najpierw profil klienta!'); return; }
+
+  document.getElementById('plan-loading').style.display = 'block';
+  document.getElementById('plan-content').innerHTML = '';
+  document.getElementById('plan-dl-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none';
+  document.getElementById('plan-gen-btn').disabled = true;
+
+  let sIdx = 0;
+  const statusEl = document.getElementById('plan-status');
+  const ticker = setInterval(()=>{ sIdx=(sIdx+1)%PLAN_STATUSES.length; statusEl.textContent=PLAN_STATUSES[sIdx]; }, 2000);
+
+  let plan = null;
+  try {
+    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: PLAN_SYS,
+        messages: [{
+          role: 'user',
+          content: `Wygeneruj plan treningowy na 8 tygodni dla klienta:\n${profile}\n${philosophy}\n\nPamiętaj: każdy tydzień MUSI mieć inne parametry (progresja). Zwróć TYLKO JSON.`
+        }]
+      })
+    });
+    const data = await resp.json();
+    const raw = (data?.content||[]).map(b=>b.text||'').join('');
+    try { plan = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+    catch(e) { const m = raw.match(/\{[\s\S]+\}/); if(m) plan = JSON.parse(m[0]); }
+  } catch(err) { plan = null; }
+
+  clearInterval(ticker);
+  document.getElementById('plan-loading').style.display = 'none';
+  document.getElementById('plan-gen-btn').disabled = false;
+
+  if (!plan || !plan.weeks) {
+    document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:12px">❌</div><div style="color:var(--ac);font-weight:600;">Błąd generowania planu</div><div style="font-size:12px;margin-top:8px;">Spróbuj ponownie lub uprość profil klienta.</div></div>`;
+    return;
+  }
+
+  currentPlanData = plan;
+  renderPlan(plan);
+  document.getElementById('plan-dl-btn').style.display = 'inline-flex';
+  document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
+}
+
+function renderPlan(plan) {
+  const phaseColors = {
+    'Adaptacja': 'var(--bl)', 'Hipertrofia': 'var(--gr)', 'Siła': 'var(--yw)',
+    'Deload': 'var(--tx2)', 'Szczyt': 'var(--ac)', 'Retest': 'var(--ac)'
+  };
+  const getPhaseColor = (phase) => {
+    for (const [k,v] of Object.entries(phaseColors)) { if(phase.includes(k)) return v; }
+    return 'var(--ac)';
+  };
+
+  let html = `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${plan.planTitle||'Plan Treningowy'}</div>
+      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${plan.split||''}</span>
+        <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${plan.sessionsPerWeek||''} sesji / tydzień</span>
+      </div>
+      ${plan.philosophy ? `<div style="font-size:12px;color:var(--tx2);margin-top:10px;line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${plan.philosophy}</div>` : ''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:16px;">
+      ${(plan.weeks||[]).map(w=>{
+        const col = getPhaseColor(w.phase||'');
+        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 6px;text-align:center;cursor:pointer;transition:all 0.15s;" onclick="scrollToWeek(${w.weekNum})" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${w.weekNum}</div>
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;">${(w.phase||'').split(' ')[0]}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  (plan.weeks||[]).forEach(week => {
+    const col = getPhaseColor(week.phase||'');
+    html += `
+      <div id="week-${week.weekNum}" style="margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-left:3px solid ${col};border-radius:0 8px 8px 0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${col};">TYDZIEŃ ${week.weekNum}</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:${col};">${week.phase||''}</div>
+            <div style="font-size:11px;color:var(--tx2);">${week.focus||''}</div>
+          </div>
+        </div>`;
+
+    (week.sessions||[]).forEach(session => {
+      html += `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;">
+          <div style="padding:10px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);">
+            <div style="font-size:12px;font-weight:600;color:var(--tx);">${session.sessionName||''}</div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead>
+                <tr style="background:rgba(255,255,255,0.03);">
+                  <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);min-width:180px;">Ćwiczenie</th>
+                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Serie</th>
+                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Powtórzenia</th>
+                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Przerwa</th>
+                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">RPE</th>
+                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Ciężar</th>
+                  <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Uwagi</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(session.exercises||[]).map((ex,i)=>`
+                  <tr style="border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.1s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:9px 12px;color:var(--tx);font-weight:500;">${ex.name||''}</td>
+                    <td style="padding:9px 10px;text-align:center;color:${col};font-weight:700;font-family:'Bebas Neue',sans-serif;font-size:16px;">${ex.sets||''}</td>
+                    <td style="padding:9px 10px;text-align:center;color:var(--tx);font-family:'DM Mono',monospace;">${ex.reps||''}</td>
+                    <td style="padding:9px 10px;text-align:center;color:var(--tx2);font-family:'DM Mono',monospace;">${ex.rest||''}</td>
+                    <td style="padding:9px 10px;text-align:center;font-family:'DM Mono',monospace;font-weight:600;color:${col};">${ex.rpe||''}</td>
+                    <td style="padding:9px 10px;text-align:center;color:var(--tx2);font-size:11px;">${ex.weight||''}</td>
+                    <td style="padding:9px 12px;color:var(--tx3);font-size:11px;font-style:italic;">${ex.notes||''}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  if (plan.progressionNotes || plan.warmupProtocol) {
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">`;
+    if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 ROZGRZEWKA</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.warmupProtocol}</div></div>`;
+    if (plan.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.cooldownProtocol}</div></div>`;
+    html += `</div>`;
+    if (plan.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.progressionNotes}</div></div>`;
+  }
+
+  document.getElementById('plan-content').innerHTML = html;
+}
+
+function scrollToWeek(n) {
+  const el = document.getElementById('week-'+n);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function downloadPlanPDF() {
+  window.print();
+}
+
+function downloadPlanExcel() {
+  if (!currentPlanData) return;
+  const plan = currentPlanData;
+  const name = document.getElementById('client-name').value.trim() || 'Klient';
+  
+  // Build CSV
+  let csv = '\uFEFF'; // BOM for Excel UTF-8
+  csv += `PLAN TRENINGOWY — ${plan.planTitle||''}\n`;
+  csv += `Klient: ${name}\n`;
+  csv += `Podział: ${plan.split||''} | ${plan.sessionsPerWeek||''} sesji/tydzień\n\n`;
+
+  (plan.weeks||[]).forEach(week => {
+    csv += `\nTYDZIEŃ ${week.weekNum} — ${week.phase||''}\n`;
+    csv += `Fokus: ${week.focus||''}\n`;
+    (week.sessions||[]).forEach(session => {
+      csv += `\n${session.sessionName||''}\n`;
+      csv += `Ćwiczenie;Serie;Powtórzenia;Przerwa;RPE;Ciężar;Uwagi\n`;
+      (session.exercises||[]).forEach(ex => {
+        csv += `${ex.name||''};${ex.sets||''};${ex.reps||''};${ex.rest||''};${ex.rpe||''};${ex.weight||''};${ex.notes||''}\n`;
+      });
+    });
+  });
+
+  csv += `\nZASADY PROGRESJI\n${plan.progressionNotes||''}\n`;
+  csv += `\nROZGRZEWKA\n${plan.warmupProtocol||''}\n`;
+  csv += `\nWYCISZENIE\n${plan.cooldownProtocol||''}\n`;
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Plan_${name.replace(/\s+/g,'_')}_8tyg.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 </script>
 </body>
 </html>

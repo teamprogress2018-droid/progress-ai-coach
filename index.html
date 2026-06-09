@@ -912,55 +912,39 @@ const PLAN_STATUSES = [
   'Finalizuję plan z RPE i wskazówkami...',
 ];
 
-const PLAN_SYS = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT) z wieloletnim doświadczeniem w periodyzacji.
+// Plan generation uses 2-call approach to avoid proxy timeout
+// Call 1: Get plan structure (sessions + exercises list)
+// Call 2: Get full 8-week progression table
+const PLAN_SYS_STRUCT = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT).
+Odpowiedz WYŁĄCZNIE czystym JSON bez markdown.
+Format:
+{"planTitle":"nazwa","split":"podział","sessionsPerWeek":3,"philosophy":"1 zdanie","progressionNotes":"zasady","warmupProtocol":"rozgrzewka","cooldownProtocol":"wyciszenie","phases":{"w1":"Adaptacja","w2":"Adaptacja","w3":"Hipertrofia I","w4":"Hipertrofia I","w5":"Hipertrofia II","w6":"Siła","w7":"Deload","w8":"Szczyt"},"sessions":[{"sessionName":"Trening A — Push","exercises":["Wyciskanie sztangi leżąc","Rozpiętki hantle","Wyciskanie żołnierskie","Boczne unoszenie hantli","Triceps wyciąg górny","Pompki diamentowe"]}]}
+Uwzględnij wykluczone ruchy z profilu i zastąp je alternatywami. Jeśli wady postawy — dodaj ćwiczenia korygujące. Dobierz optymalny podział dla klienta.`;
 
-Wygeneruj KOMPLETNY plan treningowy na 8 tygodni dla klienta na podstawie profilu. 
+const PLAN_SYS_PROG = `Jesteś certyfikowanym trenerem personalnym (NSCA CSCS, NASM CPT).
+Dla podanej listy ćwiczeń wygeneruj PROGRESJĘ na 8 tygodni.
+Odpowiedz WYŁĄCZNIE czystym JSON bez markdown.
+Format dla każdego ćwiczenia:
+{"progressions":{"NazwaCwiczenia":{"w1":{"sets":3,"reps":"12","rest":"90s","rpe":"6","weight":"60%"},"w2":{"sets":3,"reps":"11","rest":"90s","rpe":"7","weight":"65%"},"w3":{"sets":4,"reps":"10","rest":"90s","rpe":"7","weight":"67%"},"w4":{"sets":4,"reps":"10","rest":"90s","rpe":"8","weight":"70%"},"w5":{"sets":4,"reps":"8","rest":"2min","rpe":"8","weight":"72%"},"w6":{"sets":4,"reps":"8","rest":"2min","rpe":"9","weight":"75%"},"w7":{"sets":2,"reps":"12","rest":"60s","rpe":"5","weight":"55%"},"w8":{"sets":4,"reps":"6","rest":"3min","rpe":"9","weight":"80%"}}}}
+ZASADY: w1-2=Adaptacja(niskie RPE), w3-4=Hipertrofia(wyższe serie), w5-6=Siła(ciężej), w7=Deload(-40% obj.), w8=Szczyt(max ciężar). Każdy tydzień MUSI różnić się od poprzedniego.`;
 
-ZWRÓĆ WYŁĄCZNIE czysty JSON (bez markdown, bez komentarzy) w dokładnie tym formacie:
-{
-  "planTitle": "Nazwa planu (np. Hipertrofia — Push/Pull/Legs 4x)",
-  "split": "np. Push/Pull/Legs",
-  "sessionsPerWeek": 4,
-  "philosophy": "1-2 zdania o podejściu do tego planu",
-  "weeks": [
-    {
-      "weekNum": 1,
-      "phase": "Adaptacja",
-      "focus": "Krótki opis fazy (np. Nauka techniki, niskie obciążenie)",
-      "sessions": [
-        {
-          "sessionName": "Trening A — Push (Klatka, Barki, Triceps)",
-          "exercises": [
-            {
-              "name": "Wyciskanie sztangi leżąc",
-              "sets": 3,
-              "reps": "10-12",
-              "rest": "90s",
-              "rpe": "6-7",
-              "weight": "60-70% 1RM",
-              "notes": "Skupienie na technice"
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "progressionNotes": "Ogólne zasady progresji stosowane w tym planie",
-  "warmupProtocol": "Protokół rozgrzewki (2-3 zdania)",
-  "cooldownProtocol": "Protokół wyciszenia (1-2 zdania)"
+async function callAPI(system, userMsg, maxTokens=2000){
+  const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      system: system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await resp.json();
+  const raw = (data?.content||[]).map(b=>b.text||'').join('');
+  try { return JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+  catch(e) { const m = raw.match(/\{[\s\S]+\}/); if(m) return JSON.parse(m[0]); }
+  return null;
 }
-
-ZASADY PROGRESJI (OBOWIĄZKOWE):
-- Tygodnie 1-2: Faza Adaptacji — niższy RPE (6-7), nauka wzorców ruchowych
-- Tygodnie 3-4: Faza Hipertrofii I — wzrost objętości, RPE 7-8
-- Tygodnie 5-6: Faza Hipertrofii II / Siły — wzrost intensywności, RPE 8-9
-- Tydzień 7: Deload — redukcja objętości o 40%, RPE 5-6
-- Tydzień 8: Szczyt / Retest — maksymalna intensywność, RPE 9-10
-
-Każdy tydzień MUSI różnić się od poprzedniego: zmień serie, powtórzenia, przerwy, RPE lub wagę.
-Każde ćwiczenie musi mieć konkretne wartości dla każdego tygodnia.
-Uwzględnij wykluczone ruchy z profilu i zastąp je bezpiecznymi alternatywami.
-Jeśli klient ma wady postawy — dodaj ćwiczenia korygujące.`;
 
 async function generatePlan(){
   const profile = getClientProfile();
@@ -973,134 +957,127 @@ async function generatePlan(){
   document.getElementById('plan-pdf-btn').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = true;
 
-  let sIdx = 0;
   const statusEl = document.getElementById('plan-status');
-  const ticker = setInterval(()=>{ sIdx=(sIdx+1)%PLAN_STATUSES.length; statusEl.textContent=PLAN_STATUSES[sIdx]; }, 2000);
 
-  let plan = null;
+  let struct = null, prog = null;
   try {
-    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        system: PLAN_SYS,
-        messages: [{
-          role: 'user',
-          content: `Wygeneruj plan treningowy na 8 tygodni dla klienta:\n${profile}\n${philosophy}\n\nPamiętaj: każdy tydzień MUSI mieć inne parametry (progresja). Zwróć TYLKO JSON.`
-        }]
-      })
-    });
-    const data = await resp.json();
-    const raw = (data?.content||[]).map(b=>b.text||'').join('');
-    try { plan = JSON.parse(raw.replace(/```json|```/g,'').trim()); }
-    catch(e) { const m = raw.match(/\{[\s\S]+\}/); if(m) plan = JSON.parse(m[0]); }
-  } catch(err) { plan = null; }
+    // CALL 1: Get plan structure
+    statusEl.textContent = 'Analizuję profil i dobieramy podział treningowy...';
+    struct = await callAPI(PLAN_SYS_STRUCT,
+      `Profil klienta:
+${profile}
+${philosophy}
+Dobierz optymalny plan i listę ćwiczeń. Zwróć TYLKO JSON.`,
+      2000);
 
-  clearInterval(ticker);
+    if (!struct || !struct.sessions) throw new Error('Brak struktury planu');
+
+    // CALL 2: Get progressions for all exercises
+    statusEl.textContent = 'Kalkuluję progresję na 8 tygodni...';
+    const allExercises = struct.sessions.flatMap(s => s.exercises).join(', ');
+    prog = await callAPI(PLAN_SYS_PROG,
+      `Wygeneruj progresję 8-tygodniową dla tych ćwiczeń:
+${allExercises}
+
+Kontekst: ${struct.split}, ${struct.sessionsPerWeek} sesji/tydzień, cel klienta: ${profile.substring(0,200)}
+Zwróć TYLKO JSON.`,
+      4000);
+
+  } catch(err) { struct = null; }
+
   document.getElementById('plan-loading').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = false;
 
-  if (!plan || !plan.weeks) {
+  if (!struct || !struct.sessions) {
     document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)"><div style="font-size:36px;margin-bottom:12px">❌</div><div style="color:var(--ac);font-weight:600;">Błąd generowania planu</div><div style="font-size:12px;margin-top:8px;">Spróbuj ponownie lub uprość profil klienta.</div></div>`;
     return;
   }
 
-  currentPlanData = plan;
-  renderPlan(plan);
+  // Merge progression data into struct
+  const progressions = prog?.progressions || {};
+  currentPlanData = {struct, progressions};
+  renderPlan(struct, progressions);
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
   document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
 }
 
-function renderPlan(plan) {
-  const phaseColors = {
-    'Adaptacja': 'var(--bl)', 'Hipertrofia': 'var(--gr)', 'Siła': 'var(--yw)',
-    'Deload': 'var(--tx2)', 'Szczyt': 'var(--ac)', 'Retest': 'var(--ac)'
-  };
-  const getPhaseColor = (phase) => {
-    for (const [k,v] of Object.entries(phaseColors)) { if(phase.includes(k)) return v; }
-    return 'var(--ac)';
-  };
+const WEEK_NAMES = ['w1','w2','w3','w4','w5','w6','w7','w8'];
+const PHASE_COLORS = {'Adaptacja':'var(--bl)','Hipertrofia':'var(--gr)','Siła':'var(--yw)','Deload':'var(--tx2)','Szczyt':'var(--ac)','Retest':'var(--ac)'};
+function getPhaseColor(phase){ for(const[k,v] of Object.entries(PHASE_COLORS)){if((phase||'').includes(k))return v;} return 'var(--ac)'; }
 
-  let html = `
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${plan.planTitle||'Plan Treningowy'}</div>
-      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
-        <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${plan.split||''}</span>
-        <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${plan.sessionsPerWeek||''} sesji / tydzień</span>
-      </div>
-      ${plan.philosophy ? `<div style="font-size:12px;color:var(--tx2);margin-top:10px;line-height:1.6;border-top:1px solid var(--border);padding-top:10px;">${plan.philosophy}</div>` : ''}
+function renderPlan(struct, progressions) {
+  const phases = struct.phases || {};
+
+  // Header
+  let html = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--ac);">${struct.planTitle||'Plan Treningowy'}</div>
+    <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">🗓 ${struct.split||''}</span>
+      <span style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">⚡ ${struct.sessionsPerWeek||''} sesji / tydzień</span>
     </div>
+    ${struct.philosophy?`<div style="font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.6;border-top:1px solid var(--border);padding-top:8px;">${struct.philosophy}</div>`:''}
+  </div>`;
 
-    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:16px;">
-      ${(plan.weeks||[]).map(w=>{
-        const col = getPhaseColor(w.phase||'');
-        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 6px;text-align:center;cursor:pointer;transition:all 0.15s;" onclick="scrollToWeek(${w.weekNum})" onmouseover="this.style.borderColor='${col}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${w.weekNum}</div>
-          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;">${(w.phase||'').split(' ')[0]}</div>
-        </div>`;
-      }).join('')}
+  // Week navigator
+  html += `<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:16px;">`;
+  WEEK_NAMES.forEach((wk,i) => {
+    const phase = phases[wk] || '';
+    const col = getPhaseColor(phase);
+    html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;" onclick="scrollToWeek(${i+1})">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${col};">W${i+1}</div>
+      <div style="font-size:8px;color:var(--tx3);font-family:'DM Mono',monospace;">${phase.split(' ')[0]}</div>
     </div>`;
+  });
+  html += `</div>`;
 
-  (plan.weeks||[]).forEach(week => {
-    const col = getPhaseColor(week.phase||'');
-    html += `
-      <div id="week-${week.weekNum}" style="margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 14px;background:var(--bg3);border-left:3px solid ${col};border-radius:0 8px 8px 0;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${col};">TYDZIEŃ ${week.weekNum}</div>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:${col};">${week.phase||''}</div>
-            <div style="font-size:11px;color:var(--tx2);">${week.focus||''}</div>
-          </div>
-        </div>`;
+  // For each session, render 8-week table
+  (struct.sessions||[]).forEach(session => {
+    html += `<div id="session-${session.sessionName?.replace(/\s/g,'_')}" style="margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--tx);margin-bottom:10px;padding:8px 12px;background:var(--bg3);border-left:3px solid var(--ac);border-radius:0 8px 8px 0;">${session.sessionName||''}</div>
+      <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:900px;">
+        <thead>
+          <tr style="background:rgba(255,255,255,0.04);">
+            <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--border);min-width:160px;position:sticky;left:0;background:#181818;">Ćwiczenie</th>
+            ${WEEK_NAMES.map((wk,i)=>{
+              const phase = phases[wk]||'';
+              const col = getPhaseColor(phase);
+              return `<th style="padding:8px 6px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;border-bottom:1px solid var(--border);min-width:90px;">W${i+1}<br><span style="font-size:8px;font-weight:400;">${phase}</span></th>`;
+            }).join('')}
+          </tr>
+        </thead>
+        <tbody>`;
 
-    (week.sessions||[]).forEach(session => {
-      html += `
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;">
-          <div style="padding:10px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);">
-            <div style="font-size:12px;font-weight:600;color:var(--tx);">${session.sessionName||''}</div>
+    (session.exercises||[]).forEach((exName, ei) => {
+      const exProg = progressions[exName] || {};
+      html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+        <td style="padding:8px 12px;color:var(--tx);font-weight:500;position:sticky;left:0;background:#181818;">${exName}</td>`;
+      WEEK_NAMES.forEach(wk => {
+        const p = exProg[wk] || {};
+        const phase = phases[wk]||'';
+        const col = getPhaseColor(phase);
+        const isDeload = phase.includes('Deload');
+        html += `<td style="padding:6px;text-align:center;${isDeload?'opacity:0.6':''}">
+          <div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:5px 4px;font-size:10px;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:${col};">${p.sets||'—'}×${p.reps||'—'}</div>
+            <div style="color:var(--tx3);font-family:'DM Mono',monospace;font-size:9px;">${p.rest||''}</div>
+            <div style="color:${col};font-size:9px;">RPE ${p.rpe||''}</div>
+            <div style="color:var(--tx2);font-size:9px;">${p.weight||''}</div>
           </div>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead>
-                <tr style="background:rgba(255,255,255,0.03);">
-                  <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);min-width:180px;">Ćwiczenie</th>
-                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Serie</th>
-                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Powtórzenia</th>
-                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Przerwa</th>
-                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:${col};text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">RPE</th>
-                  <th style="padding:8px 10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Ciężar</th>
-                  <th style="padding:8px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);">Uwagi</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${(session.exercises||[]).map((ex,i)=>`
-                  <tr style="border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.1s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                    <td style="padding:9px 12px;color:var(--tx);font-weight:500;">${ex.name||''}</td>
-                    <td style="padding:9px 10px;text-align:center;color:${col};font-weight:700;font-family:'Bebas Neue',sans-serif;font-size:16px;">${ex.sets||''}</td>
-                    <td style="padding:9px 10px;text-align:center;color:var(--tx);font-family:'DM Mono',monospace;">${ex.reps||''}</td>
-                    <td style="padding:9px 10px;text-align:center;color:var(--tx2);font-family:'DM Mono',monospace;">${ex.rest||''}</td>
-                    <td style="padding:9px 10px;text-align:center;font-family:'DM Mono',monospace;font-weight:600;color:${col};">${ex.rpe||''}</td>
-                    <td style="padding:9px 10px;text-align:center;color:var(--tx2);font-size:11px;">${ex.weight||''}</td>
-                    <td style="padding:9px 12px;color:var(--tx3);font-size:11px;font-style:italic;">${ex.notes||''}</td>
-                  </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>`;
+        </td>`;
+      });
+      html += `</tr>`;
     });
 
-    html += `</div>`;
+    html += `</tbody></table></div></div>`;
   });
 
-  if (plan.progressionNotes || plan.warmupProtocol) {
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">`;
-    if (plan.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 ROZGRZEWKA</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.warmupProtocol}</div></div>`;
-    if (plan.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.cooldownProtocol}</div></div>`;
-    html += `</div>`;
-    if (plan.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${plan.progressionNotes}</div></div>`;
-  }
+  // Footer
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">`;
+  if (struct.warmupProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--yw);margin-bottom:6px;">🔥 ROZGRZEWKA</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${struct.warmupProtocol}</div></div>`;
+  if (struct.cooldownProtocol) html += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--bl);margin-bottom:6px;">❄️ WYCISZENIE</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${struct.cooldownProtocol}</div></div>`;
+  html += `</div>`;
+  if (struct.progressionNotes) html += `<div style="background:var(--bg3);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:14px;margin-top:12px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">📈 ZASADY PROGRESJI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${struct.progressionNotes}</div></div>`;
 
   document.getElementById('plan-content').innerHTML = html;
 }
@@ -1110,36 +1087,46 @@ function scrollToWeek(n) {
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function downloadPlanPDF() {
-  window.print();
-}
+function downloadPlanPDF() { window.print(); }
 
 function downloadPlanExcel() {
   if (!currentPlanData) return;
-  const plan = currentPlanData;
+  const {struct, progressions} = currentPlanData;
   const name = document.getElementById('client-name').value.trim() || 'Klient';
+  const phases = struct.phases || {};
   
-  // Build CSV
-  let csv = '\uFEFF'; // BOM for Excel UTF-8
-  csv += `PLAN TRENINGOWY — ${plan.planTitle||''}\n`;
-  csv += `Klient: ${name}\n`;
-  csv += `Podział: ${plan.split||''} | ${plan.sessionsPerWeek||''} sesji/tydzień\n\n`;
+  let csv = '﻿';
+  csv += `PLAN TRENINGOWY — ${struct.planTitle||''}
+`;
+  csv += `Klient: ${name} | Podział: ${struct.split||''} | ${struct.sessionsPerWeek||''} sesji/tydzień
 
-  (plan.weeks||[]).forEach(week => {
-    csv += `\nTYDZIEŃ ${week.weekNum} — ${week.phase||''}\n`;
-    csv += `Fokus: ${week.focus||''}\n`;
-    (week.sessions||[]).forEach(session => {
-      csv += `\n${session.sessionName||''}\n`;
-      csv += `Ćwiczenie;Serie;Powtórzenia;Przerwa;RPE;Ciężar;Uwagi\n`;
-      (session.exercises||[]).forEach(ex => {
-        csv += `${ex.name||''};${ex.sets||''};${ex.reps||''};${ex.rest||''};${ex.rpe||''};${ex.weight||''};${ex.notes||''}\n`;
+`;
+
+  (struct.sessions||[]).forEach(session => {
+    csv += `
+${session.sessionName||''}
+`;
+    csv += `Ćwiczenie;W1 ${phases.w1||''};W2 ${phases.w2||''};W3 ${phases.w3||''};W4 ${phases.w4||''};W5 ${phases.w5||''};W6 ${phases.w6||''};W7 ${phases.w7||''};W8 ${phases.w8||''}
+`;
+    (session.exercises||[]).forEach(exName => {
+      const exProg = progressions[exName] || {};
+      const cells = WEEK_NAMES.map(wk => {
+        const p = exProg[wk] || {};
+        return p.sets ? `${p.sets}x${p.reps} RPE${p.rpe} ${p.weight}` : '—';
       });
+      csv += `${exName};${cells.join(';')}
+`;
     });
   });
 
-  csv += `\nZASADY PROGRESJI\n${plan.progressionNotes||''}\n`;
-  csv += `\nROZGRZEWKA\n${plan.warmupProtocol||''}\n`;
-  csv += `\nWYCISZENIE\n${plan.cooldownProtocol||''}\n`;
+  csv += `
+ZASADY PROGRESJI
+${struct.progressionNotes||''}
+`;
+  csv += `
+ROZGRZEWKA
+${struct.warmupProtocol||''}
+`;
 
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);

@@ -1311,12 +1311,31 @@ async function callAPI(system, userMsg, maxTokens) {
   let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
   try { return JSON.parse(jsonStr); }
   catch(e) {
-    let rep = jsonStr.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
+    let rep = jsonStr;
+    // Remove unterminated string/value at end
+    rep = rep.replace(/,?\s*"[^"]*$/, '');
+    rep = rep.replace(/,?\s*"[^"]*":\s*"[^"]*$/, '');
+    rep = rep.replace(/,\s*$/, '');
+    // Close open brackets
     const opens = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
     const openb = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
-    for(let i=0;i<opens;i++) rep+=']';
-    for(let i=0;i<openb;i++) rep+='}';
-    try { return JSON.parse(rep); } catch(e2) { console.error('Repair failed:', e2.message); return null; }
+    for(let i=0;i<Math.max(0,opens);i++) rep+=']';
+    for(let i=0;i<Math.max(0,openb);i++) rep+='}';
+    try { const r=JSON.parse(rep); console.log('Repair OK'); return r; }
+    catch(e2) {
+      // Last resort: cut back to last complete exercise
+      const cut = rep.lastIndexOf(',{"name":');
+      if(cut>0) {
+        let t=rep.substring(0,cut);
+        t=t.replace(/,\s*$/,'');
+        const o=(t.match(/\[/g)||[]).length-(t.match(/\]/g)||[]).length;
+        const b=(t.match(/\{/g)||[]).length-(t.match(/\}/g)||[]).length;
+        for(let i=0;i<Math.max(0,o);i++) t+=']';
+        for(let i=0;i<Math.max(0,b);i++) t+='}';
+        try { return JSON.parse(t); } catch(e3) {}
+      }
+      console.error('Repair failed:', e2.message); return null;
+    }
   }
 }
 
@@ -1550,10 +1569,7 @@ BIOMECHANIKA (obowiązkowo w planie):
 
 ZASADY:
 - 4-5 ćwiczeń/sesję
-- Pole "notes" OBOWIĄZKOWE dla każdego ćwiczenia — wpisz:
-  * Dla metod intensyfikacji: KRÓTKIE wyjaśnienie jak wykonać (np. "Cluster: 2 powt → 15 sek przerwy → 2 powt → 15 sek → 2 powt, ciężar 85% 1RM")
-  * Dla standardowych ćwiczeń: wskazówka techniczna (np. "Łokcie pod sztangą, klatka do góry")
-  * Dla core: jak wykonać bezpiecznie (np. "Wciśnij plecy w podłogę, oddech przez nos")
+- Pole "notes": MAX 60 znaków. Dla metod: skrót (np. "Cluster: 2+2+2 co 15s, 85% 1RM"). Dla ćwiczeń: 1 wskazówka techniczna. BEZ długich opisów.
 - Każdy tydzień INNE parametry${weeks>=4?'\n- Ostatni tydzień: Deload':''}${weeks>=8?'\n- W8: Szczyt (max ciężar)':''}
 - Uwzględnij wykluczone ruchy z profilu`;
 }
@@ -1578,7 +1594,7 @@ async function generatePlan() {
     if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
   }, 2000);
 
-  const tokenBudget = planWeeks === 1 ? 4000 : planWeeks === 4 ? 5000 : 6000;
+  const tokenBudget = planWeeks === 1 ? 5000 : planWeeks === 4 ? 6000 : 7000;
 
   let plan = null;
   try {

@@ -849,7 +849,55 @@ function getClientProfile(){
   return p;
 }
 
-function getSystemPrompt(){return `Jesteś zaawansowanym asystentem AI dla trenera personalnego Piotra Urbaniaka z Progress Training Studio we Wrocławiu.\n\n${modePrompts[currentMode]}\n\nZawsze odpowiadaj po polsku. Bądź konkretny, profesjonalny ale ciepły. Gdy tworzysz plany treningowe podawaj serie, powtórzenia i przerwy. Formatuj odpowiedzi czytelnie.\n\nWAŻNE: Odpowiadaj ZAWSZE zgodnie z filozofią trenera i uwzględniaj bazę wiedzy jeśli są dostępne.${getPhilosophy()}${getKnowledgeContext()}${getClientProfile()}`;}
+function getSystemPrompt() {
+  const kbCtx = getKnowledgeContext();
+  return `Jesteś zaawansowanym asystentem AI dla trenera personalnego Piotra Urbaniaka z Progress Training Studio we Wrocławiu.
+
+${modePrompts[currentMode]}
+
+===STAŁA BAZA WIEDZY TRENERA===
+PERIODYZACJA I OBJĘTOŚĆ TRENINGOWA (MEV/MAV/MRV):
+- MEV (Minimalna Efektywna Objętość): 1-5 serii/tydzień na partię — podtrzymanie masy
+- MAV (Optymalna Objętość): 10-20 serii/tydzień — złoty standard hipertrofii
+- MRV (Maksymalna Regenerowalna Objętość): górna granica przed przetrenowaniem
+- Każda dodatkowa seria = ok. 0,37% więcej hipertrofii (do MRV)
+- Malejące korzyści u zaawansowanych powyżej 20 serii/tydzień
+
+OBJĘTOŚĆ WG POZIOMU:
+- Początkujący: 8-10 serii/tydzień (wysoka wrażliwość na bodziec)
+- Średniozaawansowani: 10-16 serii/tydzień
+- Zaawansowani: 15-20+ serii/tydzień (oscylowanie wokół MRV)
+
+DUŻE vs MAŁE PARTIE:
+- Duże (nogi, plecy, klatka): 12-24 serie/tydzień — ruchy wielostawowe
+- Małe (biceps, triceps, barki): 6-12 serii/tydzień — uwzględnij pracę pośrednią
+- 1 seria wyciskania = ~0.5-1 serii dla tricepsa
+
+FBW vs SPLIT:
+- FBW: optymalny do 12 serii — MPS trwa 48-72h, częstsza stymulacja
+- Split: konieczny przy 16-20+ seriach — pełna regeneracja strukturalna
+
+REDUKCJA:
+- NIE zmniejszaj objętości — utrzymaj silny sygnał anaboliczny
+- Zmniejsz ciężar o 10-15%, utrzymaj serie i powtórzenia
+- Deficyt kaloryczny = ryzyko katabolizmu — silne serie robocze chronią masę
+
+SYGNAŁY PRZETRENOWANIA (deload gdy 3+ z poniższych):
+- Regres siłowy przez 2+ tygodnie
+- Chroniczne zmęczenie mimo snu
+- Bóle stawów i struktur biernych
+- Spadek motywacji i drażliwość
+- Częste infekcje
+
+DELOAD: redukcja objętości o 30-50%, co 4-8 tygodni lub na sygnał
+===KONIEC STAŁEJ BAZY===
+
+${getClientProfile()}
+${getPhilosophy()}
+${kbCtx}
+
+Zawsze odpowiadaj po polsku. Bądź konkretny, profesjonalny ale ciepły.`;
+}
 
 // OVERLAY
 function openOverlay(id){document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');document.getElementById(id).style.display='block';}
@@ -1096,6 +1144,13 @@ ROZGRZEWKA (każda sesja, 4-5 ćw.):
 
 CARDIO (jeśli cel=redukcja/kondycja):
 - Dodaj 1-2 sesje HIIT/cardio jako osobne sesje
+
+STAŁA WIEDZA TRENERA:
+- MEV: 1-5 serii/tydz → MAV: 10-20 serii/tydz (złoty standard) → MRV: górna granica
+- Początkujący: 8-10 serii, Średni: 10-16, Zaawansowani: 15-20+
+- Na redukcji: UTRZYMAJ objętość i intensywność — deficyt bez treningu = katabolizm
+- FBW do 12 serii, Split powyżej 16 serii
+- Deload: redukcja obj. 30-50% co 4-8 tyg.
 
 ZASADY:
 - 4-5 ćwiczeń/sesję

@@ -1457,13 +1457,15 @@ function buildPlanPrompt(weeks) {
   const progInstruction = getProgressionInstruction(weeks);
   const progLabel = PROGRESSION_LABELS[planProgression]?.name || 'Auto';
   const wEx = weekNames.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
+  // notes field example
+  const notesEx = `"notes":"Uwagi techniczne i wyjaśnienie metody dla klienta"`;
   const wuEx = `[{"name":"Krążenia bioder","emoji":"🔄","sets":"2x","reps":"10","note":"mobilizacja"}]`;
 
   return `Elitarny AI Coach (NSCA CSCS). Wygeneruj plan ${weeks} tyg. Metoda progresji: ${progLabel}.
 TYLKO czysty JSON bez markdown.
 
 FORMAT:
-{"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi",${wEx}}]}]}
+{"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi","notes":"Uwagi techniczne / wyjaśnienie metody",${wEx}}]}]}
 
 PROGRESJA: ${progInstruction}
 
@@ -1548,6 +1550,10 @@ BIOMECHANIKA (obowiązkowo w planie):
 
 ZASADY:
 - 4-5 ćwiczeń/sesję
+- Pole "notes" OBOWIĄZKOWE dla każdego ćwiczenia — wpisz:
+  * Dla metod intensyfikacji: KRÓTKIE wyjaśnienie jak wykonać (np. "Cluster: 2 powt → 15 sek przerwy → 2 powt → 15 sek → 2 powt, ciężar 85% 1RM")
+  * Dla standardowych ćwiczeń: wskazówka techniczna (np. "Łokcie pod sztangą, klatka do góry")
+  * Dla core: jak wykonać bezpiecznie (np. "Wciśnij plecy w podłogę, oddech przez nos")
 - Każdy tydzień INNE parametry${weeks>=4?'\n- Ostatni tydzień: Deload':''}${weeks>=8?'\n- W8: Szczyt (max ciężar)':''}
 - Uwzględnij wykluczone ruchy z profilu`;
 }
@@ -1737,8 +1743,11 @@ function renderPlan(plan) {
           <!-- Exercise header -->
           <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);">
             <div style="width:26px;height:26px;border-radius:50%;background:${sessionCol};color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">${ei+1}</div>
-            <div style="font-size:13px;font-weight:600;color:var(--tx);flex:1;">${ex.name||''}</div>
-            ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;">RPE ${rpe}</div>`:''}
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--tx);">${ex.name||''}</div>
+              ${(ex.notes||ex.note||ex.uwagi||ex.description||'') ? `<div style="font-size:11px;color:var(--tx2);margin-top:3px;line-height:1.5;background:rgba(255,255,255,0.03);border-radius:5px;padding:4px 8px;border-left:2px solid ${sessionCol};">💡 ${ex.notes||ex.note||ex.uwagi||ex.description}</div>` : ''}
+            </div>
+            ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;flex-shrink:0;">RPE ${rpe}</div>`:''}
           </div>
           <!-- Params row -->
           <div style="display:flex;gap:0;border-bottom:1px solid var(--border);">

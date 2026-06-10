@@ -1013,6 +1013,62 @@ function openPlanScreen() {
   openOverlay('screen-plan');
 }
 
+const PLAN_STATUSES = [
+  'Analizuję profil klienta i filozofię trenera...',
+  'Dobieramy optymalny podział treningowy...',
+  'Generuję ćwiczenia z progresją...',
+  'Finalizuję plan...',
+];
+
+let planWeeks = 1;
+let planProgression = 'ai';
+let currentPlanData = null;
+
+const WEEK_NAMES = ['w1','w2','w3','w4','w5','w6','w7','w8'];
+const PHASE_COLORS = {
+  'Adaptacja':'var(--bl)', 'Hipertrofia':'var(--gr)', 'Siła':'var(--yw)',
+  'Deload':'var(--tx2)', 'Szczyt':'var(--ac)', 'Tydzień':'var(--ac)'
+};
+
+const PROGRESSION_LABELS = {
+  ai:     { name: '🤖 AI Auto', desc: 'AI dobiera optymalną metodę progresji' },
+  linear: { name: '📈 Liniowa', desc: 'Co tydzień +2.5-5kg' },
+  dup:    { name: '🔄 DUP', desc: 'Różne rep ranges każdej sesji' },
+  wave:   { name: '〰️ Falująca', desc: 'Tygodnie obj. przeplatane z intensywnością' },
+  block:  { name: '🧱 Blokowa', desc: 'Akumulacja → Intensyfikacja → Realizacja' },
+  double: { name: '⏫ Podwójna', desc: 'Najpierw +powt., potem +ciężar' },
+};
+
+function setPlanWeeks(n, btn) {
+  planWeeks = n;
+  btn.closest('#plan-weeks-selector').querySelectorAll('.pw-btn').forEach(b => b.classList.remove('pw-active'));
+  btn.classList.add('pw-active');
+}
+
+function setProgression(type, btn) {
+  planProgression = type;
+  btn.closest('#plan-prog-selector').querySelectorAll('.pw-btn').forEach(b => b.classList.remove('pw-active'));
+  btn.classList.add('pw-active');
+}
+
+function getProgressionInstruction(weeks) {
+  if (planProgression === 'ai') return 'Dobierz OPTYMALNĄ metodę progresji dla tego klienta i uzasadnij w progressionNotes.';
+  const instructions = {
+    linear: 'PROGRESJA LINIOWA: każdy tydzień +2.5-5kg przy tych samych seriach i powtórzeniach.',
+    dup:    'DUP: każda sesja inne zakresy — A: 4-6 powt. (siła), B: 8-12 (hipertrofia), C: 15-20 (wytrzymałość).',
+    wave:   'FALUJĄCA TYGODNIOWA: tygodnie nieparzyste = wyższa objętość RPE 7-8, parzyste = wyższa intensywność RPE 8-9.',
+    block:  'BLOKOWA: T1-3 Akumulacja (10-15 powt. RPE 6-7), T4-6 Intensyfikacja (6-8 powt. RPE 8-9), T7 Deload, T8 Realizacja.',
+    double: 'PODWÓJNA: dodawaj 1 powt./tydzień do max zakresu, potem +2.5-5kg i reset do dolnego zakresu.',
+  };
+  return instructions[planProgression] || instructions.linear;
+}
+
+function getPhaseColor(phase) {
+  for (const [k,v] of Object.entries(PHASE_COLORS)) { if ((phase||'').includes(k)) return v; }
+  return 'var(--bl)';
+}
+
+
 async function generatePlan() {
   const profile = getClientProfile();
   const philosophy = getPhilosophy();

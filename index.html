@@ -1069,6 +1069,41 @@ function getPhaseColor(phase) {
 }
 
 
+function buildPlanPrompt(weeks) {
+  const weekNames = ['w1','w2','w3','w4','w5','w6','w7','w8'].slice(0, weeks);
+  const phases = {
+    1: {'w1':'Tydzień 1'},
+    4: {'w1':'Adaptacja','w2':'Hipertrofia I','w3':'Hipertrofia II','w4':'Deload'},
+    8: {'w1':'Adaptacja','w2':'Adaptacja','w3':'Hipertrofia I','w4':'Hipertrofia I','w5':'Hipertrofia II','w6':'Siła','w7':'Deload','w8':'Szczyt'}
+  };
+  const ph = phases[weeks] || phases[1];
+  const progInstruction = getProgressionInstruction(weeks);
+  const progLabel = PROGRESSION_LABELS[planProgression]?.name || 'Auto';
+  const wEx = weekNames.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
+  const wuEx = `[{"name":"Krążenia bioder","emoji":"🔄","sets":"2x","reps":"10","note":"mobilizacja"}]`;
+
+  return `Trener personalny NSCA CSCS. Wygeneruj plan ${weeks} tyg. Metoda: ${progLabel}.
+TYLKO czysty JSON bez markdown.
+
+FORMAT:
+{"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi",${wEx}}]}]}
+
+PROGRESJA: ${progInstruction}
+
+ROZGRZEWKA (każda sesja, 4-5 ćw.):
+- warmupExercises: mobilizacja + aktywacja specyficzna dla tej sesji
+- Uwzględnij kontuzje z profilu
+
+CARDIO (jeśli cel=redukcja/kondycja):
+- Dodaj 1-2 sesje HIIT/cardio jako osobne sesje
+
+ZASADY:
+- 4-5 ćwiczeń/sesję
+- Każdy tydzień INNE parametry${weeks>=4?'\n- Ostatni tydzień: Deload':''}${weeks>=8?'\n- W8: Szczyt (max ciężar)':''}
+- Uwzględnij wykluczone ruchy z profilu`;
+}
+
+
 async function generatePlan() {
   const profile = getClientProfile();
   const philosophy = getPhilosophy();

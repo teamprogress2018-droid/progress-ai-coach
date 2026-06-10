@@ -1138,12 +1138,6 @@ async function expandPlan() {
 
 
 
-const WEEK_NAMES = ['w1','w2','w3','w4','w5','w6','w7','w8'];
-const PHASE_COLORS = {
-  'Adaptacja':'var(--bl)', 'Hipertrofia':'var(--gr)', 'Siła':'var(--yw)',
-  'Deload':'var(--tx2)', 'Szczyt':'var(--ac)', 'Retest':'var(--ac)', 'Tydzień':'var(--ac)'
-};
-
 function getPhaseColor(phase) {
   for (const [k,v] of Object.entries(PHASE_COLORS)) { if ((phase||'').includes(k)) return v; }
   return 'var(--bl)';

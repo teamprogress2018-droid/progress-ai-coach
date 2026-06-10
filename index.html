@@ -748,7 +748,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 </div>
 <script>
 let currentMode='trening',conversationHistory=[],knowledgeBase=[];
-document.addEventListener('DOMContentLoaded',()=>{ loadKB(); });
+document.addEventListener('DOMContentLoaded',()=>{ loadKB(); loadPhilosophy(); });
 const modeLabels={trening:'💪 Trening',dieta:'🥗 Dieta',motywacja:'🧠 Motywacja',analiza:'📊 Analiza'};
 const modePrompts={trening:'Jesteś ekspertem w treningu personalnym. Tworzysz skuteczne plany treningowe, dobierasz ćwiczenia i progresję obciążeń.',dieta:'Jesteś ekspertem w żywieniu sportowym. Tworzysz plany żywieniowe i edukujesz o odżywianiu.',motywacja:'Jesteś ekspertem w psychologii sportu i coachingu. Pomagasz radzić sobie z trudnymi sytuacjami z klientami.',analiza:'Jesteś ekspertem w analizie postępów. Oceniasz wyniki, identyfikujesz problemy i dostosowujesz programy.'};
 
@@ -758,7 +758,65 @@ function toggleAcc(id){const body=document.getElementById(id);const arrow=docume
 
 function updateSlider(inputId,valId,labels){const val=parseInt(document.getElementById(inputId).value);document.getElementById(valId).textContent=labels[val-1]||val;}
 function setMode(mode,btn){currentMode=mode;document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('mode-badge').textContent=modeLabels[mode];}
-function savePhilosophy(){document.getElementById('saved-badge').classList.add('show');setTimeout(()=>document.getElementById('saved-badge').classList.remove('show'),2000);}
+async function savePhilosophy() {
+  const badge = document.getElementById('saved-badge');
+  const data = {
+    methodology: document.getElementById('phil-methodology')?.value || '',
+    exercises:   document.getElementById('phil-exercises')?.value || '',
+    psychology:  document.getElementById('phil-psychology')?.value || '',
+    nutrition:   document.getElementById('phil-nutrition')?.value || '',
+  };
+  // Save to Firebase
+  try {
+    const url = `${FIREBASE_API}/philosophy/trainer_piotr?key=${FIREBASE_KEY}`;
+    await fetch(url, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ fields: {
+        methodology: {stringValue: data.methodology},
+        exercises:   {stringValue: data.exercises},
+        psychology:  {stringValue: data.psychology},
+        nutrition:   {stringValue: data.nutrition},
+        savedAt:     {stringValue: new Date().toISOString()}
+      }})
+    });
+    console.log('Philosophy saved to Firebase');
+  } catch(e) {
+    // Fallback localStorage
+    localStorage.setItem('pb_philosophy', JSON.stringify(data));
+    console.warn('Philosophy saved to localStorage (Firebase failed)');
+  }
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 2000);
+}
+
+async function loadPhilosophy() {
+  try {
+    const url = `${FIREBASE_API}/philosophy/trainer_piotr?key=${FIREBASE_KEY}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Not found');
+    const d = await r.json();
+    const f = d.fields || {};
+    if (f.methodology?.stringValue) document.getElementById('phil-methodology').value = f.methodology.stringValue;
+    if (f.exercises?.stringValue)   document.getElementById('phil-exercises').value   = f.exercises.stringValue;
+    if (f.psychology?.stringValue)  document.getElementById('phil-psychology').value  = f.psychology.stringValue;
+    if (f.nutrition?.stringValue)   document.getElementById('phil-nutrition').value   = f.nutrition.stringValue;
+    console.log('Philosophy loaded from Firebase');
+  } catch(e) {
+    // Fallback localStorage
+    try {
+      const s = localStorage.getItem('pb_philosophy');
+      if (s) {
+        const data = JSON.parse(s);
+        if (data.methodology) document.getElementById('phil-methodology').value = data.methodology;
+        if (data.exercises)   document.getElementById('phil-exercises').value   = data.exercises;
+        if (data.psychology)  document.getElementById('phil-psychology').value  = data.psychology;
+        if (data.nutrition)   document.getElementById('phil-nutrition').value   = data.nutrition;
+        console.log('Philosophy loaded from localStorage');
+      }
+    } catch(e2) {}
+  }
+}
 
 function getPhilosophy(){const m=document.getElementById('phil-methodology').value,e=document.getElementById('phil-exercises').value,p=document.getElementById('phil-psychology').value,n=document.getElementById('phil-nutrition').value;if(!m&&!e&&!p&&!n)return '';let ph='\n\n===FILOZOFIA TRENERA===';if(m)ph+=`\n\nGłówna metodologia:\n${m}`;if(e)ph+=`\n\nZasady doboru ćwiczeń:\n${e}`;if(p)ph+=`\n\nPodejście psychologiczne:\n${p}`;if(n)ph+=`\n\nFilozofia żywieniowa:\n${n}`;ph+='\n===KONIEC FILOZOFII===';return ph;}
 

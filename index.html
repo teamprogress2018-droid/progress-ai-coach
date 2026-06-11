@@ -113,6 +113,29 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .tl-tag-W{background:rgba(250,174,218,0.12);color:#f4c0d1;border-color:rgba(244,192,209,0.3);}
 .tl-tag-T{background:rgba(96,165,250,0.1);color:var(--bl);border-color:rgba(96,165,250,0.25);}
 .tl-tag-B{background:rgba(232,48,42,0.1);color:var(--ac2);border-color:rgba(232,48,42,0.25);}
+.tl-tag-M{background:rgba(127,119,221,0.18);color:#AFA9EC;border-color:rgba(127,119,221,0.35);}
+/* Myo-Reps blok */
+.tl-myo-block{border:1px solid rgba(127,119,221,0.3);border-radius:10px;overflow:hidden;margin:6px 12px;}
+.tl-myo-header{background:rgba(127,119,221,0.1);padding:7px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(127,119,221,0.2);}
+.tl-myo-label{font-size:10px;font-weight:600;color:#AFA9EC;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+.tl-myo-desc{font-size:10px;color:var(--tx3);flex:1;}
+.tl-myo-act{padding:8px 10px;border-bottom:1px dashed rgba(127,119,221,0.2);}
+.tl-myo-act-label{font-size:9px;color:#AFA9EC;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.tl-myo-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.tl-myo-mini-label{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;width:28px;flex-shrink:0;text-align:center;}
+.tl-myo-inp{height:30px;font-size:12px;text-align:center;border:1px solid rgba(127,119,221,0.25);border-radius:6px;background:rgba(127,119,221,0.07);color:var(--tx);outline:none;padding:0 5px;width:100%;}
+.tl-myo-inp:focus{border-color:#7F77DD;}
+.tl-myo-minis{padding:8px 10px;}
+.tl-myo-minis-label{font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;}
+.tl-myo-add{font-size:10px;color:#7F77DD;background:transparent;border:none;cursor:pointer;font-family:'DM Mono',monospace;}
+.tl-myo-add:hover{color:#AFA9EC;}
+.tl-myo-result{font-size:11px;color:#7F77DD;font-family:'DM Mono',monospace;padding:4px 10px 8px;text-align:center;}
+.tl-myo-ok{width:100%;margin-top:4px;padding:6px;border-radius:7px;border:1px solid rgba(127,119,221,0.3);background:rgba(127,119,221,0.1);color:#AFA9EC;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.tl-myo-ok:hover{background:rgba(127,119,221,0.2);}
+.tl-myo-ok.done{background:#1D9E75;border-color:#0F6E56;color:#fff;}
+/* Tag selector na serii */
+.tl-type-sel{height:24px;font-size:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--tx2);cursor:pointer;padding:0 3px;font-family:'DM Mono',monospace;flex-shrink:0;}
+.tl-type-sel:focus{outline:none;border-color:#9f97e8;}
 /* Set rows */
 .tl-sets-head{display:flex;align-items:center;gap:6px;padding:6px 12px 2px;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;}
 .tl-sets-head .sh-num{width:22px;}
@@ -709,6 +732,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           <div class="tl-leg-item"><span class="tl-tag tl-tag-W">W</span> Warm-up</div>
           <div class="tl-leg-item"><span class="tl-tag tl-tag-T">T</span> Top set</div>
           <div class="tl-leg-item"><span class="tl-tag tl-tag-B">B</span> Back-off</div>
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-M">M</span> Myo-Reps</div>
           <div style="margin-left:auto;font-size:10px;color:var(--tx3);">✓ = zatwierdzona</div>
         </div>
         <div class="tl-sets-head">
@@ -807,8 +831,44 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s1rep" type="number" inputmode="decimal"><span class="tl-ph">6</span></div>
           <div class="tl-div"></div>
           <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <select class="tl-type-sel" onchange="tlOnTypeChange(this,'ex2s1')" title="Typ serii">
+            <option value="N">–</option><option value="W">W</option><option value="T">T</option>
+            <option value="B">B</option><option value="M">Myo</option>
+          </select>
           <button class="tl-ok-btn" onclick="tlConfirm('b2r1','b2n1')">✓</button>
-          <button class="tl-cp-btn" onclick="tlCopyDown('b2s1kg',['b2s2kg','b2s3kg','b2s4kg'])">↓</button>
+          <button class="tl-cp-btn" onclick="tlCopyDown('b2s1kg',['b2s2kg'])">↓</button>
+        </div>
+        <!-- Myo-Reps blok dla serii 1 ex2 -->
+        <div id="myo-container-ex2s1" style="display:none;">
+          <div class="tl-myo-block">
+            <div class="tl-myo-header">
+              <span class="tl-tag tl-tag-M">M</span>
+              <span class="tl-myo-label">Myo-Reps</span>
+              <span class="tl-myo-desc">Seria aktywacyjna → przerwy 10-15s → mini-serie</span>
+            </div>
+            <div class="tl-myo-act">
+              <div class="tl-myo-act-label">Seria aktywacyjna (do bliskiego upadku)</div>
+              <div class="tl-myo-row">
+                <div class="tl-myo-mini-label" style="color:#AFA9EC;font-weight:600;">Akt</div>
+                <div class="tl-inp-wrap" style="position:relative;flex:1">
+                  <input class="tl-myo-inp" id="myo_act_ex2s1" type="number" placeholder="12–15" inputmode="decimal"
+                    oninput="tlUpdateMyoResult('ex2s1')">
+                </div>
+                <span style="font-size:10px;color:var(--tx3);padding:0 6px;">powt.</span>
+              </div>
+            </div>
+            <div class="tl-myo-minis">
+              <div class="tl-myo-minis-label">
+                <span>Mini-serie (3–5 powt. po 10–15s przerwy)</span>
+                <button class="tl-myo-add" onclick="tlAddMyoMini('ex2s1')">+ Dodaj mini</button>
+              </div>
+              <div id="myo-minis-ex2s1"></div>
+              <div class="tl-myo-result" id="myo-result-ex2s1">Wpisz powtórzenia...</div>
+            </div>
+            <div style="padding:0 10px 10px;">
+              <button class="tl-myo-ok" id="myo-ok-ex2s1" onclick="tlConfirmMyo('ex2s1','b2n1')">✓ Zatwierdź serię Myo-Reps</button>
+            </div>
+          </div>
         </div>
         <div class="tl-set-row">
           <div class="tl-set-num pending" id="b2n2">2</div>
@@ -817,8 +877,44 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" type="number" inputmode="decimal"><span class="tl-ph">6</span></div>
           <div class="tl-div"></div>
           <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <select class="tl-type-sel" onchange="tlOnTypeChange(this,'ex2s2')" title="Typ serii">
+            <option value="N">–</option><option value="W">W</option><option value="T">T</option>
+            <option value="B">B</option><option value="M">Myo</option>
+          </select>
           <button class="tl-ok-btn" id="tlok_b2r2" onclick="tlConfirm('b2r2','b2n2')">✓</button>
           <button class="tl-cp-btn">↓</button>
+        </div>
+        <!-- Myo-Reps blok dla serii 2 ex2 -->
+        <div id="myo-container-ex2s2" style="display:none;">
+          <div class="tl-myo-block">
+            <div class="tl-myo-header">
+              <span class="tl-tag tl-tag-M">M</span>
+              <span class="tl-myo-label">Myo-Reps</span>
+              <span class="tl-myo-desc">Seria aktywacyjna → przerwy 10-15s → mini-serie</span>
+            </div>
+            <div class="tl-myo-act">
+              <div class="tl-myo-act-label">Seria aktywacyjna</div>
+              <div class="tl-myo-row">
+                <div class="tl-myo-mini-label" style="color:#AFA9EC;font-weight:600;">Akt</div>
+                <div class="tl-inp-wrap" style="position:relative;flex:1">
+                  <input class="tl-myo-inp" id="myo_act_ex2s2" type="number" placeholder="12–15" inputmode="decimal"
+                    oninput="tlUpdateMyoResult('ex2s2')">
+                </div>
+                <span style="font-size:10px;color:var(--tx3);padding:0 6px;">powt.</span>
+              </div>
+            </div>
+            <div class="tl-myo-minis">
+              <div class="tl-myo-minis-label">
+                <span>Mini-serie</span>
+                <button class="tl-myo-add" onclick="tlAddMyoMini('ex2s2')">+ Dodaj mini</button>
+              </div>
+              <div id="myo-minis-ex2s2"></div>
+              <div class="tl-myo-result" id="myo-result-ex2s2">Wpisz powtórzenia...</div>
+            </div>
+            <div style="padding:0 10px 10px;">
+              <button class="tl-myo-ok" id="myo-ok-ex2s2" onclick="tlConfirmMyo('ex2s2','b2n2')">✓ Zatwierdź serię Myo-Reps</button>
+            </div>
+          </div>
         </div>
         <button class="tl-add-set">+ Dodaj serię</button>
       </div>
@@ -1634,6 +1730,66 @@ function tlToggle(){
 }
 function tlReset(){clearInterval(tlTimer);tlRunning=false;const sel=document.getElementById('tl-preset');tlSeconds=parseInt(sel?sel.value:180)||180;const el=document.getElementById('tl-timer-count');if(el){el.classList.remove('expired');el.style.color='';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
 function tlSetPreset(v){clearInterval(tlTimer);tlRunning=false;tlSeconds=parseInt(v);const el=document.getElementById('tl-timer-count');if(el){el.classList.remove('expired');el.style.color='';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
+// ===== MYO-REPS JS =====
+let myoCounters={};
+function tlAddMyoBlock(exId){
+  const container=document.getElementById('myo-container-'+exId);
+  if(!container)return;
+  container.style.display='block';
+  tlUpdateMyoResult(exId);
+}
+function tlRemoveMyoBlock(exId){
+  const container=document.getElementById('myo-container-'+exId);
+  if(container)container.style.display='none';
+}
+function tlAddMyoMini(exId){
+  const list=document.getElementById('myo-minis-'+exId);
+  if(!list)return;
+  const idx=(myoCounters[exId]||0)+1;
+  myoCounters[exId]=idx;
+  const uid=exId+'_m'+idx;
+  const row=document.createElement('div');
+  row.className='tl-myo-row';
+  row.id='myorow_'+uid;
+  row.innerHTML=`
+    <div class="tl-myo-mini-label">M${idx}</div>
+    <div class="tl-inp-wrap" style="position:relative;flex:1">
+      <input class="tl-myo-inp" id="myo_rep_${uid}" type="number" placeholder="3-5" inputmode="decimal"
+        oninput="tlUpdateMyoResult('${exId}')">
+    </div>
+    <button onclick="tlRemoveMyoMini('myorow_${uid}','${exId}')"
+      style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--tx3);font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>`;
+  list.appendChild(row);
+  tlUpdateMyoResult(exId);
+}
+function tlRemoveMyoMini(rowId,exId){
+  const el=document.getElementById(rowId);
+  if(el)el.remove();
+  tlUpdateMyoResult(exId);
+}
+function tlUpdateMyoResult(exId){
+  const actInp=document.getElementById('myo_act_'+exId);
+  const actVal=actInp?actInp.value:'';
+  const minis=document.querySelectorAll('[id^="myo_rep_'+exId+'_"]');
+  const miniVals=[...minis].map(i=>i.value).filter(v=>v);
+  const parts=[actVal,...miniVals].filter(v=>v);
+  const result=document.getElementById('myo-result-'+exId);
+  if(result)result.textContent=parts.length?'Zapis: '+parts.join('+')+' powt.':'Wpisz powtórzenia...';
+}
+function tlConfirmMyo(exId,numId){
+  const nb=document.getElementById(numId);if(nb){nb.className='tl-set-num done';nb.textContent='✓';}
+  const ob=document.getElementById('myo-ok-'+exId);if(ob)ob.classList.add('done');
+  tlAutoStart();
+}
+function tlOnTypeChange(sel,exId){
+  if(sel.value==='M'){
+    tlAddMyoBlock(exId);
+  } else {
+    tlRemoveMyoBlock(exId);
+  }
+}
+// ===== END MYO-REPS JS =====
+
 // Web Audio beep
 let tlAudioCtx=null;
 function tlBeep(){

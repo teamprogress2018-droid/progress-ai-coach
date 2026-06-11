@@ -69,6 +69,44 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .quick-btns{display:flex;flex-direction:column;gap:5px;}
 .quick-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--tx);font-size:11px;cursor:pointer;text-align:left;transition:all 0.15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px;}
 .quick-btn:hover{background:rgba(232,48,42,0.08);border-color:var(--ac);color:var(--ac);}
+/* ===== ANALIZA POSTĘPÓW CSS ===== */
+.an-topbar{display:flex;align-items:center;gap:10px;padding:10px 0 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.an-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--bl);}
+.an-tabs{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px;flex-wrap:wrap;}
+.an-tab{padding:5px 12px;border-radius:6px;border:none;background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;white-space:nowrap;}
+.an-tab.active{background:var(--bl);color:#fff;}
+.an-body{margin-top:16px;display:grid;grid-template-columns:1fr 320px;gap:16px;}
+@media(max-width:900px){.an-body{grid-template-columns:1fr;}}
+.an-main{display:flex;flex-direction:column;gap:14px;}
+.an-side{display:flex;flex-direction:column;gap:14px;}
+.an-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.an-card-title{font-size:10px;font-family:'DM Mono',monospace;color:var(--tx2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.an-metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+.an-metric{background:var(--bg3);border-radius:8px;padding:10px 12px;}
+.an-metric-label{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.an-metric-val{font-size:22px;font-weight:600;color:var(--tx);}
+.an-metric-delta{font-size:11px;margin-top:2px;}
+.an-ex-selector{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.an-ex-btn{padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;white-space:nowrap;}
+.an-ex-btn.active{background:rgba(96,165,250,0.15);border-color:var(--bl);color:var(--bl);}
+.an-chart-wrap{position:relative;width:100%;}
+.an-period-sel{display:flex;gap:4px;}
+.an-period-btn{padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--tx3);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;}
+.an-period-btn.active{background:rgba(96,165,250,0.12);border-color:var(--bl);color:var(--bl);}
+.an-pr-list{display:flex;flex-direction:column;gap:6px;}
+.an-pr-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg3);border-radius:8px;font-size:12px;}
+.an-pr-name{color:var(--tx);flex:1;}
+.an-pr-val{font-weight:600;color:var(--bl);font-family:'DM Mono',monospace;margin-left:10px;}
+.an-pr-date{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-left:8px;}
+.an-pr-delta{font-size:10px;margin-left:8px;}
+.an-insight{background:var(--bg3);border-left:3px solid var(--bl);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;color:var(--tx2);line-height:1.6;margin-top:8px;}
+.an-insight strong{color:var(--tx);}
+.an-vol-row{margin-bottom:8px;}
+.an-vol-label-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;}
+.an-vol-track{height:6px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;}
+.an-vol-fill{height:100%;border-radius:20px;transition:width 0.6s ease;}
+/* ===== END ANALIZA CSS ===== */
+
 /* ===== TRENING LIVE CSS ===== */
 .tl-topbar{display:flex;align-items:center;gap:10px;margin-bottom:0;padding:10px 0 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
 .tl-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#9f97e8;}
@@ -388,6 +426,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   <button class="topbar-btn red" onclick="openBodyAssessment()">📸 Sylwetka</button>
   <button class="topbar-btn" style="background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.3);color:var(--gr);" onclick="openPlanScreen()">📋 Plan 8 tyg.</button>
   <button class="topbar-btn" style="background:rgba(127,119,221,0.14);border-color:rgba(127,119,221,0.35);color:#9f97e8;" onclick="openOverlay('screen-trening')">🏋️ Trening Live</button>
+  <button class="topbar-btn" style="background:rgba(96,165,250,0.12);border-color:rgba(96,165,250,0.3);color:var(--bl);" onclick="openAnaliza()">📈 Analiza</button>
 </div>
 
 <!-- SIDEBAR -->
@@ -695,6 +734,203 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 </div>
 
 <!-- OVERLAY: SYLWETKA AI -->
+<!-- ═══════════════════════════════════════
+     OVERLAY: ANALIZA POSTĘPÓW
+     ═══════════════════════════════════════ -->
+<div id="screen-analiza" class="overlay-screen">
+  <div class="an-topbar">
+    <button class="tl-back" onclick="closeOverlay()">← Wróć do chatu</button>
+    <div class="an-title">ANALIZA POSTĘPÓW</div>
+    <div class="an-tabs" id="an-tabs">
+      <button class="an-tab active" onclick="anSwitchTab('e1rm',this)">📈 e1RM</button>
+      <button class="an-tab" onclick="anSwitchTab('tonaz',this)">🏋️ Tonaż</button>
+      <button class="an-tab" onclick="anSwitchTab('rpe',this)">🎯 RPE</button>
+      <button class="an-tab" onclick="anSwitchTab('volume',this)">📊 Objętość</button>
+    </div>
+    <div style="margin-left:auto;">
+      <button style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:5px 12px;color:var(--ac);font-size:11px;cursor:pointer;" onclick="anAskAI()">🤖 Zapytaj AI o postępy</button>
+    </div>
+  </div>
+
+  <div class="an-body">
+    <!-- LEWA: wykresy -->
+    <div class="an-main">
+
+      <!-- Metryki podsumowujące -->
+      <div class="an-metric-grid">
+        <div class="an-metric">
+          <div class="an-metric-label">Najlepszy e1RM (bench)</div>
+          <div class="an-metric-val">112 kg</div>
+          <div class="an-metric-delta delta-up">↑ +12 kg w 8 tyg.</div>
+        </div>
+        <div class="an-metric">
+          <div class="an-metric-label">Tonaż tygodniowy</div>
+          <div class="an-metric-val">23 480 kg</div>
+          <div class="an-metric-delta delta-up">↑ +680 kg vs zeszły</div>
+        </div>
+        <div class="an-metric">
+          <div class="an-metric-label">Śr. RPE ostatnie 4 tyg.</div>
+          <div class="an-metric-val">8.3</div>
+          <div class="an-metric-delta delta-neu">cel: 8.0–8.5 ✓</div>
+        </div>
+        <div class="an-metric">
+          <div class="an-metric-label">Wykonanie planu</div>
+          <div class="an-metric-val">97%</div>
+          <div class="an-metric-delta delta-up">↑ +4% vs miesiąc temu</div>
+        </div>
+      </div>
+
+      <!-- Panel e1RM -->
+      <div id="an-panel-e1rm" class="an-card">
+        <div class="an-card-title">
+          <span>Szacowany 1RM (e1RM) — progres siły</span>
+          <div class="an-period-sel">
+            <button class="an-period-btn active" onclick="anSetPeriod(8,this)">8 tyg.</button>
+            <button class="an-period-btn" onclick="anSetPeriod(12,this)">12 tyg.</button>
+            <button class="an-period-btn" onclick="anSetPeriod(24,this)">6 mies.</button>
+          </div>
+        </div>
+        <div class="an-ex-selector" id="an-ex-selector">
+          <button class="an-ex-btn active" onclick="anSelectEx('bench',this)">Bench press</button>
+          <button class="an-ex-btn" onclick="anSelectEx('ohp',this)">OHP</button>
+          <button class="an-ex-btn" onclick="anSelectEx('squat',this)">Przysiad</button>
+          <button class="an-ex-btn" onclick="anSelectEx('rdl',this)">RDL</button>
+        </div>
+        <div class="an-chart-wrap" style="height:220px;">
+          <canvas id="an-chart-e1rm" role="img" aria-label="Wykres e1RM wybranych ćwiczeń w czasie">Dane e1RM w ostatnich tygodniach.</canvas>
+        </div>
+        <div class="an-insight" id="an-e1rm-insight">
+          <strong>💡 Trend:</strong> Bench press rośnie średnio <strong>+1.5 kg/tydzień</strong>. Przy obecnym tempie za 4 tygodnie osiągniesz <strong>118 kg e1RM</strong>. Rozważ deload w tygodniu 10.
+        </div>
+      </div>
+
+      <!-- Panel Tonaż -->
+      <div id="an-panel-tonaz" class="an-card" style="display:none;">
+        <div class="an-card-title">
+          <span>Tonaż tygodniowy (kg)</span>
+          <div class="an-period-sel">
+            <button class="an-period-btn active" onclick="anSetTonazPeriod(8,this)">8 tyg.</button>
+            <button class="an-period-btn" onclick="anSetTonazPeriod(12,this)">12 tyg.</button>
+          </div>
+        </div>
+        <div class="an-chart-wrap" style="height:220px;">
+          <canvas id="an-chart-tonaz" role="img" aria-label="Wykres tonażu tygodniowego w czasie">Tonaż tygodniowy w kg.</canvas>
+        </div>
+        <div class="an-insight">
+          <strong>💡 Trend:</strong> Tonaż rośnie stabilnie +420 kg/tydzień. Push domuje – rozważ zwiększenie objętości Pull w tygodniu 9.
+        </div>
+      </div>
+
+      <!-- Panel RPE -->
+      <div id="an-panel-rpe" class="an-card" style="display:none;">
+        <div class="an-card-title">
+          <span>Średnie RPE per sesja</span>
+        </div>
+        <div class="an-chart-wrap" style="height:220px;">
+          <canvas id="an-chart-rpe" role="img" aria-label="Wykres średniego RPE per sesja treningowa">Śr. RPE w czasie.</canvas>
+        </div>
+        <div class="an-insight">
+          <strong>💡 Uwaga:</strong> RPE w ostatnich 2 tygodniach powyżej 8.7 – ryzyko przetrenowania. Zalecany <strong>deload</strong> w następnym tygodniu (RPE 6–7, -30% objętości).
+        </div>
+      </div>
+
+      <!-- Panel Objętość -->
+      <div id="an-panel-volume" class="an-card" style="display:none;">
+        <div class="an-card-title">
+          <span>Objętość per partia mięśniowa (serie/tydz.)</span>
+        </div>
+        <div class="an-chart-wrap" style="height:260px;">
+          <canvas id="an-chart-volume" role="img" aria-label="Wykres objętości per partia mięśniowa">Objętość per partia.</canvas>
+        </div>
+        <div class="an-insight">
+          <strong>💡 Uwaga:</strong> Biceps poniżej MEV (10 serii vs min 12). Dodaj 1-2 serie uginania w Pull B.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PRAWA: rekordy + ranking -->
+    <div class="an-side">
+
+      <!-- Rekordy osobiste -->
+      <div class="an-card">
+        <div class="an-card-title">🏆 Rekordy osobiste (e1RM)</div>
+        <div class="an-pr-list">
+          <div class="an-pr-row">
+            <span class="an-pr-name">Bench press</span>
+            <span class="an-pr-val">112 kg</span>
+            <span class="an-pr-date">11.06</span>
+            <span class="an-pr-delta delta-up">↑ new PR</span>
+          </div>
+          <div class="an-pr-row">
+            <span class="an-pr-name">OHP</span>
+            <span class="an-pr-val">76 kg</span>
+            <span class="an-pr-date">8.06</span>
+            <span class="an-pr-delta delta-up">↑ +2 kg</span>
+          </div>
+          <div class="an-pr-row">
+            <span class="an-pr-name">Przysiad</span>
+            <span class="an-pr-val">168 kg</span>
+            <span class="an-pr-date">4.06</span>
+            <span class="an-pr-delta delta-neu">= brak zmian</span>
+          </div>
+          <div class="an-pr-row">
+            <span class="an-pr-name">RDL</span>
+            <span class="an-pr-val">118 kg</span>
+            <span class="an-pr-date">11.06</span>
+            <span class="an-pr-delta delta-up">↑ +3 kg</span>
+          </div>
+          <div class="an-pr-row">
+            <span class="an-pr-name">Podciąganie</span>
+            <span class="an-pr-val">BW+28 kg</span>
+            <span class="an-pr-date">10.06</span>
+            <span class="an-pr-delta delta-up">↑ +3 kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Konsekwencja treningu -->
+      <div class="an-card">
+        <div class="an-card-title">📅 Konsekwencja (ostatnie 8 tyg.)</div>
+        <div class="an-chart-wrap" style="height:130px;">
+          <canvas id="an-chart-consistency" role="img" aria-label="Wykres słupkowy konsekwencji treningowej tygodniowej">Liczba sesji per tydzień.</canvas>
+        </div>
+      </div>
+
+      <!-- Objętość mini-bary -->
+      <div class="an-card">
+        <div class="an-card-title">💪 Objętość bieżący tydzień</div>
+        <div class="an-vol-row">
+          <div class="an-vol-label-row"><span style="color:var(--tx)">Klatka</span><span style="color:var(--tx2)">18 / 20</span></div>
+          <div class="an-vol-track"><div class="an-vol-fill" style="width:82%;background:#1D9E75;"></div></div>
+        </div>
+        <div class="an-vol-row">
+          <div class="an-vol-label-row"><span style="color:var(--tx)">Barki</span><span style="color:var(--tx2)">22 / 22</span></div>
+          <div class="an-vol-track"><div class="an-vol-fill" style="width:100%;background:#1D9E75;"></div></div>
+        </div>
+        <div class="an-vol-row">
+          <div class="an-vol-label-row"><span style="color:var(--tx)">Plecy</span><span style="color:var(--tx2)">20 / 22</span></div>
+          <div class="an-vol-track"><div class="an-vol-fill" style="width:88%;background:#1D9E75;"></div></div>
+        </div>
+        <div class="an-vol-row">
+          <div class="an-vol-label-row"><span style="color:var(--tx)">Nogi</span><span style="color:var(--tx2)">24 / 26</span></div>
+          <div class="an-vol-track"><div class="an-vol-fill" style="width:86%;background:#1D9E75;"></div></div>
+        </div>
+        <div class="an-vol-row">
+          <div class="an-vol-label-row"><span style="color:var(--tx)">Biceps</span><span style="color:var(--tx2)">10 / 16</span></div>
+          <div class="an-vol-track"><div class="an-vol-fill" style="width:55%;background:var(--ac);"></div></div>
+        </div>
+        <div class="an-vol-row">
+          <div class="an-vol-label-row"><span style="color:var(--tx)">Triceps</span><span style="color:var(--tx2)">14 / 16</span></div>
+          <div class="an-vol-track"><div class="an-vol-fill" style="width:78%;background:#1D9E75;"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ═══ END ANALIZA ═══ -->
+
 <!-- ═══════════════════════════════════════
      OVERLAY: TRENING LIVE
      ═══════════════════════════════════════ -->
@@ -1730,6 +1966,154 @@ function tlToggle(){
 }
 function tlReset(){clearInterval(tlTimer);tlRunning=false;const sel=document.getElementById('tl-preset');tlSeconds=parseInt(sel?sel.value:180)||180;const el=document.getElementById('tl-timer-count');if(el){el.classList.remove('expired');el.style.color='';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
 function tlSetPreset(v){clearInterval(tlTimer);tlRunning=false;tlSeconds=parseInt(v);const el=document.getElementById('tl-timer-count');if(el){el.classList.remove('expired');el.style.color='';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
+// ===== ANALIZA POSTĘPÓW JS =====
+const anCharts={};
+const anWeeks=['T-7','T-6','T-5','T-4','T-3','T-2','T-1','Dziś'];
+
+const anData={
+  e1rm:{
+    bench:[100,101,102,104,105,107,110,112],
+    ohp:[68,69,70,71,72,73,74,76],
+    squat:[155,156,158,160,162,164,166,168],
+    rdl:[108,109,110,112,113,115,116,118]
+  },
+  tonaz:[19800,20200,20600,21000,21400,21800,22400,23480],
+  rpe:[7.8,8.0,8.1,8.2,8.3,8.5,8.7,8.4],
+  volume:{
+    labels:['Klatka','Barki','Plecy','Nogi','Biceps','Triceps'],
+    current:[18,22,20,24,10,14],
+    mev:[10,12,12,16,8,8],
+    mrv:[20,22,22,26,16,16]
+  },
+  consistency:[4,4,5,4,5,5,4,5]
+};
+
+const anColors={bench:'#378ADD',ohp:'#9f97e8',squat:'#EF9F27',rdl:'#1D9E75'};
+const anLabels={bench:'Bench press',ohp:'OHP',squat:'Przysiad',rdl:'RDL'};
+
+let anCurrentEx='bench';
+let anCurrentPeriod=8;
+
+function anBuildChart(id,type,data,opts){
+  if(anCharts[id]){anCharts[id].destroy();}
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  anCharts[id]=new Chart(ctx,{type,data,options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:opts.legend||false},tooltip:{callbacks:{label:ctx=>` ${Number(ctx.parsed.y).toFixed(opts.dec||0)} ${opts.unit||''}`}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:10},color:'#444'},border:{display:false}},
+      y:{min:opts.yMin,max:opts.yMax,grid:{color:'rgba(255,255,255,0.05)'},ticks:{font:{size:10},color:'#444',callback:v=>opts.yFmt?opts.yFmt(v):v},border:{display:false}}
+    },
+    ...opts.extra
+  }});
+}
+
+function anInitE1rm(){
+  const labels=anWeeks.slice(-anCurrentPeriod);
+  const datasets=Object.entries(anData.e1rm).map(([key,vals])=>({
+    label:anLabels[key],
+    data:vals.slice(-anCurrentPeriod),
+    borderColor:anColors[key],
+    backgroundColor:anColors[key]+'22',
+    borderWidth:key===anCurrentEx?2.5:1,
+    pointRadius:key===anCurrentEx?4:2,
+    borderDash:key===anCurrentEx?[]:[4,3],
+    fill:key===anCurrentEx,
+    tension:0.35
+  }));
+  anBuildChart('an-chart-e1rm','line',{labels,datasets},{
+    legend:true,dec:0,unit:'kg',yFmt:v=>v+'kg',
+    extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:12}}}}
+  });
+}
+
+function anInitTonaz(){
+  anBuildChart('an-chart-tonaz','line',
+    {labels:anWeeks,datasets:[{label:'Tonaż',data:anData.tonaz,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.1)',fill:true,tension:0.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'#378ADD'}]},
+    {dec:0,unit:'kg',yFmt:v=>v>=1000?(v/1000).toFixed(1)+'k':v,yMin:18000,yMax:25000}
+  );
+}
+
+function anInitRPE(){
+  anBuildChart('an-chart-rpe','line',
+    {labels:anWeeks,datasets:[
+      {label:'Śr. RPE',data:anData.rpe,borderColor:'#9f97e8',backgroundColor:'rgba(127,119,221,0.1)',fill:true,tension:0.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'#9f97e8'},
+      {label:'Cel max',data:Array(8).fill(8.5),borderColor:'rgba(232,48,42,0.4)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}
+    ]},
+    {dec:1,unit:'',yMin:7,yMax:10,extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:12}}}}}
+  );
+}
+
+function anInitVolume(){
+  const d=anData.volume;
+  anBuildChart('an-chart-volume','bar',
+    {labels:d.labels,datasets:[
+      {label:'Aktualne',data:d.current,backgroundColor:'rgba(55,138,221,0.7)',borderRadius:4},
+      {label:'MEV (min)',data:d.mev,backgroundColor:'rgba(74,222,128,0.2)',borderRadius:4},
+      {label:'MRV (max)',data:d.mrv,backgroundColor:'rgba(232,48,42,0.15)',borderRadius:4}
+    ]},
+    {dec:0,unit:'serii',extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:12}}}}}
+  );
+}
+
+function anInitConsistency(){
+  anBuildChart('an-chart-consistency','bar',
+    {labels:anWeeks,datasets:[{
+      label:'Sesje',data:anData.consistency,
+      backgroundColor:anData.consistency.map(v=>v>=5?'rgba(74,222,128,0.7)':v>=4?'rgba(55,138,221,0.7)':'rgba(232,48,42,0.6)'),
+      borderRadius:4
+    }]},
+    {dec:0,unit:'sesji',yMin:0,yMax:7}
+  );
+}
+
+function anSwitchTab(tab,btn){
+  document.querySelectorAll('.an-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('[id^="an-panel-"]').forEach(p=>p.style.display='none');
+  const panel=document.getElementById('an-panel-'+tab);
+  if(panel)panel.style.display='block';
+  setTimeout(()=>{
+    if(tab==='e1rm')anInitE1rm();
+    else if(tab==='tonaz')anInitTonaz();
+    else if(tab==='rpe')anInitRPE();
+    else if(tab==='volume')anInitVolume();
+  },50);
+}
+
+function anSelectEx(ex,btn){
+  anCurrentEx=ex;
+  document.querySelectorAll('.an-ex-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  anInitE1rm();
+}
+
+function anSetPeriod(n,btn){
+  anCurrentPeriod=n;
+  btn.closest('.an-period-sel').querySelectorAll('.an-period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  anInitE1rm();
+}
+
+function anSetTonazPeriod(n,btn){
+  btn.closest('.an-period-sel').querySelectorAll('.an-period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  anInitTonaz();
+}
+
+function anAskAI(){
+  closeOverlay();
+  const name=document.getElementById('client-name')?.value||'klienta';
+  quickAction(`Przeanalizuj postępy ${name}: e1RM bench 112 kg (+12 kg w 8 tyg.), tonaż 23 480 kg (+680 kg vs poprzedni tydzień), śr. RPE 8.4, wykonanie planu 97%. Biceps poniżej MEV (10 serii). Co zmienić w kolejnych 4 tygodniach?`);
+}
+
+function openAnaliza(){
+  openOverlay('screen-analiza');
+  setTimeout(()=>{anInitE1rm();anInitConsistency();},100);
+}
+// ===== END ANALIZA JS =====
+
 // ===== MYO-REPS JS =====
 let myoCounters={};
 function tlAddMyoBlock(exId){

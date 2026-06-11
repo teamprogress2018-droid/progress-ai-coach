@@ -69,6 +69,119 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .quick-btns{display:flex;flex-direction:column;gap:5px;}
 .quick-btn{background:transparent;border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--tx);font-size:11px;cursor:pointer;text-align:left;transition:all 0.15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px;}
 .quick-btn:hover{background:rgba(232,48,42,0.08);border-color:var(--ac);color:var(--ac);}
+/* ===== TRENING LIVE CSS ===== */
+.tl-topbar{display:flex;align-items:center;gap:10px;margin-bottom:0;padding:10px 0 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.tl-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#9f97e8;}
+.tl-sub{font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;}
+.tl-back{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+.tl-body{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-top:16px;}
+@media(max-width:900px){.tl-body{grid-template-columns:1fr;}}
+.tl-main{display:flex;flex-direction:column;gap:12px;}
+.tl-sidebar{display:flex;flex-direction:column;gap:12px;}
+/* Timer */
+.tl-timer{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.tl-timer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.tl-timer-label{font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+.tl-timer-count{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:3px;color:#9f97e8;line-height:1;}
+.tl-timer-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.tl-tbtn{height:28px;padding:0 11px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+.tl-tbtn:hover{border-color:#9f97e8;color:#9f97e8;}
+.tl-tbtn.on{background:rgba(74,222,128,0.15);border-color:rgba(74,222,128,0.4);color:var(--gr);}
+.tl-preset-sel{height:28px;padding:0 8px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+/* Exercise block */
+.tl-ex{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tl-ex-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);}
+.tl-ex-name{font-size:14px;font-weight:600;color:var(--tx);flex:1;}
+.tl-ex-ref{font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;}
+.tl-rpe-pill{font-size:10px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);border-radius:99px;padding:2px 9px;color:var(--gr);font-family:'DM Mono',monospace;}
+.tl-hist-btn{width:26px;height:26px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--tx2);font-size:13px;display:flex;align-items:center;justify-content:center;}
+.tl-hist-btn:hover{border-color:#9f97e8;color:#9f97e8;}
+/* History dropdown */
+.tl-history{background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 12px;display:none;}
+.tl-history.open{display:block;}
+.tl-hist-title{font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.tl-hist-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--tx2);}
+.tl-hist-row:last-child{border-bottom:none;}
+.tl-hist-row .hd{color:var(--tx3);}
+.tl-hist-row .hv{color:var(--tx);font-weight:500;}
+/* Legend */
+.tl-legend{display:flex;gap:10px;flex-wrap:wrap;padding:6px 12px;border-bottom:1px solid var(--border);}
+.tl-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx2);}
+.tl-tag{font-size:9px;padding:1px 5px;border-radius:10px;border:1px solid;}
+.tl-tag-W{background:rgba(250,174,218,0.12);color:#f4c0d1;border-color:rgba(244,192,209,0.3);}
+.tl-tag-T{background:rgba(96,165,250,0.1);color:var(--bl);border-color:rgba(96,165,250,0.25);}
+.tl-tag-B{background:rgba(232,48,42,0.1);color:var(--ac2);border-color:rgba(232,48,42,0.25);}
+/* Set rows */
+.tl-sets-head{display:flex;align-items:center;gap:6px;padding:6px 12px 2px;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;}
+.tl-sets-head .sh-num{width:22px;}
+.tl-sets-head .sh-inp{flex:1;text-align:center;}
+.tl-sets-head .sh-rpe{width:38px;text-align:center;}
+.tl-sets-head .sh-ok{width:28px;}
+.tl-sets-head .sh-cp{width:22px;}
+.tl-set-row{display:flex;align-items:center;gap:6px;padding:5px 12px;}
+.tl-set-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;cursor:pointer;transition:all .2s;}
+.tl-set-num.pending{background:rgba(255,255,255,0.05);color:var(--tx3);border:1px solid var(--border);}
+.tl-set-num.done{background:#1D9E75;color:#fff;border:1px solid #0F6E56;}
+.tl-set-num.warmup{background:rgba(250,174,218,0.15);color:#f4c0d1;border:1px solid rgba(244,192,209,0.3);font-size:9px;}
+.tl-inp-wrap{flex:1;position:relative;}
+.tl-inp{width:100%;height:32px;font-size:13px;text-align:center;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.04);color:var(--tx);outline:none;padding:0 6px;}
+.tl-inp:focus{border-color:#9f97e8;}
+.tl-ph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:rgba(127,119,221,0.45);pointer-events:none;}
+.tl-div{font-size:12px;color:var(--tx3);padding:0 2px;}
+.tl-rpe-inp{width:38px;height:32px;font-size:11px;text-align:center;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,0.04);color:var(--tx);outline:none;}
+.tl-rpe-inp:focus{border-color:#7F77DD;}
+.tl-ok-btn{width:28px;height:32px;border:1px solid rgba(74,222,128,0.25);border-radius:6px;background:rgba(74,222,128,0.07);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gr);font-size:13px;flex-shrink:0;}
+.tl-ok-btn.done{background:#1D9E75;border-color:#0F6E56;color:#fff;}
+.tl-cp-btn{width:22px;height:32px;border:1px dashed var(--border);border-radius:6px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:11px;flex-shrink:0;}
+.tl-cp-btn:hover{border-color:#9f97e8;color:#9f97e8;}
+.tl-add-set{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--tx2);background:transparent;border:none;cursor:pointer;padding:6px 12px;}
+.tl-add-set:hover{color:#9f97e8;}
+/* Week planner */
+.tl-week{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tl-week-head{padding:10px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--tx2);display:flex;align-items:center;gap:6px;justify-content:space-between;}
+.tl-days{display:grid;grid-template-columns:repeat(7,1fr);}
+.tl-day{border-right:1px solid var(--border);cursor:pointer;}
+.tl-day:last-child{border-right:none;}
+.tl-day.tl-day-active .tl-day-head-inner{background:rgba(127,119,221,0.15);}
+.tl-day-head-inner{padding:5px 2px;text-align:center;border-bottom:1px solid var(--border);}
+.tl-day-name{font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;}
+.tl-day-num{font-size:12px;font-weight:600;color:var(--tx);}
+.tl-day-active .tl-day-num{color:#9f97e8;}
+.tl-day-body{padding:3px 2px;min-height:52px;}
+.tl-spill{border-radius:3px;padding:2px 3px;font-size:8px;font-weight:600;margin-bottom:2px;line-height:1.3;}
+.tl-spill-push{background:rgba(127,119,221,0.18);color:#AFA9EC;}
+.tl-spill-pull{background:rgba(29,158,117,0.18);color:#5DCAA5;}
+.tl-spill-legs{background:rgba(186,117,23,0.18);color:#EF9F27;}
+.tl-spill-rest{background:rgba(255,255,255,0.04);color:var(--tx3);}
+.tl-spill-vol{font-size:8px;color:var(--tx3);}
+/* Muscle bars */
+.tl-muscles{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.tl-muscles-title{font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.tl-mrow{margin-bottom:7px;}
+.tl-mrow-head{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.tl-mrow-name{color:var(--tx);}
+.tl-mrow-sets{color:var(--tx2);}
+.tl-mrow-target{color:var(--tx3);font-size:10px;}
+.tl-track{height:6px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;}
+.tl-fill{height:100%;border-radius:20px;}
+.tl-fill-ok{background:#1D9E75;}
+.tl-fill-low{background:var(--ac);}
+.tl-fill-hi{background:var(--yw);}
+/* Summary card */
+.tl-summary{background:var(--bg2);border:1px solid rgba(74,222,128,0.25);border-radius:12px;padding:14px;}
+.tl-sum-conf{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.tl-sum-icon{width:38px;height:38px;border-radius:50%;background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.tl-sum-title{font-size:14px;font-weight:600;color:var(--gr);}
+.tl-sum-sub{font-size:11px;color:var(--tx2);}
+.tl-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.tl-metric{background:var(--bg3);border-radius:8px;padding:9px 10px;}
+.tl-metric-label{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:3px;}
+.tl-metric-val{font-size:19px;font-weight:600;color:var(--tx);}
+.tl-metric-delta{font-size:10px;margin-top:2px;}
+.delta-up{color:var(--gr);}
+.delta-neu{color:var(--tx3);}
+/* ===== END TRENING LIVE CSS ===== */
+
 /* ACCORDION */
 .acc-header{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:4px;transition:all 0.15s;user-select:none;}
 .acc-header:hover{background:rgba(232,48,42,0.06);border-color:rgba(232,48,42,0.3);color:var(--ac);}
@@ -249,6 +362,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   <button class="topbar-btn" onclick="openMeasurements()">📏 Pomiary</button>
   <button class="topbar-btn red" onclick="openBodyAssessment()">📸 Sylwetka</button>
   <button class="topbar-btn" style="background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.3);color:var(--gr);" onclick="openPlanScreen()">📋 Plan 8 tyg.</button>
+  <button class="topbar-btn" style="background:rgba(127,119,221,0.14);border-color:rgba(127,119,221,0.35);color:#9f97e8;" onclick="openOverlay('screen-trening')">🏋️ Trening Live</button>
 </div>
 
 <!-- SIDEBAR -->
@@ -556,6 +670,252 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 </div>
 
 <!-- OVERLAY: SYLWETKA AI -->
+<!-- ═══════════════════════════════════════
+     OVERLAY: TRENING LIVE
+     ═══════════════════════════════════════ -->
+<div id="screen-trening" class="overlay-screen">
+  <div class="tl-topbar">
+    <button class="tl-back" onclick="closeOverlay()">← Wróć do chatu</button>
+    <div class="tl-title">TRENING LIVE</div>
+    <div class="tl-sub" id="tl-session-label">Push A · śr 11.06 · 0:00</div>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:5px 12px;color:var(--gr);font-size:11px;cursor:pointer;" onclick="tlShowSummary()">✓ Zakończ trening</button>
+    </div>
+  </div>
+
+  <div class="tl-body">
+    <!-- LEWA: ćwiczenia -->
+    <div class="tl-main">
+
+      <!-- Ćwiczenie 1 -->
+      <div class="tl-ex">
+        <div class="tl-ex-head">
+          <div>
+            <div class="tl-ex-name">Wyciskanie sztangi na ławce płaskiej</div>
+            <div class="tl-ex-ref">REF: 90 kg · cel: 4×5 @ RPE 9</div>
+          </div>
+          <button class="tl-hist-btn" onclick="tlToggleHist('tlh1')" title="Historia">📊</button>
+          <span class="tl-rpe-pill">RPE 9</span>
+        </div>
+        <div class="tl-history" id="tlh1">
+          <div class="tl-hist-title">Ostatnie treningi</div>
+          <div class="tl-hist-row"><span class="hd">3.06</span><span>90×5</span><span>90×5</span><span>87.5×5</span><span class="hv">RPE 9</span></div>
+          <div class="tl-hist-row"><span class="hd">27.05</span><span>87.5×5</span><span>87.5×5</span><span>85×5</span><span class="hv">RPE 8.5</span></div>
+          <div class="tl-hist-row"><span class="hd">20.05</span><span>85×5</span><span>85×5</span><span>82.5×5</span><span class="hv">RPE 8</span></div>
+        </div>
+        <div class="tl-legend">
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-W">W</span> Warm-up</div>
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-T">T</span> Top set</div>
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-B">B</span> Back-off</div>
+          <div style="margin-left:auto;font-size:10px;color:var(--tx3);">✓ = zatwierdzona</div>
+        </div>
+        <div class="tl-sets-head">
+          <div class="sh-num">#</div>
+          <div class="sh-inp">kg</div>
+          <div style="width:8px;"></div>
+          <div class="sh-inp">powt.</div>
+          <div style="width:8px;"></div>
+          <div class="sh-rpe">RPE</div>
+          <div class="sh-ok">✓</div>
+          <div class="sh-cp">↓</div>
+        </div>
+        <!-- Seria W -->
+        <div class="tl-set-row">
+          <div class="tl-set-num warmup">W</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="w1kg" type="number" value="60" inputmode="decimal"></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="w1rep" type="number" value="8" inputmode="decimal"></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" value="5" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn done" id="tlok_row_w1" onclick="tlConfirm('row_w1','tlnum_w1')">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół" onclick="tlCopyDown('w1kg',['s1kg','s2kg','s3kg'])">↓</button>
+        </div>
+        <!-- Seria 1 (done) -->
+        <div class="tl-set-row">
+          <div class="tl-set-num done" id="tlnum_s1">✓</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="s1kg" type="number" value="90" inputmode="decimal"></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="s1rep" type="number" value="5" inputmode="decimal"></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" value="8.5" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn done" id="tlok_row_s1">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół" onclick="tlCopyDown('s1kg',['s2kg','s3kg'])">↓</button>
+        </div>
+        <!-- Seria 2 -->
+        <div class="tl-set-row">
+          <div class="tl-set-num pending" id="tlnum_s2">2</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s2kg" type="number" placeholder="" inputmode="decimal" onfocus="tlHidePh('ph_s2kg')" onblur="tlShowPh('ph_s2kg','s2kg')">
+            <span class="tl-ph" id="ph_s2kg">90</span>
+          </div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s2rep" type="number" placeholder="" inputmode="decimal">
+            <span class="tl-ph">5</span>
+          </div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn" id="tlok_row_s2" onclick="tlConfirm('row_s2','tlnum_s2')">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół" onclick="tlCopyDown('s2kg',['s3kg'])">↓</button>
+        </div>
+        <!-- Seria 3 -->
+        <div class="tl-set-row">
+          <div class="tl-set-num pending" id="tlnum_s3">3</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s3kg" type="number" placeholder="" inputmode="decimal" onfocus="tlHidePh('ph_s3kg')" onblur="tlShowPh('ph_s3kg','s3kg')">
+            <span class="tl-ph" id="ph_s3kg">90</span>
+          </div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s3rep" type="number" placeholder="" inputmode="decimal">
+            <span class="tl-ph">5</span>
+          </div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn" id="tlok_row_s3" onclick="tlConfirm('row_s3','tlnum_s3')">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół">↓</button>
+        </div>
+        <button class="tl-add-set">+ Dodaj serię</button>
+      </div>
+
+      <!-- Ćwiczenie 2 -->
+      <div class="tl-ex">
+        <div class="tl-ex-head">
+          <div>
+            <div class="tl-ex-name">Wyciskanie żołnierskie</div>
+            <div class="tl-ex-ref">REF: 60 kg · cel: 4×6 @ RPE 8.5</div>
+          </div>
+          <button class="tl-hist-btn" onclick="tlToggleHist('tlh2')" title="Historia">📊</button>
+          <span class="tl-rpe-pill">RPE 8.5</span>
+        </div>
+        <div class="tl-history" id="tlh2">
+          <div class="tl-hist-title">Ostatnie treningi</div>
+          <div class="tl-hist-row"><span class="hd">3.06</span><span>60×6</span><span>60×6</span><span>57.5×6</span><span class="hv">RPE 8.5</span></div>
+          <div class="tl-hist-row"><span class="hd">27.05</span><span>57.5×6</span><span>57.5×6</span><span>55×6</span><span class="hv">RPE 8</span></div>
+        </div>
+        <div class="tl-sets-head">
+          <div class="sh-num">#</div><div class="sh-inp">kg</div><div style="width:8px;"></div>
+          <div class="sh-inp">powt.</div><div style="width:8px;"></div>
+          <div class="sh-rpe">RPE</div><div class="sh-ok">✓</div><div class="sh-cp">↓</div>
+        </div>
+        <div class="tl-set-row">
+          <div class="tl-set-num pending">1</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s1kg" type="number" inputmode="decimal"><span class="tl-ph">60</span></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s1rep" type="number" inputmode="decimal"><span class="tl-ph">6</span></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn" onclick="tlConfirm('b2r1','b2n1')">✓</button>
+          <button class="tl-cp-btn" onclick="tlCopyDown('b2s1kg',['b2s2kg','b2s3kg','b2s4kg'])">↓</button>
+        </div>
+        <div class="tl-set-row">
+          <div class="tl-set-num pending" id="b2n2">2</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s2kg" type="number" inputmode="decimal"><span class="tl-ph">60</span></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" type="number" inputmode="decimal"><span class="tl-ph">6</span></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn" id="tlok_b2r2" onclick="tlConfirm('b2r2','b2n2')">✓</button>
+          <button class="tl-cp-btn">↓</button>
+        </div>
+        <button class="tl-add-set">+ Dodaj serię</button>
+      </div>
+
+      <!-- Karta podsumowania (ukryta) -->
+      <div id="tl-summary-card" style="display:none;" class="tl-summary">
+        <div class="tl-sum-conf">
+          <div class="tl-sum-icon">🏆</div>
+          <div>
+            <div class="tl-sum-title">100% planu wykonane!</div>
+            <div class="tl-sum-sub">Tonaż wzrósł o 240 kg vs poprzedni tydzień</div>
+          </div>
+        </div>
+        <div class="tl-metrics">
+          <div class="tl-metric"><div class="tl-metric-label">Całkowity tonaż</div><div class="tl-metric-val">6 840 kg</div><div class="tl-metric-delta delta-up">↑ +240 kg (+3.6%)</div></div>
+          <div class="tl-metric"><div class="tl-metric-label">Najlepszy e1RM</div><div class="tl-metric-val">112 kg</div><div class="tl-metric-delta delta-up">↑ +2 kg</div></div>
+          <div class="tl-metric"><div class="tl-metric-label">Śr. RPE</div><div class="tl-metric-val">8.4</div><div class="tl-metric-delta delta-neu">cel: 8.5</div></div>
+          <div class="tl-metric"><div class="tl-metric-label">Serie</div><div class="tl-metric-val">18 / 18</div><div class="tl-metric-delta delta-up">100% ✓</div></div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--tx2);line-height:1.6;">
+          💡 <strong style="color:var(--tx);">Sugestia:</strong> e1RM wzrósł o 2 kg. Następny trening spróbuj 92.5 kg × 5 przy RPE 9.
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button style="flex:1;padding:9px;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);cursor:pointer;" onclick="closeOverlay()">Wróć do chatu</button>
+          <button style="flex:1;padding:9px;font-size:12px;border-radius:8px;border:none;background:#9f97e8;color:#fff;cursor:pointer;font-weight:600;" onclick="quickAction('Zaplanuj następny trening Push A na podstawie wyników: e1RM 112 kg, RPE avg 8.4, tonaż 6840 kg')">Plan na następny ↗</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PRAWA: timer + tygodniowy planer + objętość -->
+    <div class="tl-sidebar">
+
+      <!-- Timer -->
+      <div class="tl-timer">
+        <div class="tl-timer-head">
+          <div class="tl-timer-label">⏱ Przerwa</div>
+          <select class="tl-preset-sel" id="tl-preset" onchange="tlSetPreset(this.value)">
+            <option value="180">3 min</option>
+            <option value="120">2 min</option>
+            <option value="90">90 s</option>
+            <option value="60">60 s</option>
+          </select>
+        </div>
+        <div class="tl-timer-count" id="tl-timer-count">3:00</div>
+        <div class="tl-timer-btns">
+          <button class="tl-tbtn" id="tl-start-btn" onclick="tlToggle()">▶ Start</button>
+          <button class="tl-tbtn" onclick="tlReset()">Reset</button>
+        </div>
+      </div>
+
+      <!-- Tygodniowy planer -->
+      <div class="tl-week">
+        <div class="tl-week-head">
+          <span>📅 Tydzień 9–15 cze</span>
+          <span style="font-size:10px;color:var(--gr);font-family:'DM Mono',monospace;">62/62 serii</span>
+        </div>
+        <div class="tl-days" id="tl-days-grid"></div>
+      </div>
+
+      <!-- Objętość per partia -->
+      <div class="tl-muscles">
+        <div class="tl-muscles-title">Objętość tygodniowa</div>
+        <div class="tl-mrow">
+          <div class="tl-mrow-head"><span class="tl-mrow-name">Klatka</span><span class="tl-mrow-sets">18 serii</span><span class="tl-mrow-target">cel 16–20</span></div>
+          <div class="tl-track"><div class="tl-fill tl-fill-ok" style="width:82%"></div></div>
+        </div>
+        <div class="tl-mrow">
+          <div class="tl-mrow-head"><span class="tl-mrow-name">Barki</span><span class="tl-mrow-sets">22 serie</span><span class="tl-mrow-target">cel 16–22</span></div>
+          <div class="tl-track"><div class="tl-fill tl-fill-ok" style="width:95%"></div></div>
+        </div>
+        <div class="tl-mrow">
+          <div class="tl-mrow-head"><span class="tl-mrow-name">Plecy</span><span class="tl-mrow-sets">20 serii</span><span class="tl-mrow-target">cel 18–22</span></div>
+          <div class="tl-track"><div class="tl-fill tl-fill-ok" style="width:88%"></div></div>
+        </div>
+        <div class="tl-mrow">
+          <div class="tl-mrow-head"><span class="tl-mrow-name">Nogi</span><span class="tl-mrow-sets">24 serie</span><span class="tl-mrow-target">cel 20–26</span></div>
+          <div class="tl-track"><div class="tl-fill tl-fill-ok" style="width:86%"></div></div>
+        </div>
+        <div class="tl-mrow">
+          <div class="tl-mrow-head"><span class="tl-mrow-name">Biceps</span><span class="tl-mrow-sets">10 serii</span><span class="tl-mrow-target">cel 12–16</span></div>
+          <div class="tl-track"><div class="tl-fill tl-fill-low" style="width:55%"></div></div>
+        </div>
+        <div class="tl-mrow">
+          <div class="tl-mrow-head"><span class="tl-mrow-name">Triceps</span><span class="tl-mrow-sets">14 serii</span><span class="tl-mrow-target">cel 12–16</span></div>
+          <div class="tl-track"><div class="tl-fill tl-fill-ok" style="width:78%"></div></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block;"></span>W celu</span>
+          <span style="font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ac);display:inline-block;"></span>Za mało</span>
+          <span style="font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--yw);display:inline-block;"></span>Przy max</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ═══ END TRENING LIVE ═══ -->
+
 <div id="screen-body" class="overlay-screen">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
     <button onclick="closeOverlay()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
@@ -1257,8 +1617,63 @@ ${philosophy}
 ${kbCtx}`;
 }
 
+// ===== TRENING LIVE JS =====
+let tlTimer=null,tlSeconds=180,tlRunning=false;
+function tlPad(n){return n<10?'0'+n:String(n);}
+function tlUpdateDisplay(){const m=Math.floor(tlSeconds/60),s=tlSeconds%60;const el=document.getElementById('tl-timer-count');if(el)el.textContent=tlPad(m)+':'+tlPad(s);}
+function tlToggle(){
+  const btn=document.getElementById('tl-start-btn');
+  if(tlRunning){clearInterval(tlTimer);tlRunning=false;if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
+  else{tlRunning=true;if(btn){btn.textContent='⏸ Pauza';btn.classList.add('on');}
+    tlTimer=setInterval(()=>{
+      if(tlSeconds>0){tlSeconds--;tlUpdateDisplay();}
+      else{clearInterval(tlTimer);tlRunning=false;const el=document.getElementById('tl-timer-count');if(el)el.style.color='var(--ac)';if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
+    },1000);}
+}
+function tlReset(){clearInterval(tlTimer);tlRunning=false;const sel=document.getElementById('tl-preset');tlSeconds=parseInt(sel?sel.value:180)||180;const el=document.getElementById('tl-timer-count');if(el){el.style.color='#9f97e8';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
+function tlSetPreset(v){clearInterval(tlTimer);tlRunning=false;tlSeconds=parseInt(v);const el=document.getElementById('tl-timer-count');if(el){el.style.color='#9f97e8';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
+function tlAutoStart(){if(!tlRunning){tlSeconds=180;tlUpdateDisplay();setTimeout(tlToggle,300);}}
+function tlToggleHist(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
+function tlConfirm(rowId,numId){
+  const nb=document.getElementById(numId);if(nb){nb.className='tl-set-num done';nb.textContent='✓';}
+  const ob=document.getElementById('tlok_'+rowId);if(ob)ob.classList.add('done');
+  tlAutoStart();
+}
+function tlCopyDown(srcId,targets){
+  const val=document.getElementById(srcId)?.value;if(!val)return;
+  targets.forEach(id=>{const el=document.getElementById(id);if(el){el.value=val;const ph=el.parentElement?.querySelector('.tl-ph');if(ph)ph.style.display='none';}});
+}
+function tlHidePh(phId){const el=document.getElementById(phId);if(el)el.style.display='none';}
+function tlShowPh(phId,inpId){const inp=document.getElementById(inpId),el=document.getElementById(phId);if(el&&inp&&!inp.value)el.style.display='block';}
+function tlSelectDay(i){document.querySelectorAll('.tl-day').forEach((d,j)=>d.classList.toggle('tl-day-active',j===i));}
+const tlSessions=[
+  {pill:'push',label:'Push A',vol:'6 840 kg'},{pill:'pull',label:'Pull A',vol:'5 920 kg'},
+  {pill:'legs',label:'Legs A',vol:'7 200 kg'},{pill:'rest',label:'Odp.',vol:''},
+  {pill:'push',label:'Push B',vol:'6 210 kg'},{pill:'pull',label:'Pull B',vol:'5 300 kg'},
+  {pill:'legs',label:'Legs B',vol:'7 010 kg'}
+];
+function tlRenderWeek(){
+  const days=['Pon','Wt','Śr','Czw','Pt','So','Nd'],nums=[9,10,11,12,13,14,15];
+  const grid=document.getElementById('tl-days-grid');if(!grid)return;
+  grid.innerHTML=days.map((d,i)=>{
+    const s=tlSessions[i];
+    return `<div class="tl-day${i===2?' tl-day-active':''}" onclick="tlSelectDay(${i})">
+      <div class="tl-day-head-inner"><div class="tl-day-name">${d}</div><div class="tl-day-num">${nums[i]}</div></div>
+      <div class="tl-day-body">
+        ${s.pill!=='rest'?`<div class="tl-spill tl-spill-${s.pill}">${s.label}</div><div class="tl-spill-vol">${s.vol}</div>`:`<div class="tl-spill tl-spill-rest">${s.label}</div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+function tlShowSummary(){document.getElementById('tl-summary-card').style.display='block';}
+// ===== END TRENING LIVE JS =====
+
 // OVERLAY
-function openOverlay(id){document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');document.getElementById(id).style.display='block';}
+function openOverlay(id){
+  document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+  if(id==='screen-trening'){tlRenderWeek();tlUpdateDisplay();}
+}
 function closeOverlay(){document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');}
 
 // FILE UPLOAD

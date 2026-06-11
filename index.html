@@ -712,6 +712,20 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   </div>
 </div>
 
+<!-- TIMER OVERLAY -->
+<div id="rest-timer" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--bg2);border:1px solid rgba(96,165,250,0.4);border-radius:16px;padding:16px 20px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.5);text-align:center;">
+  <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">⏱ PRZERWA</div>
+  <div id="timer-display" style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:2px;color:var(--bl);line-height:1;">1:30</div>
+  <div id="timer-bar-wrap" style="background:rgba(255,255,255,0.08);border-radius:99px;height:4px;margin:10px 0;">
+    <div id="timer-bar" style="background:var(--bl);height:4px;border-radius:99px;width:100%;transition:width 1s linear;"></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">
+    <button onclick="pauseTimer()" id="timer-pause-btn" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;padding:6px 14px;color:var(--tx2);font-size:12px;cursor:pointer;">⏸ Pauza</button>
+    <button onclick="stopTimer()" style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:6px 14px;color:var(--ac);font-size:12px;cursor:pointer;">✕ Stop</button>
+  </div>
+  <div id="timer-next-hint" style="font-size:10px;color:var(--tx3);margin-top:8px;display:none;">Czas zacząć kolejną serię! 💪</div>
+</div>
+
 <!-- OVERLAY: PLAN 8 TYGODNI -->
 <div id="screen-plan" class="overlay-screen">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
@@ -1798,9 +1812,14 @@ function renderPlan(plan) {
             </div>
             <div style="flex:1;padding:8px 12px;border-right:1px solid var(--border);">
               <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">Przerwa</div>
-              <input id="rest_${cellBase}" type="text" value="${rest}"
-                style="font-size:14px;font-weight:600;color:var(--bl);background:transparent;border:none;outline:none;width:100%;font-family:'DM Sans',sans-serif;cursor:text;"
-                onchange="saveEdit('rest','${cellBase}',this.value)">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input id="rest_${cellBase}" type="text" value="${rest}"
+                  style="font-size:14px;font-weight:600;color:var(--bl);background:transparent;border:none;outline:none;width:60px;font-family:'DM Sans',sans-serif;cursor:text;"
+                  onchange="saveEdit('rest','${cellBase}',this.value)">
+                <button onclick="startTimer('${cellBase}','${rest}')"
+                  style="background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.3);border-radius:6px;padding:3px 8px;color:var(--bl);font-size:11px;cursor:pointer;white-space:nowrap;"
+                  title="Uruchom timer">⏱</button>
+              </div>
             </div>
             <div style="flex:1;padding:8px 12px;">
               <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:3px;">${isCardioEx?'Tętno':'Ciężar ref.'}</div>
@@ -1980,6 +1999,114 @@ function saveEdit(field, cellId, value) {
 }
 
 
+
+// ===== REST TIMER =====
+let timerInterval = null;
+let timerTotal = 0;
+let timerRemaining = 0;
+let timerPaused = false;
+
+function parseRestTime(restStr) {
+  if (!restStr) return 90;
+  const s = String(restStr).toLowerCase().trim();
+  // formats: "90s", "2min", "1:30", "3min", "45", "2m", "10s"
+  if (s.includes('min') || s.includes('m')) {
+    const mins = parseFloat(s);
+    const secPart = s.match(/:(\d+)/);
+    return Math.round(mins * 60) + (secPart ? parseInt(secPart[1]) : 0);
+  }
+  if (s.includes(':')) {
+    const [m, sc] = s.split(':');
+    return parseInt(m) * 60 + parseInt(sc);
+  }
+  if (s.includes('s')) return parseInt(s);
+  const num = parseInt(s);
+  return num > 10 ? num : num * 60; // if <=10 assume minutes
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m > 0 ? `${m}:${s.toString().padStart(2,'0')}` : `${s}s`;
+}
+
+function startTimer(cellBase, restStr) {
+  const secs = parseRestTime(restStr);
+  if (!secs || secs <= 0) return;
+  stopTimer();
+  timerTotal = secs;
+  timerRemaining = secs;
+  timerPaused = false;
+
+  const overlay = document.getElementById('rest-timer');
+  const display = document.getElementById('timer-display');
+  const bar = document.getElementById('timer-bar');
+  const hint = document.getElementById('timer-next-hint');
+  const pauseBtn = document.getElementById('timer-pause-btn');
+
+  overlay.style.display = 'block';
+  hint.style.display = 'none';
+  pauseBtn.textContent = '⏸ Pauza';
+  display.style.color = 'var(--bl)';
+  bar.style.background = 'var(--bl)';
+  display.textContent = formatTime(timerRemaining);
+  bar.style.width = '100%';
+
+  timerInterval = setInterval(() => {
+    if (timerPaused) return;
+    timerRemaining--;
+    display.textContent = formatTime(timerRemaining);
+    bar.style.width = ((timerRemaining / timerTotal) * 100) + '%';
+
+    // Color change warning at 10s
+    if (timerRemaining <= 10 && timerRemaining > 0) {
+      display.style.color = 'var(--yw)';
+      bar.style.background = 'var(--yw)';
+    }
+
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      display.textContent = 'CZAS!';
+      display.style.color = 'var(--gr)';
+      bar.style.width = '0%';
+      hint.style.display = 'block';
+      // Beep sound
+      playBeep();
+      // Auto-hide after 4s
+      setTimeout(() => { overlay.style.display = 'none'; }, 4000);
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  if (!timerInterval && !timerPaused) return;
+  timerPaused = !timerPaused;
+  document.getElementById('timer-pause-btn').textContent = timerPaused ? '▶ Wznów' : '⏸ Pauza';
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerPaused = false;
+  document.getElementById('rest-timer').style.display = 'none';
+}
+
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.15, 0.3].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = i === 2 ? 880 : 660;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.2);
+    });
+  } catch(e) {}
+}
 
 function scrollToSession(i) {
   const el = document.getElementById('plan-session-'+i);

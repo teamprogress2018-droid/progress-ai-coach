@@ -2362,7 +2362,7 @@ function openOverlay(id){
 function closeOverlay(){document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');}
 
 // FILE UPLOAD
-function handleFileUpload(event){const file=event.target.files[0];if(!file)return;if(file.size>5000000){alert('Plik za duży! Max 5MB.');return;}const isImage=file.type.startsWith('image/'),isPDF=file.type==='application/pdf';if(isImage){const reader=new FileReader();reader.onload=e=>{addToKnowledgeBase(file.name,'[IMAGE]'+e.target.result,'image');};reader.readAsDataURL(file);}else if(isPDF){const reader=new FileReader();reader.onload=async e=>{const base64=e.target.result.split(',')[1];try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:'Wyciągnij i zwróć cały tekst z tego dokumentu. Zachowaj strukturę.'}]}]})});const data=await resp.json();const text=data.content?.[0]?.text||'Nie udało się odczytać PDF.';addToKnowledgeBase(file.name,text);}catch(e){alert('Błąd odczytu PDF.');}};reader.readAsDataURL(file);}else{const reader=new FileReader();reader.onload=e=>{addToKnowledgeBase(file.name,e.target.result);};reader.readAsText(file);}event.target.value='';}
+function handleFileUpload(event){const file=event.target.files[0];if(!file)return;if(file.size>5000000){alert('Plik za duży! Max 5MB.');return;}const isImage=file.type.startsWith('image/'),isPDF=file.type==='application/pdf';if(isImage){const reader=new FileReader();reader.onload=e=>{addToKnowledgeBase(file.name,'[IMAGE]'+e.target.result,'image');};reader.readAsDataURL(file);}else if(isPDF){const reader=new FileReader();reader.onload=async e=>{const base64=e.target.result.split(',')[1];try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:'Wyciągnij i zwróć cały tekst z tego dokumentu. Zachowaj strukturę.'}]}]})});const data=await resp.json();const text=data.content?.[0]?.text||'Nie udało się odczytać PDF.';addToKnowledgeBase(file.name,text);}catch(e){alert('Błąd odczytu PDF.');}};reader.readAsDataURL(file);}else{const reader=new FileReader();reader.onload=e=>{addToKnowledgeBase(file.name,e.target.result);};reader.readAsText(file);}event.target.value='';}
 
 function addManualText(){const text=document.getElementById('manual-text').value.trim(),title=document.getElementById('manual-title').value.trim()||'Notatka '+(knowledgeBase.length+1);if(!text){alert('Wpisz tekst!');return;}addToKnowledgeBase(title,text);document.getElementById('manual-text').value='';document.getElementById('manual-title').value='';}
 
@@ -2609,7 +2609,7 @@ ${topicCfg.systemPrompt}`;
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-4-6',
         max_tokens:1000,
         system:'Jesteś ekspertem od nauki o treningu. Odpowiadasz WYŁĄCZNIE w formacie JSON bez żadnego tekstu przed ani po. Podajesz tylko sprawdzone wartości z badań naukowych.',
         messages:[{role:'user',content:userMsg}]
@@ -2757,16 +2757,26 @@ function updateKBBadge(){const badge=document.getElementById('kb-badge'),count=d
 function renderKnowledgeBase(){const list=document.getElementById('kb-list');if(knowledgeBase.length===0){list.innerHTML='';return;}list.innerHTML='<div class="section-title" style="margin-bottom:8px">Dodane dokumenty</div>'+knowledgeBase.map(doc=>`<div class="kb-item"><div class="kb-icon">${doc.type==='image'?'🖼️':doc.title.endsWith('.pdf')?'📕':'📄'}</div><div class="kb-info"><div class="kb-name">${doc.title}</div><div class="kb-meta">${doc.content.length} znaków</div></div><button class="kb-del" onclick="removeFromKnowledgeBase(${doc.id})" title="Usuń">✕</button></div>`).join('');}
 
 // YOUTUBE
-async function addYouTube(){const url=document.getElementById('yt-url').value.trim();if(!url||url.length<20){alert('Wklej transkrypcję (minimum 20 znaków)!');return;}const status=document.getElementById('yt-status');status.style.display='block';status.textContent='⏳ Tworzę notatki...';try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:`Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:\n\n${url}`}]})});const data=await resp.json();const text=data.content?.[0]?.text||'';if(!text)throw new Error('Brak odpowiedzi');addToKnowledgeBase('YouTube: notatki',text);status.textContent='✅ Dodano do bazy wiedzy!';document.getElementById('yt-url').value='';setTimeout(()=>{status.style.display='none';},3000);}catch(e){status.textContent='❌ Błąd. Spróbuj ponownie.';}}
+async function addYouTube(){const url=document.getElementById('yt-url').value.trim();if(!url||url.length<20){alert('Wklej transkrypcję (minimum 20 znaków)!');return;}const status=document.getElementById('yt-status');status.style.display='block';status.textContent='⏳ Tworzę notatki...';try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:`Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:\n\n${url}`}]})});const data=await resp.json();const text=data.content?.[0]?.text||'';if(!text)throw new Error('Brak odpowiedzi');addToKnowledgeBase('YouTube: notatki',text);status.textContent='✅ Dodano do bazy wiedzy!';document.getElementById('yt-url').value='';setTimeout(()=>{status.style.display='none';},3000);}catch(e){status.textContent='❌ Błąd. Spróbuj ponownie.';}}
 
 // CHAT
 async function callAPI(system, userMsg, maxTokens) {
   const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:maxTokens, system:system, messages:[{role:'user',content:userMsg}]})
+    body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:maxTokens, system:system, messages:[{role:'user',content:userMsg}]})
   });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(()=>'');
+    console.error('Proxy HTTP error:', resp.status, errText.substring(0,300));
+    throw new Error(`Proxy error ${resp.status}`);
+  }
   const data = await resp.json();
+  if (!data?.content?.length) {
+    console.error('Proxy empty/error response:', JSON.stringify(data).substring(0,400));
+    if (data?.error) throw new Error(data.error.message || 'API error');
+    throw new Error('Empty response from proxy');
+  }
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
   console.log('API raw length:', raw.length, 'preview:', raw.substring(0,80));
   const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
@@ -2831,7 +2841,7 @@ async function sendMessage(userMsg) {
     const response = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:1500, system:getSystemPrompt(), messages:conversationHistory})
+      body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:1500, system:getSystemPrompt(), messages:conversationHistory})
     });
     const data = await response.json();
     const reply = data.content?.[0]?.text || 'Przepraszam, wystąpił błąd.';
@@ -3059,9 +3069,10 @@ async function generatePlan() {
     if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
   }, 2000);
 
-  const tokenBudget = planWeeks === 1 ? 5000 : planWeeks === 4 ? 6000 : 7000;
+  const tokenBudget = planWeeks === 1 ? 6000 : planWeeks === 4 ? 8000 : 10000;
 
   let plan = null;
+  let errMsg = '';
   try {
     const sysPrompt = buildPlanPrompt(planWeeks);
     const kbCtx = getKnowledgeContext();
@@ -3070,7 +3081,7 @@ async function generatePlan() {
       `Wygeneruj plan. TYLKO JSON.\n\n${profile}\n${philosophy}${kbCtx ? '\n\n' + kbCtx : ''}`,
       tokenBudget
     );
-  } catch(err) { console.error('generatePlan error:', err); plan = null; }
+  } catch(err) { console.error('generatePlan error:', err); plan = null; errMsg = err.message || 'Nieznany błąd'; }
 
   clearInterval(ticker);
   document.getElementById('plan-loading').style.display = 'none';
@@ -3080,7 +3091,8 @@ async function generatePlan() {
     document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
       <div style="font-size:36px;margin-bottom:12px">❌</div>
       <div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div>
-      <div style="font-size:12px;margin-bottom:16px;">Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.</div>
+      <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:6px;">${errMsg||'Sprawdź konsolę (F12)'}</div>
+      <div style="font-size:12px;margin-bottom:16px;">Spróbuj ponownie lub zmień model w ustawieniach proxy.</div>
       <button onclick="generatePlan()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;">🔄 Spróbuj ponownie</button>
     </div>`;
     return;

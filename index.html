@@ -2163,6 +2163,7 @@ function tlUpdateMyoResult(exId){
 function tlConfirmMyo(exId,numId){
   const nb=document.getElementById(numId);if(nb){nb.className='tl-set-num done';nb.textContent='✓';}
   const ob=document.getElementById('myo-ok-'+exId);if(ob)ob.classList.add('done');
+  tlVibrate([40]);
   tlAutoStart();
 }
 function tlOnTypeChange(sel,exId){
@@ -2174,9 +2175,11 @@ function tlOnTypeChange(sel,exId){
 }
 // ===== END MYO-REPS JS =====
 
-// Web Audio beep
+// Web Audio beep + wibracja
 let tlAudioCtx=null;
+function tlVibrate(pattern){try{if(navigator.vibrate)navigator.vibrate(pattern);}catch(e){}}
 function tlBeep(){
+  tlVibrate([100,50,100]);
   try{
     if(!tlAudioCtx)tlAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
     const o=tlAudioCtx.createOscillator(),g=tlAudioCtx.createGain();
@@ -2185,7 +2188,6 @@ function tlBeep(){
     g.gain.setValueAtTime(0.4,tlAudioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001,tlAudioCtx.currentTime+0.6);
     o.start(tlAudioCtx.currentTime);o.stop(tlAudioCtx.currentTime+0.6);
-    // drugi dźwięk
     const o2=tlAudioCtx.createOscillator(),g2=tlAudioCtx.createGain();
     o2.connect(g2);g2.connect(tlAudioCtx.destination);
     o2.type='sine';o2.frequency.value=1100;
@@ -2194,7 +2196,14 @@ function tlBeep(){
     o2.start(tlAudioCtx.currentTime+0.15);o2.stop(tlAudioCtx.currentTime+0.75);
   }catch(e){}
 }
-function tlAutoStart(){if(!tlRunning){tlSeconds=parseInt(document.getElementById('tl-preset')?.value||180);tlUpdateDisplay();setTimeout(tlToggle,300);}}
+function tlAutoStart(){
+  if(!tlRunning){
+    tlVibrate([30]);
+    tlSeconds=parseInt(document.getElementById('tl-preset')?.value||180);
+    tlUpdateDisplay();
+    setTimeout(tlToggle,300);
+  }
+}
 
 function tlToggleHist(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
 
@@ -2224,6 +2233,7 @@ function tlConfirm(rowId,numId){
   if(ob)ob.classList.add('done');
   // flash zielony na wierszu
   if(row){row.style.background='rgba(74,222,128,0.07)';setTimeout(()=>row.style.background='',600);}
+  tlVibrate([40]);
   tlAutoStart();
 }
 function tlCopyDown(srcId,targets){

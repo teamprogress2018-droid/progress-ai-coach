@@ -658,58 +658,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   <!-- PANEL: WIEDZA -->
   <div class="sidebar-panel" id="panel-wiedza">
     <div class="section-title">Baza wiedzy <span id="kb-count" style="color:var(--ac)">0 dokumentów</span></div>
-
-    <!-- SCIENCE RAG - nowa sekcja -->
-    <div style="background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:10px;padding:11px 12px;margin-bottom:12px;">
-      <div style="font-size:10px;color:var(--bl);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-        🔬 Automatyczna baza naukowa
-        <span id="rag-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--tx3);display:inline-block;"></span>
-        <span id="rag-status-txt" style="font-size:9px;color:var(--tx3);">nie pobrano</span>
-      </div>
-
-      <!-- Autorytety - toggle list -->
-      <div style="margin-bottom:8px;">
-        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:5px;">ŹRÓDŁA AUTORYTETY:</div>
-        <div style="display:flex;flex-direction:column;gap:3px;" id="rag-sources-list">
-          <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);cursor:pointer;">
-            <input type="checkbox" id="src-israetel" checked style="accent-color:var(--bl);"> Dr Mike Israetel (RP – MEV/MAV/MRV)</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);cursor:pointer;">
-            <input type="checkbox" id="src-schoenfeld" checked style="accent-color:var(--bl);"> Brad Schoenfeld (hipertrofia)</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);cursor:pointer;">
-            <input type="checkbox" id="src-helms" checked style="accent-color:var(--bl);"> Eric Helms / 3DMJ (periodyzacja, RPE)</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);cursor:pointer;">
-            <input type="checkbox" id="src-nuckols" checked style="accent-color:var(--bl);"> Greg Nuckols / MASS (siła)</label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);cursor:pointer;">
-            <input type="checkbox" id="src-pubmed" checked style="accent-color:var(--bl);"> PubMed – najnowsze metaanalizy (2023–2026)</label>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
-        <div style="font-size:10px;color:var(--bl);font-family:'DM Mono',monospace;">AUTO-SYNC:</div>
-        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);cursor:pointer;">
-          <input type="checkbox" id="rag-auto-sync" checked style="accent-color:var(--bl);"> Pobierz przy generowaniu planu
-        </label>
-      </div>
-
-      <button onclick="ragFetchAll()" id="rag-btn"
-        style="width:100%;background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.3);border-radius:7px;padding:7px;color:var(--bl);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
-        🔬 Pobierz całą bazę naukową (wszystkie tematy)
-      </button>
-      <div id="rag-log" style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:6px;line-height:1.6;display:none;"></div>
-
-      <!-- Wyniki RAG - mapowanie na parametry -->
-      <div id="rag-results" style="display:none;margin-top:10px;border-top:1px solid rgba(96,165,250,0.15);padding-top:10px;">
-        <div style="font-size:9px;color:var(--bl);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📊 Rekomendacje naukowe → parametry planu</div>
-        <div id="rag-params-grid" style="display:flex;flex-direction:column;gap:6px;"></div>
-        <button onclick="ragApplyToGenerator()" id="rag-apply-btn"
-          style="width:100%;margin-top:10px;background:var(--bl);border:none;border-radius:7px;padding:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">
-          ✓ Zastosuj w generatorze planu
-        </button>
-      </div>
-    </div>
-    <!-- END SCIENCE RAG -->
-
-    <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">Dodaj własne materiały — AI będzie je uwzględniać w odpowiedziach.</p>
+    <p style="font-size:11px;color:var(--tx3);line-height:1.6;margin-bottom:12px">Dodaj materiały — AI będzie je uwzględniać w odpowiedziach.</p>
     <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
       <div class="upload-zone-icon">📄</div>
       <div class="upload-zone-text">Kliknij aby wgrać plik</div>
@@ -989,19 +938,222 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   <div class="tl-topbar">
     <button class="tl-back" onclick="closeOverlay()">← Wróć do chatu</button>
     <div class="tl-title">TRENING LIVE</div>
-    <div class="tl-sub" id="tl-session-label">– wybierz sesję –</div>
+    <div class="tl-sub" id="tl-session-label">Push A · śr 11.06 · 0:00</div>
     <div style="margin-left:auto;display:flex;gap:6px;">
       <button style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:5px 12px;color:var(--gr);font-size:11px;cursor:pointer;" onclick="tlShowSummary()">✓ Zakończ trening</button>
     </div>
   </div>
 
-  <!-- Selector sesji z planu -->
-  <div id="tl-plan-status" style="padding:10px 0 12px;border-bottom:1px solid var(--border);margin-bottom:14px;"></div>
-
   <div class="tl-body">
-    <!-- LEWA: ćwiczenia dynamiczne -->
+    <!-- LEWA: ćwiczenia -->
     <div class="tl-main">
-      <div id="tl-dynamic-exercises"></div>
+
+      <!-- Ćwiczenie 1 -->
+      <div class="tl-ex">
+        <div class="tl-ex-head">
+          <div>
+            <div class="tl-ex-name">Wyciskanie sztangi na ławce płaskiej</div>
+            <div class="tl-ex-ref">REF: 90 kg · cel: 4×5 @ RPE 9</div>
+          </div>
+          <button class="tl-hist-btn" onclick="tlToggleHist('tlh1')" title="Historia">📊</button>
+          <span class="tl-rpe-pill">RPE 9</span>
+        </div>
+        <div class="tl-history" id="tlh1">
+          <div class="tl-hist-title">Ostatnie treningi</div>
+          <div class="tl-hist-row"><span class="hd">3.06</span><span>90×5</span><span>90×5</span><span>87.5×5</span><span class="hv">RPE 9</span></div>
+          <div class="tl-hist-row"><span class="hd">27.05</span><span>87.5×5</span><span>87.5×5</span><span>85×5</span><span class="hv">RPE 8.5</span></div>
+          <div class="tl-hist-row"><span class="hd">20.05</span><span>85×5</span><span>85×5</span><span>82.5×5</span><span class="hv">RPE 8</span></div>
+        </div>
+        <div class="tl-legend">
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-W">W</span> Warm-up</div>
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-T">T</span> Top set</div>
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-B">B</span> Back-off</div>
+          <div class="tl-leg-item"><span class="tl-tag tl-tag-M">M</span> Myo-Reps</div>
+          <div style="margin-left:auto;font-size:10px;color:var(--tx3);">✓ = zatwierdzona</div>
+        </div>
+        <div class="tl-sets-head">
+          <div class="sh-num">#</div>
+          <div class="sh-inp">kg</div>
+          <div style="width:8px;"></div>
+          <div class="sh-inp">powt.</div>
+          <div style="width:8px;"></div>
+          <div class="sh-rpe">RPE</div>
+          <div class="sh-ok">✓</div>
+          <div class="sh-cp">↓</div>
+        </div>
+        <!-- Seria W -->
+        <div class="tl-set-row">
+          <div class="tl-set-num warmup">W</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="w1kg" type="number" value="60" inputmode="decimal"></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="w1rep" type="number" value="8" inputmode="decimal"></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" value="5" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn done" id="tlok_row_w1" onclick="tlConfirm('row_w1','tlnum_w1')">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół" onclick="tlCopyDown('w1kg',['s1kg','s2kg','s3kg'])">↓</button>
+        </div>
+        <!-- Seria 1 (done) -->
+        <div class="tl-set-row">
+          <div class="tl-set-num done" id="tlnum_s1">✓</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="s1kg" type="number" value="90" inputmode="decimal"></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap"><input class="tl-inp" id="s1rep" type="number" value="5" inputmode="decimal"></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" value="8.5" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn done" id="tlok_row_s1">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół" onclick="tlCopyDown('s1kg',['s2kg','s3kg'])">↓</button>
+        </div>
+        <!-- Seria 2 -->
+        <div class="tl-set-row">
+          <div class="tl-set-num pending" id="tlnum_s2">2</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s2kg" type="number" placeholder="" inputmode="decimal" onfocus="tlHidePh('ph_s2kg')" onblur="tlShowPh('ph_s2kg','s2kg')">
+            <span class="tl-ph" id="ph_s2kg">90</span>
+          </div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s2rep" type="number" placeholder="" inputmode="decimal">
+            <span class="tl-ph">5</span>
+          </div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn" id="tlok_row_s2" onclick="tlConfirm('row_s2','tlnum_s2')">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół" onclick="tlCopyDown('s2kg',['s3kg'])">↓</button>
+        </div>
+        <!-- Seria 3 -->
+        <div class="tl-set-row">
+          <div class="tl-set-num pending" id="tlnum_s3">3</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s3kg" type="number" placeholder="" inputmode="decimal" onfocus="tlHidePh('ph_s3kg')" onblur="tlShowPh('ph_s3kg','s3kg')">
+            <span class="tl-ph" id="ph_s3kg">90</span>
+          </div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative">
+            <input class="tl-inp" id="s3rep" type="number" placeholder="" inputmode="decimal">
+            <span class="tl-ph">5</span>
+          </div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <button class="tl-ok-btn" id="tlok_row_s3" onclick="tlConfirm('row_s3','tlnum_s3')">✓</button>
+          <button class="tl-cp-btn" title="Kopiuj w dół">↓</button>
+        </div>
+        <button class="tl-add-set">+ Dodaj serię</button>
+      </div>
+
+      <!-- Ćwiczenie 2 -->
+      <div class="tl-ex">
+        <div class="tl-ex-head">
+          <div>
+            <div class="tl-ex-name">Wyciskanie żołnierskie</div>
+            <div class="tl-ex-ref">REF: 60 kg · cel: 4×6 @ RPE 8.5</div>
+          </div>
+          <button class="tl-hist-btn" onclick="tlToggleHist('tlh2')" title="Historia">📊</button>
+          <span class="tl-rpe-pill">RPE 8.5</span>
+        </div>
+        <div class="tl-history" id="tlh2">
+          <div class="tl-hist-title">Ostatnie treningi</div>
+          <div class="tl-hist-row"><span class="hd">3.06</span><span>60×6</span><span>60×6</span><span>57.5×6</span><span class="hv">RPE 8.5</span></div>
+          <div class="tl-hist-row"><span class="hd">27.05</span><span>57.5×6</span><span>57.5×6</span><span>55×6</span><span class="hv">RPE 8</span></div>
+        </div>
+        <div class="tl-sets-head">
+          <div class="sh-num">#</div><div class="sh-inp">kg</div><div style="width:8px;"></div>
+          <div class="sh-inp">powt.</div><div style="width:8px;"></div>
+          <div class="sh-rpe">RPE</div><div class="sh-ok">✓</div><div class="sh-cp">↓</div>
+        </div>
+        <div class="tl-set-row">
+          <div class="tl-set-num pending">1</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s1kg" type="number" inputmode="decimal"><span class="tl-ph">60</span></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s1rep" type="number" inputmode="decimal"><span class="tl-ph">6</span></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <select class="tl-type-sel" onchange="tlOnTypeChange(this,'ex2s1')" title="Typ serii">
+            <option value="N">–</option><option value="W">W</option><option value="T">T</option>
+            <option value="B">B</option><option value="M">Myo</option>
+          </select>
+          <button class="tl-ok-btn" onclick="tlConfirm('b2r1','b2n1')">✓</button>
+          <button class="tl-cp-btn" onclick="tlCopyDown('b2s1kg',['b2s2kg'])">↓</button>
+        </div>
+        <!-- Myo-Reps blok dla serii 1 ex2 -->
+        <div id="myo-container-ex2s1" style="display:none;">
+          <div class="tl-myo-block">
+            <div class="tl-myo-header">
+              <span class="tl-tag tl-tag-M">M</span>
+              <span class="tl-myo-label">Myo-Reps</span>
+              <span class="tl-myo-desc">Seria aktywacyjna → przerwy 10-15s → mini-serie</span>
+            </div>
+            <div class="tl-myo-act">
+              <div class="tl-myo-act-label">Seria aktywacyjna (do bliskiego upadku)</div>
+              <div class="tl-myo-row">
+                <div class="tl-myo-mini-label" style="color:#AFA9EC;font-weight:600;">Akt</div>
+                <div class="tl-inp-wrap" style="position:relative;flex:1">
+                  <input class="tl-myo-inp" id="myo_act_ex2s1" type="number" placeholder="12–15" inputmode="decimal"
+                    oninput="tlUpdateMyoResult('ex2s1')">
+                </div>
+                <span style="font-size:10px;color:var(--tx3);padding:0 6px;">powt.</span>
+              </div>
+            </div>
+            <div class="tl-myo-minis">
+              <div class="tl-myo-minis-label">
+                <span>Mini-serie (3–5 powt. po 10–15s przerwy)</span>
+                <button class="tl-myo-add" onclick="tlAddMyoMini('ex2s1')">+ Dodaj mini</button>
+              </div>
+              <div id="myo-minis-ex2s1"></div>
+              <div class="tl-myo-result" id="myo-result-ex2s1">Wpisz powtórzenia...</div>
+            </div>
+            <div style="padding:0 10px 10px;">
+              <button class="tl-myo-ok" id="myo-ok-ex2s1" onclick="tlConfirmMyo('ex2s1','b2n1')">✓ Zatwierdź serię Myo-Reps</button>
+            </div>
+          </div>
+        </div>
+        <div class="tl-set-row">
+          <div class="tl-set-num pending" id="b2n2">2</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" id="b2s2kg" type="number" inputmode="decimal"><span class="tl-ph">60</span></div>
+          <div class="tl-div">×</div>
+          <div class="tl-inp-wrap" style="position:relative"><input class="tl-inp" type="number" inputmode="decimal"><span class="tl-ph">6</span></div>
+          <div class="tl-div"></div>
+          <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
+          <select class="tl-type-sel" onchange="tlOnTypeChange(this,'ex2s2')" title="Typ serii">
+            <option value="N">–</option><option value="W">W</option><option value="T">T</option>
+            <option value="B">B</option><option value="M">Myo</option>
+          </select>
+          <button class="tl-ok-btn" id="tlok_b2r2" onclick="tlConfirm('b2r2','b2n2')">✓</button>
+          <button class="tl-cp-btn">↓</button>
+        </div>
+        <!-- Myo-Reps blok dla serii 2 ex2 -->
+        <div id="myo-container-ex2s2" style="display:none;">
+          <div class="tl-myo-block">
+            <div class="tl-myo-header">
+              <span class="tl-tag tl-tag-M">M</span>
+              <span class="tl-myo-label">Myo-Reps</span>
+              <span class="tl-myo-desc">Seria aktywacyjna → przerwy 10-15s → mini-serie</span>
+            </div>
+            <div class="tl-myo-act">
+              <div class="tl-myo-act-label">Seria aktywacyjna</div>
+              <div class="tl-myo-row">
+                <div class="tl-myo-mini-label" style="color:#AFA9EC;font-weight:600;">Akt</div>
+                <div class="tl-inp-wrap" style="position:relative;flex:1">
+                  <input class="tl-myo-inp" id="myo_act_ex2s2" type="number" placeholder="12–15" inputmode="decimal"
+                    oninput="tlUpdateMyoResult('ex2s2')">
+                </div>
+                <span style="font-size:10px;color:var(--tx3);padding:0 6px;">powt.</span>
+              </div>
+            </div>
+            <div class="tl-myo-minis">
+              <div class="tl-myo-minis-label">
+                <span>Mini-serie</span>
+                <button class="tl-myo-add" onclick="tlAddMyoMini('ex2s2')">+ Dodaj mini</button>
+              </div>
+              <div id="myo-minis-ex2s2"></div>
+              <div class="tl-myo-result" id="myo-result-ex2s2">Wpisz powtórzenia...</div>
+            </div>
+            <div style="padding:0 10px 10px;">
+              <button class="tl-myo-ok" id="myo-ok-ex2s2" onclick="tlConfirmMyo('ex2s2','b2n2')">✓ Zatwierdź serię Myo-Reps</button>
+            </div>
+          </div>
+        </div>
+        <button class="tl-add-set">+ Dodaj serię</button>
+      </div>
 
       <!-- Karta podsumowania (ukryta) -->
       <div id="tl-summary-card" style="display:none;" class="tl-summary">
@@ -1023,10 +1175,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button style="flex:1;padding:9px;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);cursor:pointer;" onclick="closeOverlay()">Wróć do chatu</button>
-          <button style="flex:1;padding:9px;font-size:12px;border-radius:8px;border:none;background:#9f97e8;color:#fff;cursor:pointer;font-weight:600;" onclick="quickAction('Zaplanuj następny trening na podstawie dzisiejszych wyników')">Plan na następny ↗</button>
+          <button style="flex:1;padding:9px;font-size:12px;border-radius:8px;border:none;background:#9f97e8;color:#fff;cursor:pointer;font-weight:600;" onclick="quickAction('Zaplanuj następny trening Push A na podstawie wyników: e1RM 112 kg, RPE avg 8.4, tonaż 6840 kg')">Plan na następny ↗</button>
         </div>
       </div>
+
     </div>
+
     <!-- PRAWA: timer + tygodniowy planer + objętość -->
     <div class="tl-sidebar">
 
@@ -1812,239 +1966,6 @@ function tlToggle(){
 }
 function tlReset(){clearInterval(tlTimer);tlRunning=false;const sel=document.getElementById('tl-preset');tlSeconds=parseInt(sel?sel.value:180)||180;const el=document.getElementById('tl-timer-count');if(el){el.classList.remove('expired');el.style.color='';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
 function tlSetPreset(v){clearInterval(tlTimer);tlRunning=false;tlSeconds=parseInt(v);const el=document.getElementById('tl-timer-count');if(el){el.classList.remove('expired');el.style.color='';tlUpdateDisplay();}const btn=document.getElementById('tl-start-btn');if(btn){btn.textContent='▶ Start';btn.classList.remove('on');}}
-// ===== OPCJA B: TRENING LIVE ← PLAN AI =====
-let tlActivePlan=null;
-let tlActiveSessionIdx=0;
-let tlActiveWeekIdx=0;
-
-function tlLoadFromPlan(){
-  if(!currentPlanData||!currentPlanData.sessions||!currentPlanData.sessions.length){
-    document.getElementById('tl-plan-status').innerHTML=`
-      <div style="text-align:center;padding:30px 16px;color:var(--tx3);">
-        <div style="font-size:36px;margin-bottom:10px;">📋</div>
-        <div style="font-size:13px;font-weight:600;color:var(--tx2);margin-bottom:6px;">Brak wygenerowanego planu</div>
-        <div style="font-size:11px;line-height:1.6;margin-bottom:14px;">Wróć do chatu i wygeneruj plan w zakładce <strong style="color:var(--ac)">📋 Plan 8 tyg.</strong></div>
-        <button onclick="closeOverlay();openPlanScreen();" style="background:var(--ac);border:none;border-radius:8px;padding:8px 18px;color:#fff;font-size:12px;cursor:pointer;font-weight:600;">Generuj plan AI →</button>
-      </div>`;
-    document.getElementById('tl-dynamic-exercises').innerHTML='';
-    return;
-  }
-
-  tlActivePlan=currentPlanData;
-  const sessions=tlActivePlan.sessions;
-  const phases=tlActivePlan.phases||{};
-  const weekKeys=Object.keys(phases);
-
-  // Buduj selector sesji
-  let selHtml=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">`;
-  selHtml+=`<span style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">SESJA:</span>`;
-  sessions.forEach((s,i)=>{
-    const col=i===tlActiveSessionIdx?'var(--ac)':'var(--border)';
-    const bg=i===tlActiveSessionIdx?'rgba(232,48,42,0.12)':'transparent';
-    selHtml+=`<button onclick="tlSwitchSession(${i})" id="tl-sess-btn-${i}"
-      style="padding:4px 10px;border-radius:20px;border:1px solid ${col};background:${bg};color:${i===tlActiveSessionIdx?'var(--ac)':'var(--tx2)'};font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">${s.sessionName||'Sesja '+(i+1)}</button>`;
-  });
-
-  // Selector tygodnia jeśli >1
-  if(weekKeys.length>1){
-    selHtml+=`<span style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-left:6px;">TYG:</span>`;
-    weekKeys.forEach((wk,wi)=>{
-      const col=wi===tlActiveWeekIdx?'var(--gr)':'var(--border)';
-      const bg=wi===tlActiveWeekIdx?'rgba(74,222,128,0.1)':'transparent';
-      selHtml+=`<button onclick="tlSwitchWeek(${wi},'${wk}')" id="tl-week-btn-${wi}"
-        style="padding:4px 8px;border-radius:20px;border:1px solid ${col};background:${bg};color:${wi===tlActiveWeekIdx?'var(--gr)':'var(--tx2)'};font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;">W${wi+1}</button>`;
-    });
-  }
-  selHtml+=`</div>`;
-
-  document.getElementById('tl-plan-status').innerHTML=selHtml;
-  tlRenderSession(tlActiveSessionIdx,tlActiveWeekIdx);
-}
-
-function tlSwitchSession(idx){
-  tlActiveSessionIdx=idx;
-  // odśwież style przycisków
-  document.querySelectorAll('[id^="tl-sess-btn-"]').forEach((b,i)=>{
-    const active=i===idx;
-    b.style.borderColor=active?'var(--ac)':'var(--border)';
-    b.style.background=active?'rgba(232,48,42,0.12)':'transparent';
-    b.style.color=active?'var(--ac)':'var(--tx2)';
-  });
-  tlRenderSession(idx,tlActiveWeekIdx);
-}
-
-function tlSwitchWeek(wi,wk){
-  tlActiveWeekIdx=wi;
-  document.querySelectorAll('[id^="tl-week-btn-"]').forEach((b,i)=>{
-    const active=i===wi;
-    b.style.borderColor=active?'var(--gr)':'var(--border)';
-    b.style.background=active?'rgba(74,222,128,0.1)':'transparent';
-    b.style.color=active?'var(--gr)':'var(--tx2)';
-  });
-  tlRenderSession(tlActiveSessionIdx,wi);
-}
-
-function tlRenderSession(si,wi){
-  if(!tlActivePlan)return;
-  const session=tlActivePlan.sessions[si];
-  if(!session)return;
-  const phases=tlActivePlan.phases||{};
-  const weekKeys=Object.keys(phases);
-  const wk=weekKeys[wi]||weekKeys[0]||'w1';
-
-  // Aktualizuj label sesji
-  const lbl=document.getElementById('tl-session-label');
-  if(lbl)lbl.textContent=`${session.sessionName||''} · tyg. ${wi+1}`;
-
-  let html='';
-  (session.exercises||[]).forEach((ex,ei)=>{
-    const p=ex[wk]||{};
-    const setsNum=parseInt(p.s||p.sets||3)||3;
-    const reps=p.r||p.reps||'10';
-    const rest=p.rest||'90s';
-    const rpe=p.rpe||'';
-    const kg=p.kg||p.weight||'';
-    const exId=`dyn_${si}_${ei}_${wi}`;
-
-    // Buduj serie
-    let setsHtml='';
-    for(let s=0;s<setsNum;s++){
-      const numId=`dyn_num_${exId}_${s}`;
-      const rowId=`dyn_row_${exId}_${s}`;
-      const kgId=`dyn_kg_${exId}_${s}`;
-      const repId=`dyn_rep_${exId}_${s}`;
-      const isFirst=s===0;
-      // podpowiedź kg z planu
-      const kgHint=kg?kg.replace('%','').replace('BW','').replace('kg','').trim():'';
-      setsHtml+=`
-        <div class="tl-set-row" id="${rowId}">
-          <div class="tl-set-num pending" id="${numId}">${s+1}</div>
-          <div class="tl-inp-wrap" style="position:relative">
-            <input class="tl-inp" id="${kgId}" type="number" inputmode="decimal"
-              onfocus="tlHidePh('ph_${kgId}')" onblur="tlShowPh('ph_${kgId}','${kgId}')">
-            ${kgHint?`<span class="tl-ph" id="ph_${kgId}">${kgHint}</span>`:''}
-          </div>
-          <div class="tl-div">×</div>
-          <div class="tl-inp-wrap" style="position:relative">
-            <input class="tl-inp" id="${repId}" type="number" inputmode="decimal"
-              onfocus="tlHidePh('ph_rep_${exId}_${s}')" onblur="tlShowPh('ph_rep_${exId}_${s}','${repId}')">
-            <span class="tl-ph" id="ph_rep_${exId}_${s}">${reps.split('-')[0]||reps}</span>
-          </div>
-          <div class="tl-div"></div>
-          <input class="tl-rpe-inp" type="number" placeholder="${rpe||'–'}" min="1" max="10" step="0.5" inputmode="decimal">
-          <select class="tl-type-sel" onchange="tlOnTypeChange(this,'myo_${exId}_${s}')" title="Typ serii">
-            <option value="N">–</option><option value="W">W</option>
-            <option value="T">T</option><option value="B">B</option><option value="M">Myo</option>
-          </select>
-          <button class="tl-ok-btn" id="tlok_dyn_row_${exId}_${s}"
-            onclick="tlConfirm('dyn_row_${exId}_${s}','${numId}')">✓</button>
-          ${isFirst?`<button class="tl-cp-btn" title="Kopiuj w dół"
-            onclick="tlCopyDown('${kgId}',${JSON.stringify(Array.from({length:setsNum-1},(_,x)=>`dyn_kg_${exId}_${x+1}`))})">↓</button>`
-          :`<button class="tl-cp-btn">↓</button>`}
-        </div>
-        <div id="myo-container-myo_${exId}_${s}" style="display:none;">
-          <div class="tl-myo-block">
-            <div class="tl-myo-header">
-              <span class="tl-tag tl-tag-M">M</span>
-              <span class="tl-myo-label">Myo-Reps</span>
-              <span class="tl-myo-desc">Aktywacyjna → 10-15s → mini-serie</span>
-            </div>
-            <div class="tl-myo-act">
-              <div class="tl-myo-act-label">Seria aktywacyjna</div>
-              <div class="tl-myo-row">
-                <div class="tl-myo-mini-label" style="color:#AFA9EC;font-weight:600;">Akt</div>
-                <div class="tl-inp-wrap" style="flex:1">
-                  <input class="tl-myo-inp" id="myo_act_myo_${exId}_${s}" type="number" placeholder="12–15" inputmode="decimal"
-                    oninput="tlUpdateMyoResult('myo_${exId}_${s}')">
-                </div>
-                <span style="font-size:10px;color:var(--tx3);padding:0 6px;">powt.</span>
-              </div>
-            </div>
-            <div class="tl-myo-minis">
-              <div class="tl-myo-minis-label">
-                <span>Mini-serie</span>
-                <button class="tl-myo-add" onclick="tlAddMyoMini('myo_${exId}_${s}')">+ Dodaj mini</button>
-              </div>
-              <div id="myo-minis-myo_${exId}_${s}"></div>
-              <div class="tl-myo-result" id="myo-result-myo_${exId}_${s}">Wpisz powtórzenia...</div>
-            </div>
-            <div style="padding:0 10px 10px;">
-              <button class="tl-myo-ok" id="myo-ok-myo_${exId}_${s}"
-                onclick="tlConfirmMyo('myo_${exId}_${s}','${numId}')">✓ Zatwierdź Myo-Reps</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    html+=`
-    <div class="tl-ex">
-      <div class="tl-ex-head">
-        <div>
-          <div class="tl-ex-name">${ex.name||''}</div>
-          <div class="tl-ex-ref">${setsNum}×${reps}${rpe?' @ RPE '+rpe:''}${kg?' · REF: '+kg:''}</div>
-        </div>
-        <span class="tl-rpe-pill">${rpe?'RPE '+rpe:'–'}</span>
-      </div>
-      ${ex.notes||ex.note?`<div style="font-size:11px;color:var(--tx2);padding:6px 12px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);border-left:3px solid var(--ac);line-height:1.5;">💡 ${ex.notes||ex.note}</div>`:''}
-      <div class="tl-legend">
-        <div class="tl-leg-item"><span class="tl-tag tl-tag-W">W</span>Warm-up</div>
-        <div class="tl-leg-item"><span class="tl-tag tl-tag-T">T</span>Top</div>
-        <div class="tl-leg-item"><span class="tl-tag tl-tag-B">B</span>Back-off</div>
-        <div class="tl-leg-item"><span class="tl-tag tl-tag-M">M</span>Myo</div>
-        <div style="margin-left:auto;font-size:10px;color:var(--tx3);">✓ = zatwierdzona</div>
-      </div>
-      <div class="tl-sets-head">
-        <div class="sh-num">#</div><div class="sh-inp">kg</div>
-        <div style="width:8px;"></div><div class="sh-inp">powt.</div>
-        <div style="width:8px;"></div><div class="sh-rpe">RPE</div>
-        <div style="width:38px;text-align:center;font-size:10px;color:var(--tx3);">typ</div>
-        <div class="sh-ok">✓</div><div class="sh-cp">↓</div>
-      </div>
-      ${setsHtml}
-      <button class="tl-add-set" onclick="tlAddSet('${exId}',${setsNum})">+ Dodaj serię</button>
-    </div>`;
-  });
-
-  document.getElementById('tl-dynamic-exercises').innerHTML=html;
-}
-
-// Dynamiczne dodawanie serii
-function tlAddSet(exId,currentCount){
-  const container=document.getElementById('tl-dynamic-exercises');
-  // znajdź przycisk i wstaw przed nim
-  const addBtn=container.querySelector(`[onclick="tlAddSet('${exId}',${currentCount})"]`);
-  if(!addBtn)return;
-  const s=currentCount;
-  const numId=`dyn_num_${exId}_${s}`;
-  const rowId=`dyn_row_${exId}_${s}`;
-  const kgId=`dyn_kg_${exId}_${s}`;
-  const repId=`dyn_rep_${exId}_${s}`;
-  const div=document.createElement('div');
-  div.innerHTML=`
-    <div class="tl-set-row" id="${rowId}">
-      <div class="tl-set-num pending" id="${numId}">${s+1}</div>
-      <div class="tl-inp-wrap" style="position:relative">
-        <input class="tl-inp" id="${kgId}" type="number" inputmode="decimal">
-      </div>
-      <div class="tl-div">×</div>
-      <div class="tl-inp-wrap">
-        <input class="tl-inp" id="${repId}" type="number" inputmode="decimal">
-      </div>
-      <div class="tl-div"></div>
-      <input class="tl-rpe-inp" type="number" placeholder="–" min="1" max="10" step="0.5" inputmode="decimal">
-      <select class="tl-type-sel" title="Typ serii">
-        <option value="N">–</option><option value="W">W</option>
-        <option value="T">T</option><option value="B">B</option><option value="M">Myo</option>
-      </select>
-      <button class="tl-ok-btn" id="tlok_dyn_row_${exId}_${s}"
-        onclick="tlConfirm('dyn_row_${exId}_${s}','${numId}')">✓</button>
-      <button class="tl-cp-btn">↓</button>
-    </div>`;
-  addBtn.before(...div.childNodes);
-  addBtn.setAttribute('onclick',`tlAddSet('${exId}',${currentCount+1})`);
-}
-// ===== END OPCJA B =====
-
 // ===== ANALIZA POSTĘPÓW JS =====
 const anCharts={};
 const anWeeks=['T-7','T-6','T-5','T-4','T-3','T-2','T-1','Dziś'];
@@ -2242,7 +2163,6 @@ function tlUpdateMyoResult(exId){
 function tlConfirmMyo(exId,numId){
   const nb=document.getElementById(numId);if(nb){nb.className='tl-set-num done';nb.textContent='✓';}
   const ob=document.getElementById('myo-ok-'+exId);if(ob)ob.classList.add('done');
-  tlVibrate([40]);
   tlAutoStart();
 }
 function tlOnTypeChange(sel,exId){
@@ -2254,11 +2174,9 @@ function tlOnTypeChange(sel,exId){
 }
 // ===== END MYO-REPS JS =====
 
-// Web Audio beep + wibracja
+// Web Audio beep
 let tlAudioCtx=null;
-function tlVibrate(pattern){try{if(navigator.vibrate)navigator.vibrate(pattern);}catch(e){}}
 function tlBeep(){
-  tlVibrate([100,50,100]);
   try{
     if(!tlAudioCtx)tlAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
     const o=tlAudioCtx.createOscillator(),g=tlAudioCtx.createGain();
@@ -2267,6 +2185,7 @@ function tlBeep(){
     g.gain.setValueAtTime(0.4,tlAudioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001,tlAudioCtx.currentTime+0.6);
     o.start(tlAudioCtx.currentTime);o.stop(tlAudioCtx.currentTime+0.6);
+    // drugi dźwięk
     const o2=tlAudioCtx.createOscillator(),g2=tlAudioCtx.createGain();
     o2.connect(g2);g2.connect(tlAudioCtx.destination);
     o2.type='sine';o2.frequency.value=1100;
@@ -2275,14 +2194,7 @@ function tlBeep(){
     o2.start(tlAudioCtx.currentTime+0.15);o2.stop(tlAudioCtx.currentTime+0.75);
   }catch(e){}
 }
-function tlAutoStart(){
-  if(!tlRunning){
-    tlVibrate([30]);
-    tlSeconds=parseInt(document.getElementById('tl-preset')?.value||180);
-    tlUpdateDisplay();
-    setTimeout(tlToggle,300);
-  }
-}
+function tlAutoStart(){if(!tlRunning){tlSeconds=parseInt(document.getElementById('tl-preset')?.value||180);tlUpdateDisplay();setTimeout(tlToggle,300);}}
 
 function tlToggleHist(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
 
@@ -2312,7 +2224,6 @@ function tlConfirm(rowId,numId){
   if(ob)ob.classList.add('done');
   // flash zielony na wierszu
   if(row){row.style.background='rgba(74,222,128,0.07)';setTimeout(()=>row.style.background='',600);}
-  tlVibrate([40]);
   tlAutoStart();
 }
 function tlCopyDown(srcId,targets){
@@ -2348,11 +2259,8 @@ function tlShowSummary(){document.getElementById('tl-summary-card').style.displa
 function openOverlay(id){
   document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');
   document.getElementById(id).style.display='block';
-  if(id==='screen-trening'){tlRenderWeek();tlUpdateDisplay();tlLoadFromPlan();}
-  if(id==='screen-analiza'){setTimeout(()=>{anInitE1rm();anInitConsistency();},100);}
+  if(id==='screen-trening'){tlRenderWeek();tlUpdateDisplay();}
 }
-// Załaduj bazę naukową z cache przy starcie
-setTimeout(ragLoadFromStorage, 1000);
 function closeOverlay(){document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');}
 
 // FILE UPLOAD
@@ -2411,367 +2319,6 @@ async function loadKB() {
     } catch(e2) {}
   }
 }
-// ===== SCIENCE RAG ENGINE =====
-
-const RAG_TOPICS = {
-  hypertrophy_volume: {
-    label:'Objętość treningowa (hipertrofia)',
-    pubmed:'hypertrophy training volume resistance AND sets per week muscle growth',
-    authorities:['israetel','schoenfeld'],
-    systemPrompt:`Jesteś ekspertem od hipertrofii. Na podstawie najnowszych badań (2022-2026) i wytycznych autorytetów (Israetel, Schoenfeld, Helms) przedstaw KONKRETNE liczby dla:
-1. MEV (minimalna efektywna objętość) per partia mięśniowa per tydzień
-2. MAV (maksymalna adaptacyjna objętość) - optimum
-3. MRV (maksymalna regeneracyjna objętość) - górna granica
-4. Optymalna liczba powtórzeń dla hipertrofii (zakres)
-5. Liczba serii per ćwiczenie
-
-Odpowiedz TYLKO w JSON: {"mev_per_muscle":{"chest":N,"back":N,"shoulders":N,"quads":N,"hamstrings":N,"biceps":N,"triceps":N},"mav_per_muscle":{...},"mrv_per_muscle":{...},"rep_range_hypertrophy":"X-Y","sets_per_exercise":"X-Y","key_finding":"...","sources":["..."]}`,
-  },
-  strength_progression:{
-    label:'Progresja siły',
-    pubmed:'strength training progression overload resistance periodization',
-    authorities:['nuckols','helms'],
-    systemPrompt:`Ekspert od progresji siły. Na podstawie badań podaj KONKRETNE liczby:
-1. Optymalna progresja tygodniowa (% lub kg) dla początkujących/średniozaawansowanych/zaawansowanych
-2. Zakres powtórzeń dla siły maksymalnej
-3. Optymalne % 1RM dla głównych ruchów siłowych
-4. Częstotliwość trenowania ruchu dla progresji siły
-
-Odpowiedz TYLKO w JSON: {"progression_beginner":"X kg/tydz","progression_intermediate":"X%/tydz","progression_advanced":"X%/tydz","strength_rep_range":"X-Y","strength_intensity_pct":"X-Y%","frequency_per_week":"X-Y razy","key_finding":"...","sources":["..."]}`,
-  },
-  rest_periods:{
-    label:'Przerwy między seriami',
-    pubmed:'rest intervals between sets resistance training hypertrophy strength',
-    authorities:['schoenfeld','israetel'],
-    systemPrompt:`Ekspert od optymalizacji przerw. Podaj KONKRETNE sekundy/minuty dla:
-1. Ćwiczenia wielostawowe (przysiad, martwy, wyciskanie) - dla siły vs hipertrofii
-2. Ćwiczenia izolowane (biceps, triceps, lateral raise)
-3. Przy metodach intensyfikacji (drop-sety, myo-reps, super-serie)
-
-Odpowiedz TYLKO w JSON: {"compound_strength_rest":"X-Y min","compound_hypertrophy_rest":"X-Y min","isolation_rest":"X-Y sek","dropset_rest":"X sek","myoreps_rest":"X-Y sek","superseries_rest":"X sek","key_finding":"...","sources":["..."]}`,
-  },
-  frequency:{
-    label:'Częstotliwość treningów per partia',
-    pubmed:'training frequency muscle hypertrophy per week resistance',
-    authorities:['schoenfeld','israetel','helms'],
-    systemPrompt:`Ekspert od częstotliwości treningów. Podaj optymalne bodźcowanie per tydzień:
-1. Optymalna częstotliwość dla hipertrofii (ile razy per partia per tydzień)
-2. Czy więcej niż 2x tygodniowo daje dodatkowe korzyści?
-3. Zalecany split (PPL, Upper/Lower, FBW) dla różnych częstotliwości
-
-Odpowiedz TYLKO w JSON: {"optimal_frequency":"X-Y razy/tydz","max_benefit_frequency":N,"beginner_split":"...","intermediate_split":"...","advanced_split":"...","key_finding":"...","sources":["..."]}`,
-  },
-  rpe_rir:{
-    label:'RPE/RIR – intensywność',
-    pubmed:'RPE RIR rate perceived exertion reps in reserve resistance training',
-    authorities:['helms','israetel'],
-    systemPrompt:`Ekspert od autoregulacji (RPE/RIR). Podaj:
-1. Optymalne RPE dla różnych celów (siła vs hipertrofia vs wytrzymałość)
-2. RIR rekomendowany per faza treningu
-3. Jak zmieniać RPE w blokach periodyzacji
-
-Odpowiedz TYLKO w JSON: {"hypertrophy_rpe":"X-Y","strength_rpe":"X-Y","endurance_rpe":"X-Y","accumulation_rir":"X-Y","intensification_rir":"X-Y","peaking_rir":"0-1","key_finding":"...","sources":["..."]}`,
-  },
-  myo_reps:{
-    label:'Myo-Reps i zaawansowane metody',
-    pubmed:'myo reps cluster sets drop sets advanced training techniques hypertrophy',
-    authorities:['israetel','schoenfeld'],
-    systemPrompt:`Ekspert od zaawansowanych metod treningowych. Podaj wytyczne dla:
-1. Myo-Reps: optymalna liczba mini-serii, minimalny próg powtórzeń
-2. Drop-sety: ile dropów, % redukcji ciężaru
-3. Cluster sets: podział serii, przerwy wewnątrz
-4. Dla jakich ćwiczeń bezpieczne vs ryzykowne
-
-Odpowiedz TYLKO w JSON: {"myoreps_activation":"X-Y powt","myoreps_mini_sets":"X-Y","myoreps_mini_reps":"X-Y","dropset_drops":"X-Y","dropset_weight_reduction":"X-Y%","cluster_pause":"X-Y sek","safe_for_isolation":true,"safe_for_compound":false,"key_finding":"...","sources":["..."]}`,
-  },
-  deload:{
-    label:'Deload – strategie regeneracji',
-    pubmed:'deload week training recovery supercompensation resistance',
-    authorities:['israetel','helms'],
-    systemPrompt:`Ekspert od deloadów. Podaj:
-1. Co ile tygodni deload (dla różnych poziomów zaawansowania)
-2. Jak zredukować: objętość vs intensywność vs obie
-3. Długość deload (ile dni/tygodni)
-
-Odpowiedz TYLKO w JSON: {"deload_frequency_beginner":"co X tyg","deload_frequency_intermediate":"co X tyg","deload_frequency_advanced":"co X tyg","volume_reduction_pct":"X%","intensity_reduction_pct":"X%","deload_duration":"X-Y dni","key_finding":"...","sources":["..."]}`,
-  },
-  fat_loss_muscle:{
-    label:'Redukcja z zachowaniem masy',
-    pubmed:'fat loss muscle retention cutting caloric deficit resistance training',
-    authorities:['helms','israetel','schoenfeld'],
-    systemPrompt:`Ekspert od rekompo/redukcji. Podaj:
-1. Optymalne tempo redukcji (%BW/tydz) dla zachowania masy
-2. Zmiany w objętości treningowej podczas deficytu
-3. Wpływ deficytu kalorycznego na siłę i objętość treningową
-
-Odpowiedz TYLKO w JSON: {"weekly_deficit_pct":"X-Y% BW","max_deficit_kcal":"X-Y kcal","volume_adjustment":"-X%","protein_per_kg":"X g","training_frequency_cut":"X-Y razy/tydz","key_finding":"...","sources":["..."]}`,
-  }
-};
-
-// Mapowanie pól JSON → UI aplikacji
-const RAG_PARAM_MAP = {
-  // Objętość
-  mev_per_muscle: {label:'MEV per partia (serie/tydz)', color:'var(--gr)', icon:'📉', applyFn: null},
-  mav_per_muscle: {label:'MAV (optimum) per partia', color:'var(--bl)', icon:'🎯', applyFn: null},
-  mrv_per_muscle: {label:'MRV (max) per partia', color:'var(--ac)', icon:'📈', applyFn: null},
-  rep_range_hypertrophy:{label:'Zakres powt. (hipertrofia)', color:'var(--gr)', icon:'💪', applyFn:null},
-  sets_per_exercise:{label:'Serie per ćwiczenie', color:'var(--bl)', icon:'🔢', applyFn:null},
-  // Siła
-  progression_beginner:{label:'Progresja – początkujący', color:'var(--gr)', icon:'📈', applyFn:null},
-  progression_intermediate:{label:'Progresja – śr.zaawansowany', color:'var(--bl)', icon:'📈', applyFn:null},
-  progression_advanced:{label:'Progresja – zaawansowany', color:'var(--yw)', icon:'📈', applyFn:null},
-  strength_rep_range:{label:'Zakres powt. (siła)', color:'var(--yw)', icon:'💪', applyFn:null},
-  // Przerwy
-  compound_strength_rest:{label:'Przerwa – wielostawy (siła)', color:'var(--bl)', icon:'⏱', applyFn:null},
-  compound_hypertrophy_rest:{label:'Przerwa – wielostawy (hipert.)', color:'var(--gr)', icon:'⏱', applyFn:null},
-  isolation_rest:{label:'Przerwa – izolacje', color:'var(--gr)', icon:'⏱', applyFn:null},
-  myoreps_rest:{label:'Przerwa – Myo-Reps', color:'#9f97e8', icon:'⏱', applyFn:null},
-  // Częstotliwość
-  optimal_frequency:{label:'Optymalna częstotliwość', color:'var(--bl)', icon:'📅', applyFn:null},
-  // RPE
-  hypertrophy_rpe:{label:'RPE (hipertrofia)', color:'var(--gr)', icon:'🎯', applyFn:null},
-  strength_rpe:{label:'RPE (siła)', color:'var(--yw)', icon:'🎯', applyFn:null},
-  // Deload
-  deload_frequency_intermediate:{label:'Częstotliwość deloadu', color:'var(--bl)', icon:'🔄', applyFn:null},
-  volume_reduction_pct:{label:'Redukcja objętości (deload)', color:'var(--ac)', icon:'📉', applyFn:null},
-  // Rekompo
-  weekly_deficit_pct:{label:'Deficyt tygodniowy (%BW)', color:'var(--yw)', icon:'⚡', applyFn:null},
-  protein_per_kg:{label:'Białko (g/kg)', color:'var(--gr)', icon:'🥩', applyFn:null},
-};
-
-let ragFetchAllRunning=false;
-let ragLastFetch=null;
-
-async function ragFetchAll(){
-  if(ragFetchAllRunning)return;
-  ragFetchAllRunning=true;
-  const btn=document.getElementById('rag-btn');
-  const log=document.getElementById('rag-log');
-  const dot=document.getElementById('rag-status-dot');
-  const txt=document.getElementById('rag-status-txt');
-  const results=document.getElementById('rag-results');
-
-  btn.disabled=true;
-  log.style.display='block';
-  log.textContent='';
-  dot.style.background='var(--yw)';
-  txt.textContent='pobieranie...';
-  results.style.display='none';
-
-  const topics=Object.keys(RAG_TOPICS);
-  let allData={};
-  let successCount=0;
-
-  for(let i=0;i<topics.length;i++){
-    const key=topics[i];
-    const cfg=RAG_TOPICS[key];
-    log.textContent+=`[${i+1}/${topics.length}] ${cfg.label}...\n`;
-
-    const sources=[];
-    if(document.getElementById('src-israetel')?.checked) sources.push('Renaissance Periodization (Dr Mike Israetel) – MEV/MAV/MRV');
-    if(document.getElementById('src-schoenfeld')?.checked) sources.push('Brad Schoenfeld PhD – hipertrofia');
-    if(document.getElementById('src-helms')?.checked) sources.push('Eric Helms / 3DMJ – RPE/RIR');
-    if(document.getElementById('src-nuckols')?.checked) sources.push('Greg Nuckols / MASS – siła');
-
-    // PubMed
-    let pubmedAbstracts='';
-    if(document.getElementById('src-pubmed')?.checked){
-      try{
-        const pmQuery=encodeURIComponent(cfg.pubmed+'[Title/Abstract]');
-        const pmUrl=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${pmQuery}&retmax=3&sort=date&retmode=json&datetype=pdat&mindate=2022&maxdate=2026`;
-        const pmRes=await fetch(pmUrl);
-        const pmJson=await pmRes.json();
-        const ids=(pmJson.esearchresult?.idlist||[]).slice(0,3);
-        if(ids.length>0){
-          const fetchUrl=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=text`;
-          const fetchRes=await fetch(fetchUrl);
-          pubmedAbstracts=(await fetchRes.text()).substring(0,2000);
-        }
-      }catch(e){}
-    }
-
-    const userMsg=`Źródła: ${sources.join('; ')}${pubmedAbstracts?'\nPubMed:\n'+pubmedAbstracts:''}\nTemat: ${cfg.label}\n${cfg.systemPrompt}`;
-
-    try{
-      const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-6',
-          max_tokens:800,
-          system:'Odpowiadasz WYŁĄCZNIE w formacie JSON bez żadnego tekstu przed ani po.',
-          messages:[{role:'user',content:userMsg}]
-        })
-      });
-      const data=await resp.json();
-      let raw=(data.content||[]).map(b=>b.text||'').join('');
-      raw=raw.replace(/```json|```/g,'').trim();
-      const parsed=JSON.parse(raw);
-      allData[key]=parsed;
-      successCount++;
-      log.textContent+=`  ✓ OK\n`;
-
-      // Dodaj do KB od razu
-      const kbText=`=== ${cfg.label} ===\nŹródła: ${sources.join(', ')}\nData: ${new Date().toLocaleDateString('pl')}\n${JSON.stringify(parsed,null,2)}`;
-      addToKnowledgeBase(`🔬 ${cfg.label}`,kbText,'science');
-
-    }catch(e){
-      log.textContent+=`  ⚠ Błąd: ${e.message}\n`;
-    }
-
-    // Krótka przerwa między zapytaniami
-    await new Promise(r=>setTimeout(r,500));
-  }
-
-  // Zapisz wszystko do localStorage
-  const ragBundle={data:allData,date:new Date().toISOString()};
-  try{localStorage.setItem('rag_science_bundle',JSON.stringify(ragBundle));}catch(e){}
-  ragLastFetch=new Date();
-
-  dot.style.background='var(--gr)';
-  txt.textContent=`OK (${successCount}/${topics.length} tematów)`;
-  btn.disabled=false;
-  btn.innerHTML='🔬 Odśwież bazę naukową';
-  log.textContent+=`\n✅ Gotowe! Baza naukowa załadowana (${successCount} tematów). Możesz generować plan.`;
-
-  // Zastosuj automatycznie
-  ragCurrentData=allData[Object.keys(allData)[0]];
-  ragFetchAllRunning=false;
-}
-
-// Załaduj z localStorage przy starcie
-function ragLoadFromStorage(){
-  try{
-    const saved=localStorage.getItem('rag_science_bundle');
-    if(!saved)return;
-    const bundle=JSON.parse(saved);
-    const date=new Date(bundle.date);
-    const daysSince=(Date.now()-date.getTime())/(1000*60*60*24);
-    if(daysSince<30){
-      // Dane świeże – załaduj do KB cicho
-      const dot=document.getElementById('rag-status-dot');
-      const txt=document.getElementById('rag-status-txt');
-      if(dot)dot.style.background='var(--gr)';
-      if(txt)txt.textContent=`OK (${date.toLocaleDateString('pl')})`;
-      const btn=document.getElementById('rag-btn');
-      if(btn)btn.innerHTML='🔬 Odśwież bazę naukową';
-      ragLastFetch=date;
-      console.log('RAG: loaded from localStorage, age:',Math.round(daysSince),'days');
-    }
-  }catch(e){}
-}
-
-async function ragFetch(){
-  await ragFetchAll();
-}
-function ragRenderResults(data, topicLabel){
-  const grid=document.getElementById('rag-params-grid');
-  const results=document.getElementById('rag-results');
-  let html='';
-
-  // key_finding na górze
-  if(data.key_finding){
-    html+=`<div style="background:rgba(96,165,250,0.08);border-left:3px solid var(--bl);border-radius:0 7px 7px 0;padding:8px 10px;font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:8px;">
-      <strong style="color:var(--bl);">💡 Kluczowy wniosek:</strong><br>${data.key_finding}
-    </div>`;
-  }
-
-  // Renderuj każdą wartość jako kafelek
-  Object.entries(data).forEach(([key,val])=>{
-    if(key==='key_finding'||key==='sources'||key==='description')return;
-    if(typeof val==='object'&&val!==null){
-      // obiekt (np. mev_per_muscle)
-      const cfg=RAG_PARAM_MAP[key];
-      const color=cfg?.color||'var(--bl)';
-      const icon=cfg?.icon||'📊';
-      const label=cfg?.label||key;
-      html+=`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px;">
-        <div style="font-size:9px;color:${color};font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">${icon} ${label}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">
-          ${Object.entries(val).map(([m,v])=>`<span style="background:rgba(255,255,255,0.05);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;"><span style="color:var(--tx3);">${m}:</span> ${v}</span>`).join('')}
-        </div>
-      </div>`;
-    } else {
-      const cfg=RAG_PARAM_MAP[key];
-      const color=cfg?.color||'var(--bl)';
-      const icon=cfg?.icon||'📊';
-      const label=cfg?.label||key;
-      html+=`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px;">
-        <span style="font-size:11px;color:var(--tx2);">${icon} ${label}</span>
-        <span style="font-size:12px;font-weight:600;color:${color};font-family:'DM Mono',monospace;">${val}</span>
-      </div>`;
-    }
-  });
-
-  // sources
-  if(data.sources?.length){
-    html+=`<div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;">Źródła: ${data.sources.join(' · ')}</div>`;
-  }
-
-  grid.innerHTML=html;
-  results.style.display='block';
-}
-
-function ragApplyToGenerator(){
-  if(!ragCurrentData)return;
-  const d=ragCurrentData;
-
-  // Mapuj dane naukowe na pola generatora planu
-  let applied=[];
-
-  // Przerwy → automatyczny komentarz w filozofii
-  let restNote='';
-  if(d.compound_strength_rest||d.compound_hypertrophy_rest||d.isolation_rest){
-    restNote=`\n\nPRZERWY (Evidence-Based):\n- Wielostawy (siła): ${d.compound_strength_rest||'2-3 min'}\n- Wielostawy (hipertrofia): ${d.compound_hypertrophy_rest||'90-120s'}\n- Izolacje: ${d.isolation_rest||'60-90s'}\n- Myo-Reps: ${d.myoreps_rest||'10-15s'}`;
-    applied.push('przerwy między seriami');
-  }
-
-  // Objętość → zapamiętana w KB
-  if(d.mev_per_muscle||d.mav_per_muscle){
-    applied.push('MEV/MAV/MRV per partia');
-  }
-
-  // RPE → filozofia trenera
-  let rpeNote='';
-  if(d.hypertrophy_rpe||d.strength_rpe){
-    rpeNote=`\n\nOPTYMALNE RPE (badania naukowe):\n- Hipertrofia: RPE ${d.hypertrophy_rpe||'7-8'}\n- Siła: RPE ${d.strength_rpe||'8-9'}`;
-    applied.push('zakresy RPE');
-  }
-
-  // Wpisz do pola filozofii
-  if(restNote||rpeNote){
-    const philField=document.getElementById('phil-methodology');
-    if(philField){
-      const current=philField.value;
-      const addition=`${restNote}${rpeNote}`;
-      if(!current.includes('Evidence-Based')){
-        philField.value=current+addition;
-        applied.push('filozofia trenera zaktualizowana');
-      }
-    }
-  }
-
-  // Powtórzenia → zapamiętaj w KB jako wytyczna
-  if(d.rep_range_hypertrophy||d.strength_rep_range||d.optimal_frequency){
-    let guide=`=== WYTYCZNE GENERATORA PLANU ===\n`;
-    if(d.rep_range_hypertrophy) guide+=`Zakresy powt. (hipertrofia): ${d.rep_range_hypertrophy}\n`;
-    if(d.strength_rep_range) guide+=`Zakresy powt. (siła): ${d.strength_rep_range}\n`;
-    if(d.sets_per_exercise) guide+=`Serie per ćwiczenie: ${d.sets_per_exercise}\n`;
-    if(d.optimal_frequency) guide+=`Optymalna częstotliwość: ${d.optimal_frequency}\n`;
-    if(d.deload_frequency_intermediate) guide+=`Deload co: ${d.deload_frequency_intermediate}\n`;
-    addToKnowledgeBase('⚙️ Wytyczne generatora (naukowe)',guide,'science_config');
-    applied.push('wytyczne generatora');
-  }
-
-  if(applied.length>0){
-    const btn=document.getElementById('rag-apply-btn');
-    btn.textContent='✓ Zastosowano: '+applied.join(', ');
-    btn.style.background='var(--gr)';
-    setTimeout(()=>{btn.textContent='✓ Zastosuj w generatorze planu';btn.style.background='var(--bl)';},4000);
-  }
-}
-// ===== END SCIENCE RAG ENGINE =====
-
 function addToKnowledgeBase(title,content,type){const id=Date.now();knowledgeBase.push({id,title,content,type});saveKB();renderKnowledgeBase();updateKBBadge();}
 function removeFromKnowledgeBase(id){knowledgeBase=knowledgeBase.filter(d=>d.id!==id);saveKB();renderKnowledgeBase();updateKBBadge();}
 function updateKBBadge(){const badge=document.getElementById('kb-badge'),count=document.getElementById('kb-count');count.textContent=knowledgeBase.length+' dokumentów';badge.style.display=knowledgeBase.length>0?'inline-flex':'none';}
@@ -2787,17 +2334,7 @@ async function callAPI(system, userMsg, maxTokens) {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:maxTokens, system:system, messages:[{role:'user',content:userMsg}]})
   });
-  if (!resp.ok) {
-    const errText = await resp.text().catch(()=>'');
-    console.error('Proxy HTTP error:', resp.status, errText.substring(0,300));
-    throw new Error(`Proxy error ${resp.status}`);
-  }
   const data = await resp.json();
-  if (!data?.content?.length) {
-    console.error('Proxy empty/error response:', JSON.stringify(data).substring(0,400));
-    if (data?.error) throw new Error(data.error.message || 'API error');
-    throw new Error('Empty response from proxy');
-  }
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
   console.log('API raw length:', raw.length, 'preview:', raw.substring(0,80));
   const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
@@ -2806,19 +2343,18 @@ async function callAPI(system, userMsg, maxTokens) {
   try { return JSON.parse(jsonStr); }
   catch(e) {
     let rep = jsonStr;
-    // Krok 1: usuń ucięty string na końcu
+    // Remove unterminated string/value at end
     rep = rep.replace(/,?\s*"[^"]*$/, '');
     rep = rep.replace(/,?\s*"[^"]*":\s*"[^"]*$/, '');
-    rep = rep.replace(/,?\s*"[^"]*":\s*[^,}\]]*$/, '');
     rep = rep.replace(/,\s*$/, '');
-    // Krok 2: zamknij otwarte nawiasy
+    // Close open brackets
     const opens = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
     const openb = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
     for(let i=0;i<Math.max(0,opens);i++) rep+=']';
     for(let i=0;i<Math.max(0,openb);i++) rep+='}';
     try { const r=JSON.parse(rep); console.log('Repair OK'); return r; }
     catch(e2) {
-      // Krok 3: cofnij do ostatniego kompletnego ćwiczenia
+      // Last resort: cut back to last complete exercise
       const cut = rep.lastIndexOf(',{"name":');
       if(cut>0) {
         let t=rep.substring(0,cut);
@@ -2828,17 +2364,6 @@ async function callAPI(system, userMsg, maxTokens) {
         for(let i=0;i<Math.max(0,o);i++) t+=']';
         for(let i=0;i<Math.max(0,b);i++) t+='}';
         try { return JSON.parse(t); } catch(e3) {}
-      }
-      // Krok 4: cofnij do ostatniej kompletnej sesji
-      const cut2 = rep.lastIndexOf(',{"sessionName":');
-      if(cut2>0) {
-        let t=rep.substring(0,cut2);
-        t=t.replace(/,\s*$/,'');
-        const o=(t.match(/\[/g)||[]).length-(t.match(/\]/g)||[]).length;
-        const b=(t.match(/\{/g)||[]).length-(t.match(/\}/g)||[]).length;
-        for(let i=0;i<Math.max(0,o);i++) t+=']';
-        for(let i=0;i<Math.max(0,b);i++) t+='}';
-        try { return JSON.parse(t); } catch(e4) {}
       }
       console.error('Repair failed:', e2.message); return null;
     }
@@ -3084,16 +2609,6 @@ ZASADY:
 
 
 async function generatePlan() {
-  // Auto-sync RAG jeśli zaznaczone i dane starsze niż 30 dni lub brak
-  if(document.getElementById('rag-auto-sync')?.checked){
-    const saved=localStorage.getItem('rag_science_bundle');
-    if(!saved){
-      console.log('RAG: auto-fetching before plan generation...');
-      const log=document.getElementById('rag-log');
-      if(log){log.style.display='block';log.textContent='⏳ Pobieranie bazy naukowej przed generowaniem planu...\n';}
-      await ragFetchAll();
-    }
-  }
   const profile = getClientProfile();
   const philosophy = getPhilosophy();
   if (!profile) { alert('Wpisz najpierw imię klienta w panelu Klient!'); return; }
@@ -3119,12 +2634,32 @@ async function generatePlan() {
   try {
     const sysPrompt = buildPlanPrompt(planWeeks);
     const kbCtx = getKnowledgeContext();
+    // RAG wytyczne naukowe
+    let ragGuide = '';
+    try {
+      const ragSaved = localStorage.getItem('rag_science_bundle');
+      if (ragSaved) {
+        const bundle = JSON.parse(ragSaved);
+        const d = bundle.data || {};
+        const parts = [];
+        if (d.hypertrophy_volume && d.hypertrophy_volume.mav_per_muscle) {
+          const mav = d.hypertrophy_volume.mav_per_muscle;
+          const mev = d.hypertrophy_volume.mev_per_muscle || {};
+          parts.push('MEV->MAV serie/tyg: klatka ' + (mev.chest||10) + '->' + (mav.chest||16) + ', plecy ' + (mev.back||14) + '->' + (mav.back||18) + ', barki ' + (mev.shoulders||12) + '->' + (mav.shoulders||16) + ', nogi ' + (mev.quads||12) + '->' + (mav.quads||18));
+        }
+        if (d.rest_periods) parts.push('Przerwy: wielostawy ' + (d.rest_periods.compound_hypertrophy_rest||'90-120s') + ', izolacje ' + (d.rest_periods.isolation_rest||'60-90s'));
+        if (d.rpe_rir) parts.push('RPE: hipertrofia ' + (d.rpe_rir.hypertrophy_rpe||'7-8') + ', sila ' + (d.rpe_rir.strength_rpe||'8-9'));
+        if (d.deload) parts.push('Deload: co ' + (d.deload.deload_frequency_intermediate||'4-6 tyg') + ', -' + (d.deload.volume_reduction_pct||'40-50%') + ' objetosci');
+        if (d.fat_loss_muscle) parts.push('Redukcja: deficyt ' + (d.fat_loss_muscle.weekly_deficit_pct||'0.5-1% BW') + '/tydz, bialko ' + (d.fat_loss_muscle.protein_per_kg||'2.2-2.8g') + '/kg');
+        if (parts.length) ragGuide = '\n\n===WYTYCZNE NAUKOWE (Israetel/Schoenfeld/Helms)===\n' + parts.join('\n') + '\n===KONIEC===';
+      }
+    } catch(re) {}
     plan = await callAPI(
       sysPrompt,
-      `Wygeneruj plan. TYLKO JSON.\n\n${profile}\n${philosophy}${kbCtx ? '\n\n' + kbCtx : ''}`,
+      'Wygeneruj plan. TYLKO JSON.\n\n' + profile + '\n' + philosophy + (kbCtx ? '\n\n' + kbCtx : '') + ragGuide,
       tokenBudget
     );
-  } catch(err) { console.error('generatePlan error:', err); plan = null; errMsg = err.message || 'Nieznany błąd'; }
+  } catch(err) { console.error('generatePlan error:', err); plan = null; errMsg = err.message || 'Nieznany blad'; }
 
   clearInterval(ticker);
   document.getElementById('plan-loading').style.display = 'none';
@@ -3134,8 +2669,7 @@ async function generatePlan() {
     document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
       <div style="font-size:36px;margin-bottom:12px">❌</div>
       <div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div>
-      <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:6px;">${errMsg||'Sprawdź konsolę (F12)'}</div>
-      <div style="font-size:12px;margin-bottom:16px;">Spróbuj ponownie lub zmień model w ustawieniach proxy.</div>
+      <div style="font-size:12px;margin-bottom:16px;">Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.</div>
       <button onclick="generatePlan()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;">🔄 Spróbuj ponownie</button>
     </div>`;
     return;
@@ -3161,6 +2695,13 @@ async function expandPlan() {
   generatePlan();
 }
 
+
+
+
+function getPhaseColor(phase) {
+  for (const [k,v] of Object.entries(PHASE_COLORS)) { if ((phase||'').includes(k)) return v; }
+  return 'var(--bl)';
+}
 
 function renderPlan(plan) {
   const phases = plan.phases || {};

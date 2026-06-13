@@ -2365,6 +2365,17 @@ async function callAPI(system, userMsg, maxTokens) {
         for(let i=0;i<Math.max(0,b);i++) t+='}';
         try { return JSON.parse(t); } catch(e3) {}
       }
+      // Krok 3: cofnij do ostatniej sesji
+      const cut2 = rep.lastIndexOf(',{"sessionName":');
+      if(cut2>0) {
+        let t=rep.substring(0,cut2);
+        t=t.replace(/,\s*$/,'');
+        const o=(t.match(/\[/g)||[]).length-(t.match(/\]/g)||[]).length;
+        const b=(t.match(/\{/g)||[]).length-(t.match(/\}/g)||[]).length;
+        for(let i=0;i<Math.max(0,o);i++) t+=']';
+        for(let i=0;i<Math.max(0,b);i++) t+='}';
+        try { return JSON.parse(t); } catch(e4) {}
+      }
       console.error('Repair failed:', e2.message); return null;
     }
   }
@@ -2627,7 +2638,7 @@ async function generatePlan() {
     if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
   }, 2000);
 
-  const tokenBudget = planWeeks === 1 ? 6000 : planWeeks === 4 ? 12000 : 16000;
+  const tokenBudget = planWeeks === 1 ? 6000 : planWeeks === 4 ? 14000 : 20000;
 
   let plan = null;
   let errMsg = '';

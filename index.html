@@ -2412,458 +2412,192 @@ async function loadKB() {
   }
 }
 // ===== SCIENCE RAG ENGINE =====
-
 const RAG_TOPICS = {
-  hypertrophy_volume: {
-    label:'Objętość treningowa (hipertrofia)',
-    pubmed:'hypertrophy training volume resistance AND sets per week muscle growth',
-    authorities:['israetel','schoenfeld'],
-    systemPrompt:`Jesteś ekspertem od hipertrofii. Na podstawie najnowszych badań (2022-2026) i wytycznych autorytetów (Israetel, Schoenfeld, Helms) przedstaw KONKRETNE liczby dla:
-1. MEV (minimalna efektywna objętość) per partia mięśniowa per tydzień
-2. MAV (maksymalna adaptacyjna objętość) - optimum
-3. MRV (maksymalna regeneracyjna objętość) - górna granica
-4. Optymalna liczba powtórzeń dla hipertrofii (zakres)
-5. Liczba serii per ćwiczenie
-
-Odpowiedz TYLKO w JSON: {"mev_per_muscle":{"chest":N,"back":N,"shoulders":N,"quads":N,"hamstrings":N,"biceps":N,"triceps":N},"mav_per_muscle":{...},"mrv_per_muscle":{...},"rep_range_hypertrophy":"X-Y","sets_per_exercise":"X-Y","key_finding":"...","sources":["..."]}`,
-  },
-  strength_progression:{
-    label:'Progresja siły',
-    pubmed:'strength training progression overload resistance periodization',
-    authorities:['nuckols','helms'],
-    systemPrompt:`Ekspert od progresji siły. Na podstawie badań podaj KONKRETNE liczby:
-1. Optymalna progresja tygodniowa (% lub kg) dla początkujących/średniozaawansowanych/zaawansowanych
-2. Zakres powtórzeń dla siły maksymalnej
-3. Optymalne % 1RM dla głównych ruchów siłowych
-4. Częstotliwość trenowania ruchu dla progresji siły
-
-Odpowiedz TYLKO w JSON: {"progression_beginner":"X kg/tydz","progression_intermediate":"X%/tydz","progression_advanced":"X%/tydz","strength_rep_range":"X-Y","strength_intensity_pct":"X-Y%","frequency_per_week":"X-Y razy","key_finding":"...","sources":["..."]}`,
-  },
-  rest_periods:{
-    label:'Przerwy między seriami',
-    pubmed:'rest intervals between sets resistance training hypertrophy strength',
-    authorities:['schoenfeld','israetel'],
-    systemPrompt:`Ekspert od optymalizacji przerw. Podaj KONKRETNE sekundy/minuty dla:
-1. Ćwiczenia wielostawowe (przysiad, martwy, wyciskanie) - dla siły vs hipertrofii
-2. Ćwiczenia izolowane (biceps, triceps, lateral raise)
-3. Przy metodach intensyfikacji (drop-sety, myo-reps, super-serie)
-
-Odpowiedz TYLKO w JSON: {"compound_strength_rest":"X-Y min","compound_hypertrophy_rest":"X-Y min","isolation_rest":"X-Y sek","dropset_rest":"X sek","myoreps_rest":"X-Y sek","superseries_rest":"X sek","key_finding":"...","sources":["..."]}`,
-  },
-  frequency:{
-    label:'Częstotliwość treningów per partia',
-    pubmed:'training frequency muscle hypertrophy per week resistance',
-    authorities:['schoenfeld','israetel','helms'],
-    systemPrompt:`Ekspert od częstotliwości treningów. Podaj optymalne bodźcowanie per tydzień:
-1. Optymalna częstotliwość dla hipertrofii (ile razy per partia per tydzień)
-2. Czy więcej niż 2x tygodniowo daje dodatkowe korzyści?
-3. Zalecany split (PPL, Upper/Lower, FBW) dla różnych częstotliwości
-
-Odpowiedz TYLKO w JSON: {"optimal_frequency":"X-Y razy/tydz","max_benefit_frequency":N,"beginner_split":"...","intermediate_split":"...","advanced_split":"...","key_finding":"...","sources":["..."]}`,
-  },
-  rpe_rir:{
-    label:'RPE/RIR – intensywność',
-    pubmed:'RPE RIR rate perceived exertion reps in reserve resistance training',
-    authorities:['helms','israetel'],
-    systemPrompt:`Ekspert od autoregulacji (RPE/RIR). Podaj:
-1. Optymalne RPE dla różnych celów (siła vs hipertrofia vs wytrzymałość)
-2. RIR rekomendowany per faza treningu
-3. Jak zmieniać RPE w blokach periodyzacji
-
-Odpowiedz TYLKO w JSON: {"hypertrophy_rpe":"X-Y","strength_rpe":"X-Y","endurance_rpe":"X-Y","accumulation_rir":"X-Y","intensification_rir":"X-Y","peaking_rir":"0-1","key_finding":"...","sources":["..."]}`,
-  },
-  myo_reps:{
-    label:'Myo-Reps i zaawansowane metody',
-    pubmed:'myo reps cluster sets drop sets advanced training techniques hypertrophy',
-    authorities:['israetel','schoenfeld'],
-    systemPrompt:`Ekspert od zaawansowanych metod treningowych. Podaj wytyczne dla:
-1. Myo-Reps: optymalna liczba mini-serii, minimalny próg powtórzeń
-2. Drop-sety: ile dropów, % redukcji ciężaru
-3. Cluster sets: podział serii, przerwy wewnątrz
-4. Dla jakich ćwiczeń bezpieczne vs ryzykowne
-
-Odpowiedz TYLKO w JSON: {"myoreps_activation":"X-Y powt","myoreps_mini_sets":"X-Y","myoreps_mini_reps":"X-Y","dropset_drops":"X-Y","dropset_weight_reduction":"X-Y%","cluster_pause":"X-Y sek","safe_for_isolation":true,"safe_for_compound":false,"key_finding":"...","sources":["..."]}`,
-  },
-  deload:{
-    label:'Deload – strategie regeneracji',
-    pubmed:'deload week training recovery supercompensation resistance',
-    authorities:['israetel','helms'],
-    systemPrompt:`Ekspert od deloadów. Podaj:
-1. Co ile tygodni deload (dla różnych poziomów zaawansowania)
-2. Jak zredukować: objętość vs intensywność vs obie
-3. Długość deload (ile dni/tygodni)
-
-Odpowiedz TYLKO w JSON: {"deload_frequency_beginner":"co X tyg","deload_frequency_intermediate":"co X tyg","deload_frequency_advanced":"co X tyg","volume_reduction_pct":"X%","intensity_reduction_pct":"X%","deload_duration":"X-Y dni","key_finding":"...","sources":["..."]}`,
-  },
-  fat_loss_muscle:{
-    label:'Redukcja z zachowaniem masy',
-    pubmed:'fat loss muscle retention cutting caloric deficit resistance training',
-    authorities:['helms','israetel','schoenfeld'],
-    systemPrompt:`Ekspert od rekompo/redukcji. Podaj:
-1. Optymalne tempo redukcji (%BW/tydz) dla zachowania masy
-2. Zmiany w objętości treningowej podczas deficytu
-3. Wpływ deficytu kalorycznego na siłę i objętość treningową
-
-Odpowiedz TYLKO w JSON: {"weekly_deficit_pct":"X-Y% BW","max_deficit_kcal":"X-Y kcal","volume_adjustment":"-X%","protein_per_kg":"X g","training_frequency_cut":"X-Y razy/tydz","key_finding":"...","sources":["..."]}`,
-  }
+  hypertrophy_volume:{label:'Objętość treningowa (hipertrofia)',pubmed:'hypertrophy training volume resistance sets per week muscle',systemPrompt:'Podaj MEV/MAV/MRV per partia mięśniowa, optymalny zakres powtórzeń i serie per ćwiczenie. Odpowiedz TYLKO w JSON: {"mev_per_muscle":{"chest":10,"back":14,"shoulders":12,"quads":12,"hamstrings":10,"biceps":8,"triceps":8},"mav_per_muscle":{"chest":16,"back":18,"shoulders":16,"quads":18,"hamstrings":14,"biceps":12,"triceps":12},"mrv_per_muscle":{"chest":20,"back":22,"shoulders":22,"quads":26,"hamstrings":18,"biceps":16,"triceps":16},"rep_range_hypertrophy":"6-20","sets_per_exercise":"3-5","key_finding":"Optymalna objętość to 10-20 serii tygodniowo per partia","sources":["Schoenfeld 2017","Israetel RP"]}'},
+  strength_progression:{label:'Progresja siły',pubmed:'strength training progression overload periodization',systemPrompt:'Podaj parametry progresji siły. Odpowiedz TYLKO w JSON: {"progression_beginner":"2.5-5 kg/tydz","progression_intermediate":"0.5-1%/tydz","progression_advanced":"0.25-0.5%/tydz","strength_rep_range":"1-5","strength_intensity_pct":"80-95%","frequency_per_week":"2-3 razy","key_finding":"Liniowa progresja dla początkujących, falująca dla zaawansowanych","sources":["Nuckols MASS","Helms 3DMJ"]}'},
+  rest_periods:{label:'Przerwy między seriami',pubmed:'rest intervals sets resistance training hypertrophy strength',systemPrompt:'Podaj optymalne przerwy. Odpowiedz TYLKO w JSON: {"compound_strength_rest":"3-5 min","compound_hypertrophy_rest":"90-120 sek","isolation_rest":"60-90 sek","dropset_rest":"15-30 sek","myoreps_rest":"10-15 sek","superseries_rest":"0-30 sek","key_finding":"Dłuższe przerwy (3-5 min) optymalne dla siły, 90-120s dla hipertrofii","sources":["Schoenfeld 2016","Israetel RP"]}'},
+  frequency:{label:'Częstotliwość treningów',pubmed:'training frequency muscle hypertrophy per week resistance',systemPrompt:'Podaj optymalną częstotliwość. Odpowiedz TYLKO w JSON: {"optimal_frequency":"2 razy/tydz","max_benefit_frequency":2,"beginner_split":"FBW 3x/tydz","intermediate_split":"PPL 4-5x/tydz","advanced_split":"PPL 6x/tydz","key_finding":"2x tygodniowo per partia optymalne dla hipertrofii","sources":["Schoenfeld 2016","Israetel RP"]}'},
+  rpe_rir:{label:'RPE/RIR intensywność',pubmed:'RPE RIR rate perceived exertion reps in reserve',systemPrompt:'Podaj optymalne RPE/RIR. Odpowiedz TYLKO w JSON: {"hypertrophy_rpe":"7-8","strength_rpe":"8-9","endurance_rpe":"6-7","accumulation_rir":"3-4","intensification_rir":"1-2","peaking_rir":"0-1","key_finding":"RPE 7-8 optymalne dla hipertrofii z zachowaniem techniki","sources":["Helms 2016","Israetel RP"]}'},
+  myo_reps:{label:'Myo-Reps i zaawansowane metody',pubmed:'myo reps cluster sets drop sets advanced training hypertrophy',systemPrompt:'Podaj wytyczne dla zaawansowanych metod. Odpowiedz TYLKO w JSON: {"myoreps_activation":"12-15 powt","myoreps_mini_sets":"3-5","myoreps_mini_reps":"3-5","dropset_drops":"2-3","dropset_weight_reduction":"20-30%","cluster_pause":"10-20 sek","safe_for_isolation":true,"safe_for_compound":false,"key_finding":"Myo-Reps najskuteczniejsze dla izolacji i maszyn","sources":["Fagerli","Israetel RP"]}'},
+  deload:{label:'Deload regeneracja',pubmed:'deload week training recovery supercompensation',systemPrompt:'Podaj strategię deloadu. Odpowiedz TYLKO w JSON: {"deload_frequency_beginner":"co 8-12 tyg","deload_frequency_intermediate":"co 4-6 tyg","deload_frequency_advanced":"co 3-4 tyg","volume_reduction_pct":"40-50%","intensity_reduction_pct":"10-20%","deload_duration":"5-7 dni","key_finding":"Deload co 4-6 tygodni dla średniozaawansowanych","sources":["Israetel RP","Helms 3DMJ"]}'},
+  fat_loss_muscle:{label:'Redukcja z zachowaniem masy',pubmed:'fat loss muscle retention cutting caloric deficit',systemPrompt:'Podaj parametry redukcji. Odpowiedz TYLKO w JSON: {"weekly_deficit_pct":"0.5-1% BW","max_deficit_kcal":"500-700 kcal","volume_adjustment":"-10-20%","protein_per_kg":"2.2-2.8 g","training_frequency_cut":"3-4 razy/tydz","key_finding":"Deficyt 500 kcal z wysokim białkiem zachowuje masę mięśniową","sources":["Helms 2014","Israetel RP"]}'}
 };
 
-// Mapowanie pól JSON → UI aplikacji
 const RAG_PARAM_MAP = {
-  // Objętość
-  mev_per_muscle: {label:'MEV per partia (serie/tydz)', color:'var(--gr)', icon:'📉', applyFn: null},
-  mav_per_muscle: {label:'MAV (optimum) per partia', color:'var(--bl)', icon:'🎯', applyFn: null},
-  mrv_per_muscle: {label:'MRV (max) per partia', color:'var(--ac)', icon:'📈', applyFn: null},
-  rep_range_hypertrophy:{label:'Zakres powt. (hipertrofia)', color:'var(--gr)', icon:'💪', applyFn:null},
-  sets_per_exercise:{label:'Serie per ćwiczenie', color:'var(--bl)', icon:'🔢', applyFn:null},
-  // Siła
-  progression_beginner:{label:'Progresja – początkujący', color:'var(--gr)', icon:'📈', applyFn:null},
-  progression_intermediate:{label:'Progresja – śr.zaawansowany', color:'var(--bl)', icon:'📈', applyFn:null},
-  progression_advanced:{label:'Progresja – zaawansowany', color:'var(--yw)', icon:'📈', applyFn:null},
-  strength_rep_range:{label:'Zakres powt. (siła)', color:'var(--yw)', icon:'💪', applyFn:null},
-  // Przerwy
-  compound_strength_rest:{label:'Przerwa – wielostawy (siła)', color:'var(--bl)', icon:'⏱', applyFn:null},
-  compound_hypertrophy_rest:{label:'Przerwa – wielostawy (hipert.)', color:'var(--gr)', icon:'⏱', applyFn:null},
-  isolation_rest:{label:'Przerwa – izolacje', color:'var(--gr)', icon:'⏱', applyFn:null},
-  myoreps_rest:{label:'Przerwa – Myo-Reps', color:'#9f97e8', icon:'⏱', applyFn:null},
-  // Częstotliwość
-  optimal_frequency:{label:'Optymalna częstotliwość', color:'var(--bl)', icon:'📅', applyFn:null},
-  // RPE
-  hypertrophy_rpe:{label:'RPE (hipertrofia)', color:'var(--gr)', icon:'🎯', applyFn:null},
-  strength_rpe:{label:'RPE (siła)', color:'var(--yw)', icon:'🎯', applyFn:null},
-  // Deload
-  deload_frequency_intermediate:{label:'Częstotliwość deloadu', color:'var(--bl)', icon:'🔄', applyFn:null},
-  volume_reduction_pct:{label:'Redukcja objętości (deload)', color:'var(--ac)', icon:'📉', applyFn:null},
-  // Rekompo
-  weekly_deficit_pct:{label:'Deficyt tygodniowy (%BW)', color:'var(--yw)', icon:'⚡', applyFn:null},
-  protein_per_kg:{label:'Białko (g/kg)', color:'var(--gr)', icon:'🥩', applyFn:null},
+  rep_range_hypertrophy:{label:'Zakres powt. (hipertrofia)',color:'var(--gr)',icon:'💪'},
+  sets_per_exercise:{label:'Serie per ćwiczenie',color:'var(--bl)',icon:'🔢'},
+  progression_beginner:{label:'Progresja – początkujący',color:'var(--gr)',icon:'📈'},
+  progression_intermediate:{label:'Progresja – średniozaawansowany',color:'var(--bl)',icon:'📈'},
+  compound_strength_rest:{label:'Przerwa – wielostawy (siła)',color:'var(--bl)',icon:'⏱'},
+  compound_hypertrophy_rest:{label:'Przerwa – wielostawy (hipert.)',color:'var(--gr)',icon:'⏱'},
+  isolation_rest:{label:'Przerwa – izolacje',color:'var(--gr)',icon:'⏱'},
+  myoreps_rest:{label:'Przerwa – Myo-Reps',color:'#9f97e8',icon:'⏱'},
+  optimal_frequency:{label:'Optymalna częstotliwość',color:'var(--bl)',icon:'📅'},
+  hypertrophy_rpe:{label:'RPE (hipertrofia)',color:'var(--gr)',icon:'🎯'},
+  strength_rpe:{label:'RPE (siła)',color:'var(--yw)',icon:'🎯'},
+  deload_frequency_intermediate:{label:'Częstotliwość deloadu',color:'var(--bl)',icon:'🔄'},
+  volume_reduction_pct:{label:'Redukcja objętości (deload)',color:'var(--ac)',icon:'📉'},
+  protein_per_kg:{label:'Białko (g/kg)',color:'var(--gr)',icon:'🥩'}
 };
 
-let ragFetchAllRunning=false;
-let ragLastFetch=null;
+let ragCurrentData = null;
+let ragFetchAllRunning = false;
+let ragLastFetch = null;
 
-async function ragFetchAll(){
-  if(ragFetchAllRunning)return;
-  ragFetchAllRunning=true;
-  const btn=document.getElementById('rag-btn');
-  const log=document.getElementById('rag-log');
-  const dot=document.getElementById('rag-status-dot');
-  const txt=document.getElementById('rag-status-txt');
-  const results=document.getElementById('rag-results');
-
-  btn.disabled=true;
-  log.style.display='block';
-  log.textContent='';
-  dot.style.background='var(--yw)';
-  txt.textContent='pobieranie...';
-  results.style.display='none';
-
-  const topics=Object.keys(RAG_TOPICS);
-  let allData={};
-  let successCount=0;
-
-  for(let i=0;i<topics.length;i++){
-    const key=topics[i];
-    const cfg=RAG_TOPICS[key];
-    log.textContent+=`[${i+1}/${topics.length}] ${cfg.label}...\n`;
-
-    const sources=[];
-    if(document.getElementById('src-israetel')?.checked) sources.push('Renaissance Periodization (Dr Mike Israetel) – MEV/MAV/MRV');
-    if(document.getElementById('src-schoenfeld')?.checked) sources.push('Brad Schoenfeld PhD – hipertrofia');
-    if(document.getElementById('src-helms')?.checked) sources.push('Eric Helms / 3DMJ – RPE/RIR');
-    if(document.getElementById('src-nuckols')?.checked) sources.push('Greg Nuckols / MASS – siła');
-
-    // PubMed
-    let pubmedAbstracts='';
-    if(document.getElementById('src-pubmed')?.checked){
-      try{
-        const pmQuery=encodeURIComponent(cfg.pubmed+'[Title/Abstract]');
-        const pmUrl=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${pmQuery}&retmax=3&sort=date&retmode=json&datetype=pdat&mindate=2022&maxdate=2026`;
-        const pmRes=await fetch(pmUrl);
-        const pmJson=await pmRes.json();
-        const ids=(pmJson.esearchresult?.idlist||[]).slice(0,3);
-        if(ids.length>0){
-          const fetchUrl=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=text`;
-          const fetchRes=await fetch(fetchUrl);
-          pubmedAbstracts=(await fetchRes.text()).substring(0,2000);
-        }
-      }catch(e){}
-    }
-
-    const userMsg=`Źródła: ${sources.join('; ')}${pubmedAbstracts?'\nPubMed:\n'+pubmedAbstracts:''}\nTemat: ${cfg.label}\n${cfg.systemPrompt}`;
-
-    try{
-      const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-6',
-          max_tokens:800,
-          system:'Odpowiadasz WYŁĄCZNIE w formacie JSON bez żadnego tekstu przed ani po.',
-          messages:[{role:'user',content:userMsg}]
+async function ragFetchAll() {
+  if (ragFetchAllRunning) return;
+  ragFetchAllRunning = true;
+  const btn = document.getElementById('rag-btn');
+  const log = document.getElementById('rag-log');
+  const dot = document.getElementById('rag-status-dot');
+  const txt = document.getElementById('rag-status-txt');
+  const results = document.getElementById('rag-results');
+  if (btn) btn.disabled = true;
+  if (log) { log.style.display = 'block'; log.textContent = ''; }
+  if (dot) dot.style.background = 'var(--yw)';
+  if (txt) txt.textContent = 'pobieranie...';
+  if (results) results.style.display = 'none';
+  const topics = Object.keys(RAG_TOPICS);
+  let allData = {};
+  let successCount = 0;
+  const sources = [];
+  if (document.getElementById('src-israetel')?.checked) sources.push('Renaissance Periodization (Dr Mike Israetel)');
+  if (document.getElementById('src-schoenfeld')?.checked) sources.push('Brad Schoenfeld PhD');
+  if (document.getElementById('src-helms')?.checked) sources.push('Eric Helms / 3DMJ');
+  if (document.getElementById('src-nuckols')?.checked) sources.push('Greg Nuckols / MASS');
+  for (let i = 0; i < topics.length; i++) {
+    const key = topics[i];
+    const cfg = RAG_TOPICS[key];
+    if (log) log.textContent += `[${i+1}/${topics.length}] ${cfg.label}...
+`;
+    try {
+      const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 600,
+          system: 'Odpowiadasz WYŁĄCZNIE w formacie JSON bez żadnego tekstu przed ani po.',
+          messages: [{role: 'user', content: `Źródła: ${sources.join(', ')}
+${cfg.systemPrompt}`}]
         })
       });
-      const data=await resp.json();
-      let raw=(data.content||[]).map(b=>b.text||'').join('');
-      raw=raw.replace(/```json|```/g,'').trim();
-      const parsed=JSON.parse(raw);
-      allData[key]=parsed;
+      const data = await resp.json();
+      let raw = (data.content || []).map(b => b.text || '').join('');
+      raw = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(raw);
+      allData[key] = parsed;
       successCount++;
-      log.textContent+=`  ✓ OK\n`;
-
-      // Dodaj do KB od razu
-      const kbText=`=== ${cfg.label} ===\nŹródła: ${sources.join(', ')}\nData: ${new Date().toLocaleDateString('pl')}\n${JSON.stringify(parsed,null,2)}`;
-      addToKnowledgeBase(`🔬 ${cfg.label}`,kbText,'science');
-
-    }catch(e){
-      log.textContent+=`  ⚠ Błąd: ${e.message}\n`;
+      if (log) log.textContent += `  ✓ OK
+`;
+      const kbText = `=== ${cfg.label} ===
+Źródła: ${sources.join(', ')}
+Data: ${new Date().toLocaleDateString('pl')}
+${JSON.stringify(parsed, null, 2)}`;
+      addToKnowledgeBase(`🔬 ${cfg.label}`, kbText, 'science');
+    } catch(e) {
+      if (log) log.textContent += `  ⚠ Błąd: ${e.message}
+`;
     }
-
-    // Krótka przerwa między zapytaniami
-    await new Promise(r=>setTimeout(r,500));
+    await new Promise(r => setTimeout(r, 500));
   }
-
-  // Zapisz wszystko do localStorage
-  const ragBundle={data:allData,date:new Date().toISOString()};
-  try{localStorage.setItem('rag_science_bundle',JSON.stringify(ragBundle));}catch(e){}
-  ragLastFetch=new Date();
-
-  dot.style.background='var(--gr)';
-  txt.textContent=`OK (${successCount}/${topics.length} tematów)`;
-  btn.disabled=false;
-  btn.innerHTML='🔬 Odśwież bazę naukową';
-  log.textContent+=`\n✅ Gotowe! Baza naukowa załadowana (${successCount} tematów). Możesz generować plan.`;
-
-  // Zastosuj automatycznie
-  ragCurrentData=allData[Object.keys(allData)[0]];
-  ragFetchAllRunning=false;
+  try { localStorage.setItem('rag_science_bundle', JSON.stringify({data: allData, date: new Date().toISOString()})); } catch(e) {}
+  ragLastFetch = new Date();
+  if (dot) dot.style.background = 'var(--gr)';
+  if (txt) txt.textContent = `OK (${successCount}/${topics.length} tematów)`;
+  if (btn) { btn.disabled = false; btn.innerHTML = '🔬 Odśwież bazę naukową'; }
+  if (log) log.textContent += `
+✅ Gotowe! (${successCount} tematów)`;
+  ragCurrentData = allData[Object.keys(allData)[0]];
+  ragFetchAllRunning = false;
 }
 
-// Załaduj z localStorage przy starcie
-function ragLoadFromStorage(){
-  try{
-    const saved=localStorage.getItem('rag_science_bundle');
-    if(!saved)return;
-    const bundle=JSON.parse(saved);
-    const date=new Date(bundle.date);
-    const daysSince=(Date.now()-date.getTime())/(1000*60*60*24);
-    if(daysSince<30){
-      // Dane świeże – załaduj do KB cicho
-      const dot=document.getElementById('rag-status-dot');
-      const txt=document.getElementById('rag-status-txt');
-      if(dot)dot.style.background='var(--gr)';
-      if(txt)txt.textContent=`OK (${date.toLocaleDateString('pl')})`;
-      const btn=document.getElementById('rag-btn');
-      if(btn)btn.innerHTML='🔬 Odśwież bazę naukową';
-      ragLastFetch=date;
-      console.log('RAG: loaded from localStorage, age:',Math.round(daysSince),'days');
+function ragLoadFromStorage() {
+  try {
+    const saved = localStorage.getItem('rag_science_bundle');
+    if (!saved) return;
+    const bundle = JSON.parse(saved);
+    const date = new Date(bundle.date);
+    const daysSince = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince < 30) {
+      const dot = document.getElementById('rag-status-dot');
+      const txt = document.getElementById('rag-status-txt');
+      const btn = document.getElementById('rag-btn');
+      if (dot) dot.style.background = 'var(--gr)';
+      if (txt) txt.textContent = `OK (${date.toLocaleDateString('pl')})`;
+      if (btn) btn.innerHTML = '🔬 Odśwież bazę naukową';
+      ragLastFetch = date;
     }
-  }catch(e){}
+  } catch(e) {}
 }
 
-async function ragFetch(){
-  // Stara funkcja – teraz wywołuje fetchAll
+async function ragFetch() {
   await ragFetchAll();
 }
-  const btn=document.getElementById('rag-btn');
-  const log=document.getElementById('rag-log');
-  const dot=document.getElementById('rag-status-dot');
-  const txt=document.getElementById('rag-status-txt');
-  const results=document.getElementById('rag-results');
 
-  const topic=document.getElementById('rag-topic').value;
-  const topicCfg=RAG_TOPICS[topic];
-  if(!topicCfg)return;
-
-  btn.disabled=true;
-  btn.innerHTML='⏳ Pobieranie...';
-  log.style.display='block';
-  log.textContent='';
-  results.style.display='none';
-  dot.style.background='var(--yw)';
-  txt.textContent='pobieranie...';
-
-  // Krok 1: PubMed jeśli zaznaczony
-  let pubmedAbstracts='';
-  if(document.getElementById('src-pubmed')?.checked){
-    log.textContent+='🔬 Odpytuje PubMed API...\n';
-    try{
-      const pmQuery=encodeURIComponent(topicCfg.pubmed+'[Title/Abstract]');
-      const pmUrl=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${pmQuery}&retmax=5&sort=date&retmode=json&datetype=pdat&mindate=2022&maxdate=2026`;
-      const pmRes=await fetch(pmUrl);
-      const pmJson=await pmRes.json();
-      const ids=(pmJson.esearchresult?.idlist||[]).slice(0,5);
-      log.textContent+=`✓ Znaleziono ${ids.length} publikacji (2022–2026)\n`;
-
-      if(ids.length>0){
-        const fetchUrl=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=text`;
-        const fetchRes=await fetch(fetchUrl);
-        pubmedAbstracts=await fetchRes.text();
-        pubmedAbstracts=pubmedAbstracts.substring(0,3000); // max 3k znaków
-        log.textContent+=`✓ Pobrano abstrakty\n`;
-      }
-    }catch(e){
-      log.textContent+=`⚠ PubMed niedostępny (CORS) – używam wbudowanej bazy\n`;
-    }
+function ragRenderResults(data, topicLabel) {
+  const grid = document.getElementById('rag-params-grid');
+  const results = document.getElementById('rag-results');
+  if (!grid) return;
+  let html = '';
+  if (data.key_finding) {
+    html += `<div style="background:rgba(96,165,250,0.08);border-left:3px solid var(--bl);border-radius:0 7px 7px 0;padding:8px 10px;font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:8px;"><strong style="color:var(--bl);">💡 Kluczowy wniosek:</strong><br>${data.key_finding}</div>`;
   }
-
-  // Krok 2: Buduj prompt z autorytetami
-  const sources=[];
-  if(document.getElementById('src-israetel')?.checked) sources.push('Renaissance Periodization (Dr Mike Israetel) – MEV/MAV/MRV wytyczne');
-  if(document.getElementById('src-schoenfeld')?.checked) sources.push('Brad Schoenfeld PhD – Science and Development of Muscle Hypertrophy');
-  if(document.getElementById('src-helms')?.checked) sources.push('Eric Helms / 3DMJ – Piramida Treningowa, RPE/RIR');
-  if(document.getElementById('src-nuckols')?.checked) sources.push('Greg Nuckols / MASS Research Review – progresja siły');
-
-  log.textContent+=`🧠 Syntetyzuję wiedzę z ${sources.length} autorytetów...\n`;
-
-  const userMsg=`Na podstawie wytycznych: ${sources.join('; ')}
-${pubmedAbstracts?`\nORAZ najnowszych abstraktów PubMed (2022-2026):\n${pubmedAbstracts}\n`:''}
-Temat: ${topicCfg.label}
-${topicCfg.systemPrompt}`;
-
-  try{
-    const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
-        system:'Jesteś ekspertem od nauki o treningu. Odpowiadasz WYŁĄCZNIE w formacie JSON bez żadnego tekstu przed ani po. Podajesz tylko sprawdzone wartości z badań naukowych.',
-        messages:[{role:'user',content:userMsg}]
-      })
-    });
-    const data=await resp.json();
-    let raw=data.content?.[0]?.text||'{}';
-    raw=raw.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(raw);
-    ragCurrentData=parsed;
-
-    log.textContent+=`✓ Synteza gotowa!\n`;
-    dot.style.background='var(--gr)';
-    txt.textContent='aktualne';
-
-    // Renderuj wyniki
-    ragRenderResults(parsed,topicCfg.label);
-
-    // Dodaj do KB
-    const kbText=`=== WIEDZA NAUKOWA: ${topicCfg.label} ===\nŹródła: ${sources.join(', ')}\nData pobrania: ${new Date().toLocaleDateString('pl')}\n\n${JSON.stringify(parsed,null,2)}`;
-    addToKnowledgeBase(`🔬 ${topicCfg.label}`,kbText,'science');
-    log.textContent+=`✓ Dodano do bazy wiedzy AI\n`;
-
-  }catch(e){
-    log.textContent+=`❌ Błąd: ${e.message}\n`;
-    dot.style.background='var(--ac)';
-    txt.textContent='błąd';
-  }
-
-  btn.disabled=false;
-  btn.innerHTML='🔬 Pobierz wiedzę naukową';
-}
-
-function ragRenderResults(data, topicLabel){
-  const grid=document.getElementById('rag-params-grid');
-  const results=document.getElementById('rag-results');
-  let html='';
-
-  // key_finding na górze
-  if(data.key_finding){
-    html+=`<div style="background:rgba(96,165,250,0.08);border-left:3px solid var(--bl);border-radius:0 7px 7px 0;padding:8px 10px;font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:8px;">
-      <strong style="color:var(--bl);">💡 Kluczowy wniosek:</strong><br>${data.key_finding}
-    </div>`;
-  }
-
-  // Renderuj każdą wartość jako kafelek
-  Object.entries(data).forEach(([key,val])=>{
-    if(key==='key_finding'||key==='sources'||key==='description')return;
-    if(typeof val==='object'&&val!==null){
-      // obiekt (np. mev_per_muscle)
-      const cfg=RAG_PARAM_MAP[key];
-      const color=cfg?.color||'var(--bl)';
-      const icon=cfg?.icon||'📊';
-      const label=cfg?.label||key;
-      html+=`<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px;">
-        <div style="font-size:9px;color:${color};font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">${icon} ${label}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">
-          ${Object.entries(val).map(([m,v])=>`<span style="background:rgba(255,255,255,0.05);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;"><span style="color:var(--tx3);">${m}:</span> ${v}</span>`).join('')}
-        </div>
-      </div>`;
+  Object.entries(data).forEach(([key, val]) => {
+    if (key === 'key_finding' || key === 'sources' || key === 'description') return;
+    const cfg = RAG_PARAM_MAP[key];
+    const color = cfg?.color || 'var(--bl)';
+    const icon = cfg?.icon || '📊';
+    const label = cfg?.label || key;
+    if (typeof val === 'object' && val !== null) {
+      html += `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px;"><div style="font-size:9px;color:${color};font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">${icon} ${label}</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${Object.entries(val).map(([m,v])=>`<span style="background:rgba(255,255,255,0.05);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--tx2);font-family:'DM Mono',monospace;"><span style="color:var(--tx3);">${m}:</span> ${v}</span>`).join('')}</div></div>`;
     } else {
-      const cfg=RAG_PARAM_MAP[key];
-      const color=cfg?.color||'var(--bl)';
-      const icon=cfg?.icon||'📊';
-      const label=cfg?.label||key;
-      html+=`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px;">
-        <span style="font-size:11px;color:var(--tx2);">${icon} ${label}</span>
-        <span style="font-size:12px;font-weight:600;color:${color};font-family:'DM Mono',monospace;">${val}</span>
-      </div>`;
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:6px 10px;"><span style="font-size:11px;color:var(--tx2);">${icon} ${label}</span><span style="font-size:12px;font-weight:600;color:${color};font-family:'DM Mono',monospace;">${val}</span></div>`;
     }
   });
-
-  // sources
-  if(data.sources?.length){
-    html+=`<div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;">Źródła: ${data.sources.join(' · ')}</div>`;
+  if (data.sources?.length) {
+    html += `<div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:4px;">Źródła: ${data.sources.join(' · ')}</div>`;
   }
-
-  grid.innerHTML=html;
-  results.style.display='block';
+  grid.innerHTML = html;
+  if (results) results.style.display = 'block';
 }
 
-function ragApplyToGenerator(){
-  if(!ragCurrentData)return;
-  const d=ragCurrentData;
+function ragApplyToGenerator() {
+  if (!ragCurrentData) return;
+  const d = ragCurrentData;
+  let applied = [];
+  let restNote = '';
+  if (d.compound_strength_rest || d.compound_hypertrophy_rest || d.isolation_rest) {
+    restNote = `
 
-  // Mapuj dane naukowe na pola generatora planu
-  let applied=[];
-
-  // Przerwy → automatyczny komentarz w filozofii
-  let restNote='';
-  if(d.compound_strength_rest||d.compound_hypertrophy_rest||d.isolation_rest){
-    restNote=`\n\nPRZERWY (Evidence-Based):\n- Wielostawy (siła): ${d.compound_strength_rest||'2-3 min'}\n- Wielostawy (hipertrofia): ${d.compound_hypertrophy_rest||'90-120s'}\n- Izolacje: ${d.isolation_rest||'60-90s'}\n- Myo-Reps: ${d.myoreps_rest||'10-15s'}`;
-    applied.push('przerwy między seriami');
+PRZERWY (Evidence-Based):
+- Wielostawy (siła): ${d.compound_strength_rest||'2-3 min'}
+- Wielostawy (hipertrofia): ${d.compound_hypertrophy_rest||'90-120s'}
+- Izolacje: ${d.isolation_rest||'60-90s'}`;
+    applied.push('przerwy');
   }
+  let rpeNote = '';
+  if (d.hypertrophy_rpe || d.strength_rpe) {
+    rpeNote = `
 
-  // Objętość → zapamiętana w KB
-  if(d.mev_per_muscle||d.mav_per_muscle){
-    applied.push('MEV/MAV/MRV per partia');
+OPTYMALNE RPE:
+- Hipertrofia: RPE ${d.hypertrophy_rpe||'7-8'}
+- Siła: RPE ${d.strength_rpe||'8-9'}`;
+    applied.push('RPE');
   }
-
-  // RPE → filozofia trenera
-  let rpeNote='';
-  if(d.hypertrophy_rpe||d.strength_rpe){
-    rpeNote=`\n\nOPTYMALNE RPE (badania naukowe):\n- Hipertrofia: RPE ${d.hypertrophy_rpe||'7-8'}\n- Siła: RPE ${d.strength_rpe||'8-9'}`;
-    applied.push('zakresy RPE');
-  }
-
-  // Wpisz do pola filozofii
-  if(restNote||rpeNote){
-    const philField=document.getElementById('phil-methodology');
-    if(philField){
-      const current=philField.value;
-      const addition=`${restNote}${rpeNote}`;
-      if(!current.includes('Evidence-Based')){
-        philField.value=current+addition;
-        applied.push('filozofia trenera zaktualizowana');
-      }
+  if (restNote || rpeNote) {
+    const philField = document.getElementById('phil-methodology');
+    if (philField && !philField.value.includes('Evidence-Based')) {
+      philField.value += restNote + rpeNote;
     }
   }
-
-  // Powtórzenia → zapamiętaj w KB jako wytyczna
-  if(d.rep_range_hypertrophy||d.strength_rep_range||d.optimal_frequency){
-    let guide=`=== WYTYCZNE GENERATORA PLANU ===\n`;
-    if(d.rep_range_hypertrophy) guide+=`Zakresy powt. (hipertrofia): ${d.rep_range_hypertrophy}\n`;
-    if(d.strength_rep_range) guide+=`Zakresy powt. (siła): ${d.strength_rep_range}\n`;
-    if(d.sets_per_exercise) guide+=`Serie per ćwiczenie: ${d.sets_per_exercise}\n`;
-    if(d.optimal_frequency) guide+=`Optymalna częstotliwość: ${d.optimal_frequency}\n`;
-    if(d.deload_frequency_intermediate) guide+=`Deload co: ${d.deload_frequency_intermediate}\n`;
-    addToKnowledgeBase('⚙️ Wytyczne generatora (naukowe)',guide,'science_config');
-    applied.push('wytyczne generatora');
-  }
-
-  if(applied.length>0){
-    const btn=document.getElementById('rag-apply-btn');
-    btn.textContent='✓ Zastosowano: '+applied.join(', ');
-    btn.style.background='var(--gr)';
-    setTimeout(()=>{btn.textContent='✓ Zastosuj w generatorze planu';btn.style.background='var(--bl)';},4000);
+  if (applied.length > 0) {
+    const btn = document.getElementById('rag-apply-btn');
+    if (btn) {
+      btn.textContent = '✓ Zastosowano: ' + applied.join(', ');
+      btn.style.background = 'var(--gr)';
+      setTimeout(() => { btn.textContent = '✓ Zastosuj w generatorze planu'; btn.style.background = 'var(--bl)'; }, 4000);
+    }
   }
 }
 // ===== END SCIENCE RAG ENGINE =====

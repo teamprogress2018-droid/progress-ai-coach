@@ -2741,6 +2741,8 @@ function dietSetDaysStyled(n, btn) {
   btn.style.borderColor = 'rgba(250,168,85,0.3)';
   btn.style.color = '#FAA855';
 }
+
+function dietToggleAlt(mealId) {
   const el = document.getElementById(mealId + '-alt');
   if (!el) return;
   const isHidden = el.style.display === 'none' || el.style.display === '';

@@ -1591,6 +1591,85 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           <input class="diet-inp" id="diet-allergies" placeholder="np. gluten, laktoza, orzechy" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--tx);">
         </div>
 
+        <!-- NOWE: Typ budowy -->
+        <div class="diet-section-title" style="margin-top:6px;">🧬 Typ budowy ciała</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <button class="diet-body-btn" onclick="dietSelectBody('ektomorfik',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;">
+            <div style="font-size:20px;margin-bottom:3px;">🦴</div>
+            <div style="font-size:10px;font-weight:600;color:var(--tx2);">Ektomorfik</div>
+            <div style="font-size:9px;color:var(--tx3);line-height:1.3;">szczupły, szybki metabolizm</div>
+          </button>
+          <button class="diet-body-btn active" onclick="dietSelectBody('mezomorfik',this)" style="background:rgba(250,168,85,0.12);border:1px solid rgba(250,168,85,0.3);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;">
+            <div style="font-size:20px;margin-bottom:3px;">💪</div>
+            <div style="font-size:10px;font-weight:600;color:#FAA855;">Mezomorfik</div>
+            <div style="font-size:9px;color:var(--tx3);line-height:1.3;">atletyczny, łatwa adaptacja</div>
+          </button>
+          <button class="diet-body-btn" onclick="dietSelectBody('endomorfik',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;">
+            <div style="font-size:20px;margin-bottom:3px;">🐻</div>
+            <div style="font-size:10px;font-weight:600;color:var(--tx2);">Endomorfik</div>
+            <div style="font-size:9px;color:var(--tx3);line-height:1.3;">wolny metabolizm, łatwo tyje</div>
+          </button>
+        </div>
+        <input type="hidden" id="diet-body-type" value="mezomorfik">
+
+        <!-- NOWE: Godzina treningu -->
+        <div class="diet-section-title" style="margin-top:6px;">🕐 Okno treningowe</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">O której godzinie trenujesz?</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;" id="diet-time-grid">
+            <button class="diet-time-btn" onclick="dietSelectTime('rano',this,'06:00-09:00')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:6px 2px;cursor:pointer;text-align:center;">
+              <div style="font-size:14px;">🌅</div>
+              <div style="font-size:9px;color:var(--tx2);font-weight:600;">Rano</div>
+              <div style="font-size:8px;color:var(--tx3);">6-9</div>
+            </button>
+            <button class="diet-time-btn" onclick="dietSelectTime('poludnie',this,'11:00-13:00')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:6px 2px;cursor:pointer;text-align:center;">
+              <div style="font-size:14px;">☀️</div>
+              <div style="font-size:9px;color:var(--tx2);font-weight:600;">Południe</div>
+              <div style="font-size:8px;color:var(--tx3);">11-13</div>
+            </button>
+            <button class="diet-time-btn active" onclick="dietSelectTime('popoludnie',this,'15:00-18:00')" style="background:rgba(250,168,85,0.12);border:1px solid rgba(250,168,85,0.3);border-radius:8px;padding:6px 2px;cursor:pointer;text-align:center;">
+              <div style="font-size:14px;">🌤️</div>
+              <div style="font-size:9px;color:#FAA855;font-weight:600;">Popoł.</div>
+              <div style="font-size:8px;color:var(--tx3);">15-18</div>
+            </button>
+            <button class="diet-time-btn" onclick="dietSelectTime('wieczor',this,'18:00-21:00')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:6px 2px;cursor:pointer;text-align:center;">
+              <div style="font-size:14px;">🌙</div>
+              <div style="font-size:9px;color:var(--tx2);font-weight:600;">Wieczór</div>
+              <div style="font-size:8px;color:var(--tx3);">18-21</div>
+            </button>
+          </div>
+          <input type="hidden" id="diet-train-time" value="popoludnie">
+          <input type="hidden" id="diet-train-time-range" value="15:00-18:00">
+          <div style="margin-top:8px;font-size:10px;color:var(--tx3);line-height:1.5;">💡 AI automatycznie przesunie węglowodany do okna okołotreningowego i dostosuje strukturę posiłków w dni wolne.</div>
+        </div>
+
+        <!-- NOWE: Budżet i czas gotowania -->
+        <div class="diet-section-title" style="margin-top:6px;">👨‍🍳 Budżet i styl gotowania</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="diet-cook-btn" onclick="dietSelectCook('ekonomiczny',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;">
+            <div style="font-size:22px;flex-shrink:0;">💸</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--tx2);">Ekonomiczny / Szybki</div>
+              <div style="font-size:10px;color:var(--tx3);line-height:1.4;">Mało składników, proste dania ≤20 min, powtarzające się produkty</div>
+            </div>
+          </button>
+          <button class="diet-cook-btn active" onclick="dietSelectCook('premium',this)" style="background:rgba(250,168,85,0.12);border:1px solid rgba(250,168,85,0.3);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;">
+            <div style="font-size:22px;flex-shrink:0;">⭐</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#FAA855;">Premium / Urozmaicony</div>
+              <div style="font-size:10px;color:var(--tx3);line-height:1.4;">Różnorodne składniki, wyszukane przepisy, pełna paleta smaków</div>
+            </div>
+          </button>
+          <button class="diet-cook-btn" onclick="dietSelectCook('mealprep',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;">
+            <div style="font-size:22px;flex-shrink:0;">📦</div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--tx2);">Meal Prep</div>
+              <div style="font-size:10px;color:var(--tx3);line-height:1.4;">Gotowanie na 2-3 dni, potrawy do odgrzewania, oszczędność czasu</div>
+            </div>
+          </button>
+        </div>
+        <input type="hidden" id="diet-cook-style" value="premium">
+
         <!-- Plan na -->
         <div class="diet-section-title" style="margin-top:6px;">📅 Plan na</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
@@ -2290,6 +2369,9 @@ async function generateDiet() {
   const weight = document.getElementById('diet-weight').value;
   const gender = document.getElementById('diet-gender').value;
   const age = document.getElementById('diet-age').value;
+  const bodyType = document.getElementById('diet-body-type')?.value || 'mezomorfik';
+  const trainTime = document.getElementById('diet-train-time-range')?.value || '15:00-18:00';
+  const cookStyle = document.getElementById('diet-cook-style')?.value || 'premium';
 
   document.getElementById('diet-loading').style.display = 'block';
   document.getElementById('diet-content').style.display = 'none';
@@ -2324,6 +2406,9 @@ DANE KLIENTA:
 - Styl żywienia: ${style}
 - Posiłków dziennie: ${meals}
 - Alergie/wykluczenia: ${allergies || 'brak'}
+- Typ budowy ciała: ${bodyType} (${bodyType==='ektomorfik'?'zwiększ węgle, ogranicz tłuszcze':bodyType==='endomorfik'?'ogranicz węgle, zwiększ białko i tłuszcze, carb cycling':' balans standardowy'})
+- Godzina treningu: ${trainTime} → posiłek przedtreningowy (węgle + białko) 60-90 min PRZED, posiłek potreningowy (białko + szybkie węgle) 30-60 min PO treningu. W dni wolne od treningu: więcej tłuszczów, mniej węgli.
+- Styl gotowania: ${cookStyle==='ekonomiczny'?'PROSTE dania ≤20 min, mało składników, powtarzające się produkty, tanie zamienniki':cookStyle==='mealprep'?'MEAL PREP: gotowanie na 2-3 dni, zaznacz które posiłki można przygotować z wyprzedzeniem, pojemniki':'PREMIUM: różnorodne składniki, zaawansowane techniki, pełna paleta smaków i tekstur'}
 
 OBLICZONE MAKRO (zastosuj dokładnie):
 - Kalorie: ${macro.kcal} kcal/dzień
@@ -2695,6 +2780,49 @@ function dietRenderPlan(plan) {
   }
 
   document.getElementById('diet-content').innerHTML = html;
+}
+
+function dietSelectBody(val, btn) {
+  document.getElementById('diet-body-type').value = val;
+  const colors = {
+    ektomorfik: ['rgba(96,165,250,0.12)', 'rgba(96,165,250,0.3)', 'var(--bl)'],
+    mezomorfik: ['rgba(250,168,85,0.12)', 'rgba(250,168,85,0.3)', '#FAA855'],
+    endomorfik: ['rgba(127,119,221,0.12)', 'rgba(127,119,221,0.3)', '#9f97e8'],
+  };
+  document.querySelectorAll('.diet-body-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.03)';
+    b.style.borderColor = 'var(--border)';
+    b.querySelector('div:nth-child(2)').style.color = 'var(--tx2)';
+  });
+  const [bg, border, color] = colors[val] || colors.mezomorfik;
+  btn.style.background = bg; btn.style.borderColor = border;
+  btn.querySelector('div:nth-child(2)').style.color = color;
+  dietCalcMacro();
+}
+
+function dietSelectTime(val, btn, range) {
+  document.getElementById('diet-train-time').value = val;
+  document.getElementById('diet-train-time-range').value = range;
+  document.querySelectorAll('.diet-time-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.03)';
+    b.style.borderColor = 'var(--border)';
+    b.querySelector('div:nth-child(2)').style.color = 'var(--tx2)';
+  });
+  btn.style.background = 'rgba(250,168,85,0.12)';
+  btn.style.borderColor = 'rgba(250,168,85,0.3)';
+  btn.querySelector('div:nth-child(2)').style.color = '#FAA855';
+}
+
+function dietSelectCook(val, btn) {
+  document.getElementById('diet-cook-style').value = val;
+  document.querySelectorAll('.diet-cook-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.03)';
+    b.style.borderColor = 'var(--border)';
+    b.querySelector('div:nth-child(2)').style.color = 'var(--tx2)';
+  });
+  btn.style.background = 'rgba(250,168,85,0.12)';
+  btn.style.borderColor = 'rgba(250,168,85,0.3)';
+  btn.querySelector('div:nth-child(2)').style.color = '#FAA855';
 }
 
 function dietSelectGoal(val, btn) {

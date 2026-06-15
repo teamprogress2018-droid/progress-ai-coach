@@ -2349,13 +2349,17 @@ async function generateDiet() {
   document.getElementById('diet-content').style.display = 'none';
   document.getElementById('diet-gen-btn').disabled = true;
 
-  const statuses = ['Obliczam zapotrzebowanie kaloryczne...','Dobieram makroskładniki...','Planuję posiłki...','Tworzę listę zakupów...','Finalizuję plan...'];
+  const statuses = ['Pobieranie wytycznych naukowych (PubMed)...','Obliczam zapotrzebowanie kaloryczne...','Dobieram makroskładniki...','Planuję posiłki...','Tworzę listę zakupów...','Finalizuję plan...'];
   let si = 0;
   const ticker = setInterval(() => {
     si = (si+1) % statuses.length;
     const el = document.getElementById('diet-status');
     if (el) el.textContent = statuses[si];
   }, 2000);
+
+  // Pobierz wytyczne naukowe w tle
+  const ragData = await fetchNutritionRAG().catch(() => null);
+  const ragContext = buildNutritionRAGContext(ragData, goal);
 
   const systemPrompt = `Jesteś ekspertem w żywieniu sportowym i dietetyce klinicznej (certyfikat NSCA, dietetyk sportowy). Tworzysz precyzyjne, smaczne i praktyczne plany żywieniowe dla klientów trenera personalnego Piotra Urbaniaka (Progress Studio, Wrocław).
 
@@ -2389,6 +2393,7 @@ OBLICZONE MAKRO (zastosuj dokładnie):
 - Węglowodany: ${macro.carbs}g (${(macro.carbs*4/macro.kcal*100).toFixed(0)}%)
 - Tłuszcze: ${macro.fat}g (${(macro.fat*9/macro.kcal*100).toFixed(0)}%)
 - TDEE: ${macro.tdee} kcal, deficyt/nadwyżka: ${macro.deficit > 0 ? '+' : ''}${macro.deficit} kcal
+${ragContext}
 
 PROFIL KLIENTA: ${profile}
 FILOZOFIA TRENERA: ${philosophy || 'brak'}
@@ -2967,6 +2972,146 @@ function dietAutoFillFromProfile() {
   }
   dietCalcMacro();
 }
+// ===== NUTRITION RAG =====
+const NUTRITION_RAG_TOPICS = {
+  protein_muscle: {
+    label: 'Białko – retencja mięśni przy redukcji',
+    pubmed: 'protein intake muscle retention caloric restriction',
+    authorities: ['Layne Norton PhD (protein synthesis, leucine threshold)', 'Alan Aragon ISSN (protein distribution)', 'Eric Helms (sport nutrition cutting)']
+  },
+  carb_timing: {
+    label: 'Timing węglowodanów – wyniki sportowe',
+    pubmed: 'carbohydrate timing exercise performance glycogen',
+    authorities: ['Alan Aragon (nutrient timing)', 'Layne Norton (post-workout window)', 'ISSN Position Stand']
+  },
+  fat_loss_science: {
+    label: 'Redukcja tłuszczu – optymalne strategie',
+    pubmed: 'fat loss strategies caloric deficit body composition',
+    authorities: ['Layne Norton (flexible dieting IIFYM)', 'Alan Aragon (energy balance)', 'Eric Helms (cutting protocols)']
+  },
+  intermittent_fasting: {
+    label: 'Intermittent fasting – dowody naukowe',
+    pubmed: 'intermittent fasting muscle mass body composition',
+    authorities: ['Martin Berkhan (Leangains)', 'Alan Aragon (IF meta-analysis)', 'Brad Schoenfeld (meal frequency)']
+  },
+  supplementation_evidence: {
+    label: 'Suplementacja – potwierdzone efekty',
+    pubmed: 'creatine protein omega3 vitamin D muscle performance',
+    authorities: ['ISSN Position Stands', 'Layne Norton (creatine, protein)', 'Alan Aragon (supplement hierarchy)']
+  },
+  glycemic_index: {
+    label: 'Indeks glikemiczny i sytość',
+    pubmed: 'glycemic index satiety hunger hormones insulin',
+    authorities: ['Alan Aragon (carb quality)', 'Layne Norton (food choices flexible dieting)']
+  }
+};
+
+let nutritionRagData = null;
+let nutritionRagFetching = false;
+
+async function fetchNutritionRAG() {
+  if (nutritionRagFetching) return null;
+
+  // Sprawdź cache (ważny 30 dni)
+  try {
+    const cached = localStorage.getItem('nutrition_rag_bundle');
+    if (cached) {
+      const bundle = JSON.parse(cached);
+      const days = (Date.now() - new Date(bundle.date).getTime()) / (1000*60*60*24);
+      if (days < 30) {
+        console.log('Nutrition RAG: loaded from cache');
+        return bundle.data;
+      }
+    }
+  } catch(e) {}
+
+  nutritionRagFetching = true;
+  const results = {};
+  const topics = Object.keys(NUTRITION_RAG_TOPICS);
+
+  for (let i = 0; i < topics.length; i++) {
+    const key = topics[i];
+    const cfg = NUTRITION_RAG_TOPICS[key];
+    try {
+      // PubMed API
+      let abstracts = '';
+      const pmUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(cfg.pubmed+'[Title/Abstract]')}&retmax=3&sort=date&retmode=json&datetype=pdat&mindate=2020&maxdate=2026`;
+      const pmRes = await fetch(pmUrl);
+      const pmJson = await pmRes.json();
+      const ids = (pmJson.esearchresult?.idlist||[]).slice(0,3);
+      if (ids.length > 0) {
+        const fetchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=text`;
+        const fetchRes = await fetch(fetchUrl);
+        abstracts = (await fetchRes.text()).substring(0, 1500);
+      }
+
+      // Zapytaj AI o syntezę
+      const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 400,
+          system: 'Odpowiadasz WYŁĄCZNIE w JSON bez markdown.',
+          messages: [{role:'user', content:
+            `Autorytety: ${cfg.authorities.join(', ')}\n` +
+            (abstracts ? `PubMed (2020-2026):\n${abstracts}\n\n` : '') +
+            `Temat: ${cfg.label}\n` +
+            `Podaj 3-5 kluczowych wytycznych dietetycznych w JSON:\n` +
+            `{"key_insight":"string","protein_recommendation":"string","practical_tip":"string","evidence_level":"A/B/C","sources":["string"]}`
+          }]
+        })
+      });
+      const data = await resp.json();
+      let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+      results[key] = JSON.parse(raw);
+    } catch(e) {
+      results[key] = {key_insight: cfg.label, sources: cfg.authorities};
+    }
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  // Zapisz do cache
+  try {
+    localStorage.setItem('nutrition_rag_bundle', JSON.stringify({data:results, date:new Date().toISOString()}));
+  } catch(e) {}
+
+  nutritionRagData = results;
+  nutritionRagFetching = false;
+  return results;
+}
+
+function buildNutritionRAGContext(ragData, goal) {
+  if (!ragData) return '';
+  const parts = [];
+
+  // Białko
+  const p = ragData.protein_muscle;
+  if (p?.key_insight) parts.push(`BIAŁKO: ${p.key_insight}${p.protein_recommendation ? ' · Rekomendacja: '+p.protein_recommendation : ''}`);
+
+  // Timing węgli
+  const c = ragData.carb_timing;
+  if (c?.key_insight) parts.push(`TIMING WĘGLI: ${c.key_insight}${c.practical_tip ? ' · '+c.practical_tip : ''}`);
+
+  // Cel-specyficzne
+  if (goal === 'redukcja' || goal === 'rekompo') {
+    const f = ragData.fat_loss_science;
+    if (f?.key_insight) parts.push(`REDUKCJA: ${f.key_insight}${f.practical_tip ? ' · '+f.practical_tip : ''}`);
+  }
+
+  // Suplementacja
+  const s = ragData.supplementation_evidence;
+  if (s?.key_insight) parts.push(`SUPLEMENTACJA: ${s.key_insight}`);
+
+  // Indeks glikemiczny
+  const g = ragData.glycemic_index;
+  if (g?.key_insight) parts.push(`SYTOŚĆ: ${g.key_insight}`);
+
+  if (!parts.length) return '';
+  return `\n\n===WYTYCZNE NAUKOWE ŻYWIENIOWE (Norton/Aragon/Helms + PubMed 2020-2026)===\n${parts.join('\n')}\n===KONIEC===`;
+}
+// ===== END NUTRITION RAG =====
+
 // ===== END DIETA JS =====
 
 // ===== TRENING LIVE JS =====

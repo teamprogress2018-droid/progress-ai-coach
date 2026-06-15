@@ -2622,7 +2622,7 @@ function dietRenderPlan(plan) {
           <div class="diet-meal-name">${meal.name||''}</div>
           <div class="diet-meal-items">${(meal.items||[]).join(' · ')}</div>
           ${meal.prepNote ? `<div style="font-size:10px;color:#FAA855;margin-top:2px;">💡 ${meal.prepNote}</div>` : ''}
-          <div class="diet-meal-macro">${meal.kcal ? meal.kcal+' kcal' : ''} ${meal.protein ? '· B:'+meal.protein+'g' : ''} ${meal.carbs ? '· W:'+meal.carbs+'g' : ''} ${meal.fat ? '· T:'+meal.fat+'g' : ''}</div>
+          <div class="diet-meal-macro">${meal.kcal ? `<span style="color:#FAA855;font-weight:600;">${meal.kcal} kcal</span>` : ''} ${meal.protein ? `<span style="color:var(--ac);">· B:${meal.protein}g</span>` : ''} ${meal.carbs ? `<span style="color:var(--bl);">· W:${meal.carbs}g</span>` : ''} ${meal.fat ? `<span style="color:var(--gr);">· T:${meal.fat}g</span>` : ''}</div>
           ${meal.alternatives?.length ? `
           <button onclick="dietToggleAlt('${mealId}')" style="margin-top:6px;background:rgba(250,168,85,0.08);border:1px solid rgba(250,168,85,0.2);border-radius:6px;padding:3px 10px;color:#FAA855;font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;">
             🔄 Alternatywy (${meal.alternatives.length})
@@ -2634,7 +2634,7 @@ function dietRenderPlan(plan) {
                 ${ai === 0 ? '🅰' : '🅱'} ${alt.name||'Wariant '+(ai+1)}
               </div>
               <div style="font-size:11px;color:var(--tx2);line-height:1.5;">${(alt.items||[]).join(' · ')}</div>
-              <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:3px;">${alt.kcal ? alt.kcal+' kcal' : ''} ${alt.protein ? '· B:'+alt.protein+'g' : ''} ${alt.carbs ? '· W:'+alt.carbs+'g' : ''} ${alt.fat ? '· T:'+alt.fat+'g' : ''}</div>
+              <div style="font-size:10px;font-family:'DM Mono',monospace;margin-top:3px;">${alt.kcal ? `<span style="color:#FAA855;font-weight:600;">${alt.kcal} kcal</span>` : ''} ${alt.protein ? `<span style="color:var(--ac);">· B:${alt.protein}g</span>` : ''} ${alt.carbs ? `<span style="color:var(--bl);">· W:${alt.carbs}g</span>` : ''} ${alt.fat ? `<span style="color:var(--gr);">· T:${alt.fat}g</span>` : ''}</div>
             </div>`).join('')}
           </div>` : ''}
         </div>

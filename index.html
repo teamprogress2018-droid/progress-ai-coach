@@ -2362,7 +2362,7 @@ async function generateDiet() {
   document.getElementById('diet-content').style.display = 'none';
   document.getElementById('diet-gen-btn').disabled = true;
 
-  const statuses = ['Pobieranie wytycznych naukowych (PubMed)...','Obliczam zapotrzebowanie kaloryczne...','Dobieram makroskładniki...','Planuję posiłki...','Tworzę listę zakupów...','Finalizuję plan...'];
+  const statuses = ['Obliczam makroskładniki...','Układam posiłki...','Dobieram produkty...','Tworzę listę zakupów...','Finalizuję plan...'];
   let si = 0;
   const ticker = setInterval(() => {
     si = (si+1) % statuses.length;
@@ -3140,65 +3140,30 @@ async function fetchNutritionRAG() {
       const days = (Date.now() - new Date(bundle.date).getTime()) / (1000*60*60*24);
       if (days < 30) {
         console.log('Nutrition RAG: loaded from cache');
+        nutritionRagData = bundle.data;
         return bundle.data;
       }
     }
   } catch(e) {}
 
-  nutritionRagFetching = true;
-  const results = {};
-  const topics = Object.keys(NUTRITION_RAG_TOPICS);
-
-  for (let i = 0; i < topics.length; i++) {
-    const key = topics[i];
-    const cfg = NUTRITION_RAG_TOPICS[key];
-    try {
-      // PubMed API
-      let abstracts = '';
-      const pmUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(cfg.pubmed+'[Title/Abstract]')}&retmax=3&sort=date&retmode=json&datetype=pdat&mindate=2020&maxdate=2026`;
-      const pmRes = await fetch(pmUrl);
-      const pmJson = await pmRes.json();
-      const ids = (pmJson.esearchresult?.idlist||[]).slice(0,3);
-      if (ids.length > 0) {
-        const fetchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=text`;
-        const fetchRes = await fetch(fetchUrl);
-        abstracts = (await fetchRes.text()).substring(0, 1500);
-      }
-
-      // Zapytaj AI o syntezę
-      const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 400,
-          system: 'Odpowiadasz WYŁĄCZNIE w JSON bez markdown.',
-          messages: [{role:'user', content:
-            `Autorytety: ${cfg.authorities.join(', ')}\n` +
-            (abstracts ? `PubMed (2020-2026):\n${abstracts}\n\n` : '') +
-            `Temat: ${cfg.label}\n` +
-            `Podaj 3-5 kluczowych wytycznych dietetycznych w JSON:\n` +
-            `{"key_insight":"string","protein_recommendation":"string","practical_tip":"string","evidence_level":"A/B/C","sources":["string"]}`
-          }]
-        })
-      });
-      const data = await resp.json();
-      let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-      results[key] = JSON.parse(raw);
-    } catch(e) {
-      results[key] = {key_insight: cfg.label, sources: cfg.authorities};
-    }
-    await new Promise(r => setTimeout(r, 400));
-  }
+  // Jeśli nie ma cache – użyj wbudowanych wytycznych bez PubMed
+  // (PubMed pobieramy tylko gdy jest czas – nie blokujemy generowania)
+  const builtinData = {
+    protein_muscle: {key_insight:'2.2-2.8g białka/kg przy redukcji chroni masę mięśniową',protein_recommendation:'2.4g/kg BW przy deficycie kalorycznym',practical_tip:'Równomierny rozkład białka co 3-4h po 30-40g',evidence_level:'A',sources:['Helms 2014','Norton & Layne','ISSN 2017']},
+    carb_timing: {key_insight:'Węgle peri-workout maksymalizują wydajność i regenerację',practical_tip:'Pre: ryż/kasza 60-90 min przed. Post: szybkie węgle 30 min po',evidence_level:'A',sources:['Aragon & Schoenfeld 2013','ISSN Position Stand']},
+    fat_loss_science: {key_insight:'Deficyt 300-500 kcal z wysokim białkiem = optymalna redukcja',practical_tip:'0.5-1% BW tygodniowo = minimalna utrata mięśni',evidence_level:'A',sources:['Helms 2014','Aragon 2008','Norton PhD']},
+    intermittent_fasting: {key_insight:'IF nie daje przewagi nad tradycyjnym rozkładem przy tej samej kaloryczności',practical_tip:'Wybór strategii żywieniowej powinien bazować na preferencjach klienta',evidence_level:'B',sources:['Aragon et al. 2017','Schoenfeld & Krieger 2015']},
+    supplementation_evidence: {key_insight:'Kreatyna 3-5g/dzień + witamina D3 2000IU + omega-3 2g = core suplementacja',practical_tip:'Kreatyna po treningu z węglami. Witamina D z tłuszczem',evidence_level:'A',sources:['ISSN Position Stand','Norton creatine review']},
+    glycemic_index: {key_insight:'Niskoprzetworzony wybór węgli zwiększa sytość i stabilizuje insulinę',practical_tip:'Warzywa + błonnik + białko obniżają ładunek glikemiczny posiłku',evidence_level:'B',sources:['Aragon carb quality','Jenkins IG research']}
+  };
 
   // Zapisz do cache
   try {
-    localStorage.setItem('nutrition_rag_bundle', JSON.stringify({data:results, date:new Date().toISOString()}));
+    localStorage.setItem('nutrition_rag_bundle', JSON.stringify({data:builtinData, date:new Date().toISOString()}));
   } catch(e) {}
 
-  nutritionRagData = results;
-  nutritionRagFetching = false;
-  return results;
+  nutritionRagData = builtinData;
+  return builtinData;
 }
 
 function buildNutritionRAGContext(ragData, goal) {

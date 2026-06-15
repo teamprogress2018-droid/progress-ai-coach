@@ -2349,7 +2349,11 @@ FORMAT JSON (zwróć TYLKO ten JSON):
   ]
 }
 
-WAŻNE: Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami o podobnym makro (±10% kalorii). Warianty muszą być smaczne, praktyczne i różnorodne. Wygeneruj ${Math.min(dietDays, 3)} dni szczegółowo. TYLKO JSON.`;
+WAŻNE: 
+1. Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami o podobnym makro (±10% kalorii). Warianty muszą być smaczne, praktyczne i różnorodne od głównego posiłku.
+2. Każdy dzień MUSI mieć pole "totalKcal" (suma kalorii ze wszystkich posiłków).
+3. Każdy posiłek MUSI mieć pola "kcal", "protein", "carbs", "fat" jako liczby.
+4. Wygeneruj ${Math.min(dietDays, 3)} dni szczegółowo. TYLKO JSON bez komentarzy.`;
 
   try {
     const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
@@ -2454,8 +2458,13 @@ function dietNormalizePlan(raw) {
       (day.dayType ? `Dzień ${d.day} – ${day.dayType}` : `Dzień ${d.day}`);
     d.trainerTip = day.trainerTip || day.tip || '';
 
-    // Kalorie dnia
-    d.totalKcal = day.totalKcal || day.calories || day.kcal || p.dailyKcal;
+    // Kalorie dnia – najpierw oblicz z posiłków, potem fallback
+    const rawMealsForKcal = day.meals || day.mealsSchedule || [];
+    const sumKcalFromMeals = rawMealsForKcal.reduce((s, m) => {
+      const mm = m.macros || m.macro || {};
+      return s + (m.kcal || m.calories || mm.kcal || 0);
+    }, 0);
+    d.totalKcal = day.totalKcal || day.calories || day.kcal || sumKcalFromMeals || p.dailyKcal;
 
     // Posiłki
     const rawMeals = day.meals || day.mealsSchedule || [];
@@ -2603,7 +2612,8 @@ function dietRenderPlan(plan) {
       <div class="diet-day-head">
         <div class="diet-day-name">📅 ${day.dayName || 'Dzień '+day.day}</div>
         <div class="diet-day-kcal">${day.totalKcal || plan.dailyKcal} kcal</div>
-      </div>`;
+      </div>
+      ${day.trainerTip ? `<div style="font-size:11px;color:var(--tx2);padding:7px 12px;background:rgba(250,168,85,0.05);border-bottom:1px solid var(--border);line-height:1.5;">💡 <strong style="color:#FAA855;">Wskazówka:</strong> ${day.trainerTip}</div>` : ''}`;
     (day.meals || []).forEach(meal => {
       const mealId = `meal-${day.day}-${meal.mealNumber}`;
       html += `<div class="diet-meal">

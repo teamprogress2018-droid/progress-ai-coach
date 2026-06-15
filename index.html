@@ -2381,7 +2381,7 @@ WAŻNE: Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami
       plan = JSON.parse(rep);
     }
     currentDietPlan = plan;
-    dietRenderPlan(plan);
+    dietRenderPlan(dietNormalizePlan(plan));
   } catch(err) {
     document.getElementById('diet-content').style.display = 'block';
     document.getElementById('diet-content').innerHTML = `
@@ -2397,6 +2397,121 @@ WAŻNE: Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami
     document.getElementById('diet-content').style.display = 'block';
     document.getElementById('diet-gen-btn').disabled = false;
   }
+}
+
+// Normalizuje różne formaty JSON zwracane przez AI do jednego wspólnego
+function dietNormalizePlan(raw) {
+  if (!raw) return null;
+  const p = {};
+
+  // Tytuł
+  p.planTitle = raw.planTitle || raw.dietTitle || raw.title || 'Plan żywieniowy';
+
+  // Cel
+  p.goal = raw.goal || raw.dietGoal || raw.cel || '';
+
+  // Kalorie
+  p.dailyKcal = raw.dailyKcal || raw.dailyCalories || raw.totalCalories ||
+    raw.kcal || raw.calories || raw.macros?.kcal ||
+    (raw.macros ? (raw.macros.protein||0)*4 + (raw.macros.carbs||0)*4 + (raw.macros.fats||0)*9 : 0);
+
+  // Makro
+  p.dailyProtein = raw.dailyProtein || raw.protein || raw.macros?.protein || raw.macros?.b || 0;
+  p.dailyCarbs   = raw.dailyCarbs   || raw.carbs   || raw.macros?.carbs  || raw.macros?.w || 0;
+  p.dailyFat     = raw.dailyFat     || raw.fat     || raw.fats           || raw.macros?.fats || raw.macros?.t || 0;
+
+  // Notatki
+  p.nutritionNotes = raw.nutritionNotes || raw.neatRecommendation || raw.notes || raw.tips || '';
+
+  // Suplementacja
+  p.supplementation = raw.supplementation || raw.supplements || [];
+
+  // Lista zakupów – obsłuż flat array i obiekt z kategoriami
+  if (Array.isArray(raw.shoppingList)) {
+    p.shoppingList = raw.shoppingList;
+  } else if (raw.globalShoppingList || raw.shoppingList) {
+    const sl = raw.globalShoppingList || raw.shoppingList;
+    const items = [];
+    Object.values(sl).forEach(cat => {
+      if (Array.isArray(cat)) {
+        cat.forEach(item => {
+          if (typeof item === 'string') items.push(item);
+          else if (item.name) items.push(`${item.name}${item.total_qty ? ' – '+item.total_qty : ''}`);
+        });
+      }
+    });
+    p.shoppingList = items;
+  } else {
+    p.shoppingList = [];
+  }
+
+  // Dni – normalizuj każdy dzień i posiłek
+  const rawDays = raw.days || raw.weekPlan || raw.plan || [];
+  p.days = rawDays.map((day, di) => {
+    const d = {};
+    d.day = day.day || day.dayNumber || di + 1;
+    d.dayName = day.dayName || day.name ||
+      (day.dayType ? `Dzień ${d.day} – ${day.dayType}` : `Dzień ${d.day}`);
+    d.trainerTip = day.trainerTip || day.tip || '';
+
+    // Kalorie dnia
+    d.totalKcal = day.totalKcal || day.calories || day.kcal || p.dailyKcal;
+
+    // Posiłki
+    const rawMeals = day.meals || day.mealsSchedule || [];
+    d.meals = rawMeals.map((meal, mi) => {
+      const m = {};
+      m.mealNumber = meal.mealNumber || meal.number || mi + 1;
+      m.time = meal.time || meal.hour || '';
+      m.name = meal.name || meal.mealName || meal.title || `Posiłek ${m.mealNumber}`;
+
+      // Składniki – string lub array
+      if (Array.isArray(meal.items)) {
+        m.items = meal.items;
+      } else if (Array.isArray(meal.ingredients)) {
+        m.items = meal.ingredients;
+      } else if (typeof meal.ingredients === 'string') {
+        m.items = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (typeof meal.items === 'string') {
+        m.items = meal.items.split(',').map(s => s.trim()).filter(Boolean);
+      } else {
+        m.items = [];
+      }
+
+      // Makro posiłku
+      const mm = meal.macros || meal.macro || {};
+      m.kcal    = meal.kcal    || meal.calories || mm.kcal    || 0;
+      m.protein = meal.protein || mm.protein    || mm.b       || 0;
+      m.carbs   = meal.carbs   || mm.carbs      || mm.w       || mm.carbohydrates || 0;
+      m.fat     = meal.fat     || meal.fats     || mm.fat     || mm.fats || mm.t || 0;
+
+      // Wskazówka
+      m.prepNote = meal.prepNote || meal.tip || meal.note || meal.cookingTip || '';
+
+      // Alternatywy – obsłuż różne nazwy pól
+      const rawAlts = meal.alternatives || meal.swaps || meal.smartSwaps || meal.variants || [];
+      m.alternatives = rawAlts.map(alt => {
+        const altItems = Array.isArray(alt.items) ? alt.items :
+          Array.isArray(alt.ingredients) ? alt.ingredients :
+          typeof alt.ingredients === 'string' ? alt.ingredients.split(',').map(s=>s.trim()) : [];
+        const am = alt.macros || alt.macro || {};
+        return {
+          name: alt.name || alt.title || 'Wariant',
+          items: altItems,
+          kcal:    alt.kcal    || alt.calories || am.kcal    || 0,
+          protein: alt.protein || am.protein   || am.b       || 0,
+          carbs:   alt.carbs   || am.carbs     || am.w       || 0,
+          fat:     alt.fat     || alt.fats     || am.fat     || am.t || 0,
+        };
+      });
+
+      return m;
+    });
+
+    return d;
+  });
+
+  return p;
 }
 
 function dietRenderPlan(plan) {

@@ -1594,13 +1594,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         <!-- Plan na -->
         <div class="diet-section-title" style="margin-top:6px;">📅 Plan na</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-          <button onclick="dietSetDays(7,this)" class="diet-days-btn active" style="padding:10px 4px;border-radius:10px;border:1px solid rgba(250,168,85,0.3);background:rgba(250,168,85,0.15);color:#FAA855;font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+          <button onclick="dietSetDaysStyled(7,this)" class="diet-days-btn active" style="padding:10px 4px;border-radius:10px;border:1px solid rgba(250,168,85,0.3);background:rgba(250,168,85,0.15);color:#FAA855;font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
             <div style="font-size:18px;margin-bottom:2px;">📅</div>7 dni
           </button>
-          <button onclick="dietSetDays(14,this)" class="diet-days-btn" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+          <button onclick="dietSetDaysStyled(14,this)" class="diet-days-btn" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
             <div style="font-size:18px;margin-bottom:2px;">🗓️</div>14 dni
           </button>
-          <button onclick="dietSetDays(30,this)" class="diet-days-btn" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+          <button onclick="dietSetDaysStyled(30,this)" class="diet-days-btn" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
             <div style="font-size:18px;margin-bottom:2px;">📆</div>30 dni
           </button>
         </div>
@@ -2730,9 +2730,7 @@ function dietSelectPace(val, btn) {
   dietCalcMacro();
 }
 
-// Nadpisz dietSetDays żeby obsługiwał nowe przyciski
-const _dietSetDaysOrig = dietSetDays;
-dietSetDays = function(n, btn) {
+function dietSetDaysStyled(n, btn) {
   dietDays = n;
   document.querySelectorAll('.diet-days-btn').forEach(b => {
     b.style.background = 'var(--bg3)';
@@ -2742,7 +2740,7 @@ dietSetDays = function(n, btn) {
   btn.style.background = 'rgba(250,168,85,0.15)';
   btn.style.borderColor = 'rgba(250,168,85,0.3)';
   btn.style.color = '#FAA855';
-};
+}
   const el = document.getElementById(mealId + '-alt');
   if (!el) return;
   const isHidden = el.style.display === 'none' || el.style.display === '';

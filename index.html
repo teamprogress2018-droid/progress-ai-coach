@@ -246,7 +246,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 /* ===== END TRENING LIVE CSS ===== */
 
 /* DIETA CSS */
-.diet-body{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-top:16px;height:calc(100vh - 120px);}
+.diet-body{display:grid;grid-template-columns:280px 1fr;gap:16px;margin-top:12px;height:calc(100vh - 100px);}
 @media(max-width:900px){.diet-body{grid-template-columns:1fr;height:auto;}}
 .diet-sidebar-scroll{overflow-y:auto;height:100%;padding-right:4px;}
 .diet-sidebar-scroll::-webkit-scrollbar{width:4px;}
@@ -453,7 +453,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .meas-section-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--bl);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(96,165,250,0.15);}
 /* OVERLAY SCREENS */
 .overlay-screen{display:none;position:fixed;top:56px;left:300px;right:0;bottom:0;overflow-y:auto;padding:20px;background:var(--bg);z-index:100;}
-#screen-dieta{overflow:hidden;display:none;flex-direction:column;}
+#screen-dieta{overflow:hidden;display:none;flex-direction:column;position:fixed;top:56px;left:0;right:0;bottom:0;z-index:200;padding:20px;background:var(--bg);}
 .overlay-screen::-webkit-scrollbar{width:4px;}
 .overlay-screen::-webkit-scrollbar-thumb{background:var(--bg3);}
 .pw-btn{background:transparent;border:none;border-radius:6px;padding:5px 10px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}

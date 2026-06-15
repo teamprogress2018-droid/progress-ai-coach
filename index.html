@@ -1498,9 +1498,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
             <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">👤 Płeć</div>
-            <select class="diet-sel" id="diet-gender" style="width:100%;background:transparent;border:none;padding:4px 0;font-size:14px;font-weight:600;color:var(--tx);">
-              <option value="M">♂ Mężczyzna</option>
-              <option value="K">♀ Kobieta</option>
+            <select class="diet-sel" id="diet-gender" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:600;color:var(--tx);">
+              <option value="M" style="background:var(--bg2);color:var(--tx);">♂ Mężczyzna</option>
+              <option value="K" style="background:var(--bg2);color:var(--tx);">♀ Kobieta</option>
             </select>
           </div>
         </div>
@@ -1587,9 +1587,23 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           </div>
         </div>
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
-          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🚫 Alergie / wykluczenia</div>
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🚫 Alergie / wykluczenia medyczne</div>
           <input class="diet-inp" id="diet-allergies" placeholder="np. gluten, laktoza, orzechy" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--tx);">
         </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🙅 Czego NIE chcę w potrawach</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;" id="diet-avoid-tags"></div>
+          <div style="display:flex;gap:6px;">
+            <input id="diet-avoid-input" placeholder="np. cukier, chleb, nabiał..." style="flex:1;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--tx);outline:none;" onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();dietAddAvoid();}">
+            <button onclick="dietAddAvoid()" style="background:rgba(250,168,85,0.15);border:1px solid rgba(250,168,85,0.3);border-radius:6px;padding:4px 10px;color:#FAA855;font-size:11px;cursor:pointer;">+ Dodaj</button>
+          </div>
+          <div style="margin-top:6px;">
+            <span style="font-size:9px;color:var(--tx3);">Szybki wybór: </span>
+            ${['cukier','biały chleb','nabiał','alkohol','fast food','słodycze','przetworzone mięso','smażone potrawy'].map(t =>
+              `<button onclick="dietQuickAvoid('${t}')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">${t}</button>`
+            ).join('')}
+          </div>
+          <input type="hidden" id="diet-avoid-list" value="">
 
         <!-- NOWE: Typ budowy -->
         <div class="diet-section-title" style="margin-top:6px;">🧬 Typ budowy ciała</div>
@@ -2366,6 +2380,7 @@ async function generateDiet() {
   const style = document.getElementById('diet-style').value;
   const meals = document.getElementById('diet-meals').value;
   const allergies = document.getElementById('diet-allergies').value;
+  const avoidList = document.getElementById('diet-avoid-list')?.value || '';
   const weight = document.getElementById('diet-weight').value;
   const gender = document.getElementById('diet-gender').value;
   const age = document.getElementById('diet-age').value;
@@ -2405,7 +2420,8 @@ DANE KLIENTA:
 - Cel: ${goal}
 - Styl żywienia: ${style}
 - Posiłków dziennie: ${meals}
-- Alergie/wykluczenia: ${allergies || 'brak'}
+- Alergie/wykluczenia medyczne: ${allergies || 'brak'}
+- BEZWZGLĘDNIE nie używaj w potrawach: ${avoidList || 'brak ograniczeń'} (to preferencje klienta – nawet jako składnik śladowy)
 - Typ budowy ciała: ${bodyType} (${bodyType==='ektomorfik'?'zwiększ węgle, ogranicz tłuszcze':bodyType==='endomorfik'?'ogranicz węgle, zwiększ białko i tłuszcze, carb cycling':' balans standardowy'})
 - Godzina treningu: ${trainTime} → posiłek przedtreningowy (węgle + białko) 60-90 min PRZED, posiłek potreningowy (białko + szybkie węgle) 30-60 min PO treningu. W dni wolne od treningu: więcej tłuszczów, mniej węgli.
 - Styl gotowania: ${cookStyle==='ekonomiczny'?'PROSTE dania ≤20 min, mało składników, powtarzające się produkty, tanie zamienniki':cookStyle==='mealprep'?'MEAL PREP: gotowanie na 2-3 dni, zaznacz które posiłki można przygotować z wyprzedzeniem, pojemniki':'PREMIUM: różnorodne składniki, zaawansowane techniki, pełna paleta smaków i tekstur'}
@@ -2780,6 +2796,34 @@ function dietRenderPlan(plan) {
   }
 
   document.getElementById('diet-content').innerHTML = html;
+}
+
+function dietAddAvoid() {
+  const input = document.getElementById('diet-avoid-input');
+  const val = input.value.trim().replace(/,/g,'');
+  if (!val) return;
+  dietQuickAvoid(val);
+  input.value = '';
+}
+
+function dietQuickAvoid(val) {
+  const list = document.getElementById('diet-avoid-list');
+  const tags = document.getElementById('diet-avoid-tags');
+  const existing = list.value ? list.value.split(',') : [];
+  if (existing.includes(val)) return;
+  existing.push(val);
+  list.value = existing.join(',');
+  // Renderuj tag
+  const tag = document.createElement('span');
+  tag.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.25);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--ac);';
+  tag.innerHTML = `${val} <button onclick="dietRemoveAvoid('${val}',this.parentElement)" style="background:none;border:none;color:var(--ac);cursor:pointer;font-size:12px;line-height:1;padding:0;">×</button>`;
+  tags.appendChild(tag);
+}
+
+function dietRemoveAvoid(val, tag) {
+  const list = document.getElementById('diet-avoid-list');
+  list.value = list.value.split(',').filter(v => v !== val).join(',');
+  tag.remove();
 }
 
 function dietSelectBody(val, btn) {

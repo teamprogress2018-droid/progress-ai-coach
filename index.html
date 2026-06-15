@@ -1480,92 +1480,129 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <!-- LEWA: formularz -->
     <div>
       <div class="diet-panel">
+
+        <!-- KAFELKI: Parametry klienta -->
         <div class="diet-section-title">📊 Parametry klienta</div>
-
-        <div class="diet-row">
-          <div class="diet-label">Waga (kg)</div>
-          <input class="diet-inp" id="diet-weight" type="number" placeholder="np. 80" inputmode="decimal">
-        </div>
-        <div class="diet-row">
-          <div class="diet-label">Wzrost (cm)</div>
-          <input class="diet-inp" id="diet-height" type="number" placeholder="np. 180" inputmode="decimal">
-        </div>
-        <div class="diet-row">
-          <div class="diet-label">Wiek</div>
-          <input class="diet-inp" id="diet-age" type="number" placeholder="np. 30" inputmode="decimal">
-        </div>
-        <div class="diet-row">
-          <div class="diet-label">Płeć</div>
-          <select class="diet-sel" id="diet-gender">
-            <option value="M">Mężczyzna</option>
-            <option value="K">Kobieta</option>
-          </select>
-        </div>
-
-        <div class="diet-section-title" style="margin-top:4px;">🎯 Cel i aktywność</div>
-
-        <div class="diet-row">
-          <div class="diet-label">Cel główny</div>
-          <select class="diet-sel" id="diet-goal">
-            <option value="redukcja">🔥 Redukcja tłuszczu</option>
-            <option value="masa">💪 Budowa masy mięśniowej</option>
-            <option value="rekompo">⚖️ Rekompo (siła + redukcja)</option>
-            <option value="utrzymanie">✅ Utrzymanie wagi</option>
-            <option value="wydolnosc">🏃 Poprawa wydolności</option>
-          </select>
-        </div>
-        <div class="diet-row">
-          <div class="diet-label">Aktywność</div>
-          <select class="diet-sel" id="diet-activity">
-            <option value="1.2">Sedentarny (biuro, brak sportu)</option>
-            <option value="1.375">Lekko aktywny (1-3x/tydz)</option>
-            <option value="1.55" selected>Umiarkowanie aktywny (3-5x/tydz)</option>
-            <option value="1.725">Bardzo aktywny (6-7x/tydz)</option>
-            <option value="1.9">Ekstremalnie aktywny (praca fizyczna + trening)</option>
-          </select>
-        </div>
-        <div class="diet-row">
-          <div class="diet-label">Tempo zmian</div>
-          <select class="diet-sel" id="diet-pace">
-            <option value="aggressive">Agresywne (-500 kcal/dzień)</option>
-            <option value="moderate" selected>Umiarkowane (-300 kcal/dzień)</option>
-            <option value="conservative">Konserwatywne (-150 kcal/dzień)</option>
-            <option value="none">Brak deficytu (utrzymanie)</option>
-          </select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">⚖️ Waga (kg)</div>
+            <input class="diet-inp" id="diet-weight" type="number" placeholder="np. 80" inputmode="decimal" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:18px;font-weight:600;color:#FAA855;">
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📏 Wzrost (cm)</div>
+            <input class="diet-inp" id="diet-height" type="number" placeholder="np. 180" inputmode="decimal" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:18px;font-weight:600;color:var(--bl);">
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🎂 Wiek</div>
+            <input class="diet-inp" id="diet-age" type="number" placeholder="np. 30" inputmode="decimal" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:18px;font-weight:600;color:var(--gr);">
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">👤 Płeć</div>
+            <select class="diet-sel" id="diet-gender" style="width:100%;background:transparent;border:none;padding:4px 0;font-size:14px;font-weight:600;color:var(--tx);">
+              <option value="M">♂ Mężczyzna</option>
+              <option value="K">♀ Kobieta</option>
+            </select>
+          </div>
         </div>
 
-        <div class="diet-section-title" style="margin-top:4px;">🍽️ Preferencje</div>
+        <!-- KAFELKI: Cel -->
+        <div class="diet-section-title" style="margin-top:6px;">🎯 Cel główny</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="diet-goal-grid">
+          <button class="diet-goal-btn active" onclick="dietSelectGoal('redukcja',this)" style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:3px;">🔥</div>
+            <div style="font-size:11px;font-weight:600;color:var(--ac);">Redukcja</div>
+            <div style="font-size:9px;color:var(--tx3);">tłuszczu</div>
+          </button>
+          <button class="diet-goal-btn" onclick="dietSelectGoal('masa',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:3px;">💪</div>
+            <div style="font-size:11px;font-weight:600;color:var(--tx2);">Masa</div>
+            <div style="font-size:9px;color:var(--tx3);">mięśniowa</div>
+          </button>
+          <button class="diet-goal-btn" onclick="dietSelectGoal('rekompo',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:3px;">⚖️</div>
+            <div style="font-size:11px;font-weight:600;color:var(--tx2);">Rekompo</div>
+            <div style="font-size:9px;color:var(--tx3);">siła + redukcja</div>
+          </button>
+          <button class="diet-goal-btn" onclick="dietSelectGoal('utrzymanie',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:3px;">✅</div>
+            <div style="font-size:11px;font-weight:600;color:var(--tx2);">Utrzymanie</div>
+            <div style="font-size:9px;color:var(--tx3);">wagi</div>
+          </button>
+        </div>
+        <input type="hidden" id="diet-goal" value="redukcja">
 
-        <div class="diet-row">
-          <div class="diet-label">Posiłki/dzień</div>
-          <select class="diet-sel" id="diet-meals">
-            <option value="3">3 posiłki</option>
-            <option value="4" selected>4 posiłki</option>
-            <option value="5">5 posiłków</option>
-            <option value="6">6 posiłków</option>
+        <!-- Aktywność i tempo -->
+        <div class="diet-section-title" style="margin-top:6px;">⚡ Aktywność i tempo</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Poziom aktywności</div>
+          <select class="diet-sel" id="diet-activity" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--tx);">
+            <option value="1.2">🪑 Sedentarny (biuro)</option>
+            <option value="1.375">🚶 Lekko aktywny (1-3x/tydz)</option>
+            <option value="1.55" selected>🏃 Umiarkowanie aktywny (3-5x/tydz)</option>
+            <option value="1.725">🔥 Bardzo aktywny (6-7x/tydz)</option>
+            <option value="1.9">⚡ Ekstremalnie aktywny</option>
           </select>
         </div>
-        <div class="diet-row">
-          <div class="diet-label">Styl żywienia</div>
-          <select class="diet-sel" id="diet-style">
-            <option value="klasyczny">Klasyczny (mięso + warzywa)</option>
-            <option value="flex">Flexible dieting (IIFYM)</option>
-            <option value="wegetarianskie">Wegetariańskie</option>
-            <option value="wegańskie">Wegańskie</option>
-            <option value="ketonowe">Ketogeniczne (low-carb)</option>
-            <option value="srodziemnomorska">Śródziemnomorska</option>
-          </select>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;" id="diet-pace-grid">
+          <button class="diet-pace-btn" onclick="dietSelectPace('aggressive',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;">
+            <div style="font-size:14px;margin-bottom:2px;">🚀</div>
+            <div style="font-size:10px;font-weight:600;color:var(--tx2);">Agresywne</div>
+            <div style="font-size:9px;color:var(--tx3);">-500 kcal</div>
+          </button>
+          <button class="diet-pace-btn active" onclick="dietSelectPace('moderate',this)" style="background:rgba(250,168,85,0.12);border:1px solid rgba(250,168,85,0.3);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;">
+            <div style="font-size:14px;margin-bottom:2px;">⚖️</div>
+            <div style="font-size:10px;font-weight:600;color:#FAA855;">Umiarkowane</div>
+            <div style="font-size:9px;color:var(--tx3);">-300 kcal</div>
+          </button>
+          <button class="diet-pace-btn" onclick="dietSelectPace('conservative',this)" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;">
+            <div style="font-size:14px;margin-bottom:2px;">🐢</div>
+            <div style="font-size:10px;font-weight:600;color:var(--tx2);">Łagodne</div>
+            <div style="font-size:9px;color:var(--tx3);">-150 kcal</div>
+          </button>
         </div>
-        <div class="diet-row">
-          <div class="diet-label">Alergie / wykluczenia</div>
-          <input class="diet-inp" id="diet-allergies" placeholder="np. gluten, laktoza, orzechy">
+        <input type="hidden" id="diet-pace" value="moderate">
+
+        <!-- Preferencje -->
+        <div class="diet-section-title" style="margin-top:6px;">🍽️ Preferencje</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🍴 Posiłki/dzień</div>
+            <select class="diet-sel" id="diet-meals" style="width:100%;background:transparent;border:none;padding:4px 0;font-size:14px;font-weight:600;color:var(--tx);">
+              <option value="3">3 posiłki</option>
+              <option value="4" selected>4 posiłki</option>
+              <option value="5">5 posiłków</option>
+              <option value="6">6 posiłków</option>
+            </select>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🥗 Styl żywienia</div>
+            <select class="diet-sel" id="diet-style" style="width:100%;background:transparent;border:none;padding:4px 0;font-size:11px;font-weight:600;color:var(--tx);">
+              <option value="klasyczny">🥩 Klasyczny</option>
+              <option value="flex">🎯 Flexible (IIFYM)</option>
+              <option value="wegetarianskie">🥦 Wegetariańskie</option>
+              <option value="wegańskie">🌱 Wegańskie</option>
+              <option value="ketonowe">🥑 Keto (low-carb)</option>
+              <option value="srodziemnomorska">🫒 Śródziemnomorska</option>
+            </select>
+          </div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🚫 Alergie / wykluczenia</div>
+          <input class="diet-inp" id="diet-allergies" placeholder="np. gluten, laktoza, orzechy" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:12px;color:var(--tx);">
         </div>
 
-        <div class="diet-section-title" style="margin-top:4px;">📅 Plan na</div>
-        <div style="display:flex;gap:6px;">
-          <button class="diet-tab active" onclick="dietSetDays(7,this)" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(250,168,85,0.3);background:rgba(250,168,85,0.15);color:#FAA855;font-size:11px;cursor:pointer;">7 dni</button>
-          <button class="diet-tab" onclick="dietSetDays(14,this)" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;">14 dni</button>
-          <button class="diet-tab" onclick="dietSetDays(30,this)" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;">30 dni</button>
+        <!-- Plan na -->
+        <div class="diet-section-title" style="margin-top:6px;">📅 Plan na</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <button onclick="dietSetDays(7,this)" class="diet-days-btn active" style="padding:10px 4px;border-radius:10px;border:1px solid rgba(250,168,85,0.3);background:rgba(250,168,85,0.15);color:#FAA855;font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:2px;">📅</div>7 dni
+          </button>
+          <button onclick="dietSetDays(14,this)" class="diet-days-btn" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:2px;">🗓️</div>14 dni
+          </button>
+          <button onclick="dietSetDays(30,this)" class="diet-days-btn" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;text-align:center;">
+            <div style="font-size:18px;margin-bottom:2px;">📆</div>30 dni
+          </button>
         </div>
 
         <button class="diet-gen-btn" id="diet-gen-btn" onclick="generateDiet()">
@@ -2660,7 +2697,52 @@ function dietRenderPlan(plan) {
   document.getElementById('diet-content').innerHTML = html;
 }
 
-function dietToggleAlt(mealId) {
+function dietSelectGoal(val, btn) {
+  document.getElementById('diet-goal').value = val;
+  const colors = {
+    redukcja: ['rgba(232,48,42,0.12)', 'rgba(232,48,42,0.3)', 'var(--ac)'],
+    masa:     ['rgba(74,222,128,0.12)', 'rgba(74,222,128,0.3)', 'var(--gr)'],
+    rekompo:  ['rgba(96,165,250,0.12)', 'rgba(96,165,250,0.3)', 'var(--bl)'],
+    utrzymanie:['rgba(250,168,85,0.12)','rgba(250,168,85,0.3)','#FAA855'],
+  };
+  document.querySelectorAll('.diet-goal-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.03)';
+    b.style.borderColor = 'var(--border)';
+    b.querySelector('div:nth-child(2)').style.color = 'var(--tx2)';
+  });
+  const [bg, border, color] = colors[val] || colors.redukcja;
+  btn.style.background = bg;
+  btn.style.borderColor = border;
+  btn.querySelector('div:nth-child(2)').style.color = color;
+  dietCalcMacro();
+}
+
+function dietSelectPace(val, btn) {
+  document.getElementById('diet-pace').value = val;
+  document.querySelectorAll('.diet-pace-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.03)';
+    b.style.borderColor = 'var(--border)';
+    b.querySelector('div:nth-child(2)').style.color = 'var(--tx2)';
+  });
+  btn.style.background = 'rgba(250,168,85,0.12)';
+  btn.style.borderColor = 'rgba(250,168,85,0.3)';
+  btn.querySelector('div:nth-child(2)').style.color = '#FAA855';
+  dietCalcMacro();
+}
+
+// Nadpisz dietSetDays żeby obsługiwał nowe przyciski
+const _dietSetDaysOrig = dietSetDays;
+dietSetDays = function(n, btn) {
+  dietDays = n;
+  document.querySelectorAll('.diet-days-btn').forEach(b => {
+    b.style.background = 'var(--bg3)';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--tx2)';
+  });
+  btn.style.background = 'rgba(250,168,85,0.15)';
+  btn.style.borderColor = 'rgba(250,168,85,0.3)';
+  btn.style.color = '#FAA855';
+};
   const el = document.getElementById(mealId + '-alt');
   if (!el) return;
   const isHidden = el.style.display === 'none' || el.style.display === '';

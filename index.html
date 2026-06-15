@@ -1474,7 +1474,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 
 <!-- OVERLAY: PLAN 8 TYGODNI -->
 <!-- ═══ OVERLAY: DIETA & ŻYWIENIE ═══ -->
-<div id="screen-dieta" class="overlay-screen">
+<div id="screen-dieta">
   <div style="display:flex;align-items:center;gap:10px;padding:0 0 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;">
     <button class="tl-back" onclick="closeOverlay()">← Wróć do chatu</button>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:#FAA855;">DIETA & ŻYWIENIE</div>
@@ -1722,33 +1722,33 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
       <!-- Kalkulator makro live -->
       <div class="diet-panel" style="margin-top:12px;" id="diet-macro-preview">
         <div class="diet-section-title">⚡ Kalkulator makro (live)</div>
-        <div class="diet-macro-grid" id="diet-macro-cards">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="diet-macro-cards">
           <div class="diet-macro-card">
-            <div class="diet-macro-label">Kalorie</div>
-            <div class="diet-macro-val" id="dm-kcal">–</div>
+            <div class="diet-macro-label">🔥 Kalorie</div>
+            <div class="diet-macro-val" id="dm-kcal" style="font-size:16px;color:#FAA855;">–</div>
             <div class="diet-macro-unit">kcal/dzień</div>
             <div class="diet-macro-bar" style="background:linear-gradient(to right,#FAA855,#f59533);"></div>
           </div>
           <div class="diet-macro-card">
-            <div class="diet-macro-label">Białko</div>
-            <div class="diet-macro-val" id="dm-protein">–</div>
+            <div class="diet-macro-label">🥩 Białko</div>
+            <div class="diet-macro-val" id="dm-protein" style="font-size:16px;color:var(--ac);">–</div>
             <div class="diet-macro-unit">g/dzień</div>
             <div class="diet-macro-bar" style="background:var(--ac);"></div>
           </div>
           <div class="diet-macro-card">
-            <div class="diet-macro-label">Węgle</div>
-            <div class="diet-macro-val" id="dm-carbs">–</div>
+            <div class="diet-macro-label">🌾 Węgle</div>
+            <div class="diet-macro-val" id="dm-carbs" style="font-size:16px;color:var(--bl);">–</div>
             <div class="diet-macro-unit">g/dzień</div>
             <div class="diet-macro-bar" style="background:var(--bl);"></div>
           </div>
           <div class="diet-macro-card">
-            <div class="diet-macro-label">Tłuszcze</div>
-            <div class="diet-macro-val" id="dm-fat">–</div>
+            <div class="diet-macro-label">🥑 Tłuszcze</div>
+            <div class="diet-macro-val" id="dm-fat" style="font-size:16px;color:var(--gr);">–</div>
             <div class="diet-macro-unit">g/dzień</div>
             <div class="diet-macro-bar" style="background:var(--gr);"></div>
           </div>
         </div>
-        <div id="diet-macro-note" style="font-size:11px;color:var(--tx3);text-align:center;">Uzupełnij profil klienta aby obliczyć makro</div>
+        <div id="diet-macro-note" style="font-size:10px;color:var(--tx3);text-align:center;margin-top:6px;line-height:1.4;">Uzupełnij profil klienta aby obliczyć makro</div>
       </div>
     </div>
 
@@ -3351,7 +3351,10 @@ function openOverlay(id){
     if(lbl&&name)lbl.textContent='Klient: '+name;
   }
 }
-function closeOverlay(){document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');}
+function closeOverlay(){
+  document.querySelectorAll('.overlay-screen').forEach(s=>s.style.display='none');
+  document.getElementById('screen-dieta').style.display='none';
+}
 
 // FILE UPLOAD
 function handleFileUpload(event){const file=event.target.files[0];if(!file)return;if(file.size>5000000){alert('Plik za duży! Max 5MB.');return;}const isImage=file.type.startsWith('image/'),isPDF=file.type==='application/pdf';if(isImage){const reader=new FileReader();reader.onload=e=>{addToKnowledgeBase(file.name,'[IMAGE]'+e.target.result,'image');};reader.readAsDataURL(file);}else if(isPDF){const reader=new FileReader();reader.onload=async e=>{const base64=e.target.result.split(',')[1];try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:'Wyciągnij i zwróć cały tekst z tego dokumentu. Zachowaj strukturę.'}]}]})});const data=await resp.json();const text=data.content?.[0]?.text||'Nie udało się odczytać PDF.';addToKnowledgeBase(file.name,text);}catch(e){alert('Błąd odczytu PDF.');}};reader.readAsDataURL(file);}else{const reader=new FileReader();reader.onload=e=>{addToKnowledgeBase(file.name,e.target.result);};reader.readAsText(file);}event.target.value='';}

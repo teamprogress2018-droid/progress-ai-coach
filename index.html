@@ -247,6 +247,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 
 .macro-card-title{font-size:11px;font-family:'DM Mono',monospace;text-transform:uppercase;color:var(--tx3);letter-spacing:1px;}
 .macro-card-value{font-size:28px;font-weight:700;color:var(--tx);margin-top:4px;}
+.meal-ingredient-text{font-size:14px;line-height:1.6;color:var(--tx2);}
+.meal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--tx);}
 /* DIETA CSS */
 #screen-dieta{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);}
 .diet-topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg);height:52px;box-sizing:border-box;}
@@ -279,12 +281,12 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .diet-day-head{background:rgba(250,168,85,0.1);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;}
 .diet-day-name{font-size:12px;font-weight:600;color:#FAA855;font-family:'DM Mono',monospace;}
 .diet-day-kcal{font-size:11px;color:var(--tx2);}
-.diet-meal{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:10px;}
+.diet-meal{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:flex-start;gap:12px;}
 .diet-meal:last-child{border-bottom:none;}
-.diet-meal-time{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;min-width:42px;margin-top:2px;}
-.diet-meal-name{font-size:12px;font-weight:500;color:var(--tx);margin-bottom:2px;}
-.diet-meal-items{font-size:11px;color:var(--tx2);line-height:1.5;}
-.diet-meal-macro{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:3px;}
+.diet-meal-time{font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;min-width:46px;margin-top:6px;letter-spacing:.5px;}
+.diet-meal-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--tx);margin-bottom:4px;}
+.diet-meal-items{font-size:14px;line-height:1.6;color:var(--tx2);}
+.diet-meal-macro{font-size:10px;font-family:'DM Mono',monospace;margin-top:4px;}
 .diet-loading{text-align:center;padding:40px 20px;color:var(--tx3);}
 .diet-loading-spin{font-size:32px;animation:spin 1s linear infinite;display:inline-block;margin-bottom:12px;}
 @keyframes spin{to{transform:rotate(360deg);}}

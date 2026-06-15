@@ -1599,9 +1599,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           </div>
           <div style="margin-top:6px;">
             <span style="font-size:9px;color:var(--tx3);">Szybki wybór: </span>
-            ${['cukier','biały chleb','nabiał','alkohol','fast food','słodycze','przetworzone mięso','smażone potrawy'].map(t =>
-              `<button onclick="dietQuickAvoid('${t}')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">${t}</button>`
-            ).join('')}
+            <button onclick="dietQuickAvoid('cukier')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">cukier</button>
+            <button onclick="dietQuickAvoid('biały chleb')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">biały chleb</button>
+            <button onclick="dietQuickAvoid('nabiał')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">nabiał</button>
+            <button onclick="dietQuickAvoid('alkohol')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">alkohol</button>
+            <button onclick="dietQuickAvoid('fast food')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">fast food</button>
+            <button onclick="dietQuickAvoid('słodycze')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">słodycze</button>
+            <button onclick="dietQuickAvoid('smażone')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">smażone</button>
+            <button onclick="dietQuickAvoid('przetworzone mięso')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">przetworzone mięso</button>
+            <button onclick="dietQuickAvoid('majonez')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">majonez</button>
+            <button onclick="dietQuickAvoid('makaron biały')" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:2px 7px;color:var(--tx3);cursor:pointer;margin:2px 1px;">makaron biały</button>
           </div>
           <input type="hidden" id="diet-avoid-list" value="">
 

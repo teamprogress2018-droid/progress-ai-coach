@@ -245,6 +245,8 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
 .delta-neu{color:var(--tx3);}
 /* ===== END TRENING LIVE CSS ===== */
 
+.macro-card-title{font-size:11px;font-family:'DM Mono',monospace;text-transform:uppercase;color:var(--tx3);letter-spacing:1px;}
+.macro-card-value{font-size:28px;font-weight:700;color:var(--tx);margin-top:4px;}
 /* DIETA CSS */
 #screen-dieta{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);}
 .diet-topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg);height:52px;box-sizing:border-box;}
@@ -1657,15 +1659,31 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         <button id="diet-gen-btn" onclick="generateDiet()" style="width:100%;padding:11px;border-radius:8px;border:none;background:#FAA855;color:#1a0f00;font-size:13px;font-weight:700;cursor:pointer;">🥗 Generuj plan żywieniowy</button>
 
         <!-- Kalkulator makro -->
-        <div style="margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;" id="diet-macro-preview">
-          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:8px;">⚡ Makro (live)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <div style="text-align:center;"><div style="font-size:10px;color:var(--tx3);">Kalorie</div><div style="font-size:20px;font-weight:700;color:#FAA855;" id="dm-kcal">–</div></div>
-            <div style="text-align:center;"><div style="font-size:10px;color:var(--tx3);">Białko</div><div style="font-size:20px;font-weight:700;color:var(--ac);" id="dm-protein">–</div><div style="font-size:9px;color:var(--tx3);">g</div></div>
-            <div style="text-align:center;"><div style="font-size:10px;color:var(--tx3);">Węgle</div><div style="font-size:20px;font-weight:700;color:var(--bl);" id="dm-carbs">–</div><div style="font-size:9px;color:var(--tx3);">g</div></div>
-            <div style="text-align:center;"><div style="font-size:10px;color:var(--tx3);">Tłuszcze</div><div style="font-size:20px;font-weight:700;color:var(--gr);" id="dm-fat">–</div><div style="font-size:9px;color:var(--tx3);">g</div></div>
+        <div style="margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;" id="diet-macro-preview">
+          <div class="macro-card-title" style="margin-bottom:10px;">⚡ Makro (live)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+              <div class="macro-card-title">🔥 Kalorie</div>
+              <div class="macro-card-value" style="color:#FAA855;" id="dm-kcal">–</div>
+              <div style="font-size:9px;color:var(--tx3);">kcal/dzień</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+              <div class="macro-card-title">🥩 Białko</div>
+              <div class="macro-card-value" style="color:var(--ac);" id="dm-protein">–</div>
+              <div style="font-size:9px;color:var(--tx3);">g/dzień</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+              <div class="macro-card-title">🌾 Węgle</div>
+              <div class="macro-card-value" style="color:var(--bl);" id="dm-carbs">–</div>
+              <div style="font-size:9px;color:var(--tx3);">g/dzień</div>
+            </div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+              <div class="macro-card-title">🥑 Tłuszcze</div>
+              <div class="macro-card-value" style="color:var(--gr);" id="dm-fat">–</div>
+              <div style="font-size:9px;color:var(--tx3);">g/dzień</div>
+            </div>
           </div>
-          <div id="diet-macro-note" style="font-size:9px;color:var(--tx3);text-align:center;margin-top:6px;line-height:1.4;">Uzupełnij dane klienta</div>
+          <div id="diet-macro-note" style="font-size:9px;color:var(--tx3);text-align:center;margin-top:8px;line-height:1.5;">Uzupełnij dane klienta</div>
         </div>
       </div>
     </div>

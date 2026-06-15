@@ -2405,7 +2405,66 @@ function dietRenderPlan(plan) {
     html += `<div class="diet-tip"><strong style="color:#FAA855;">💊 Suplementacja:</strong> ${plan.supplementation.join(', ')}</div>`;
   }
 
-  // Dni
+  // ═══ TABELKA ZESTAWIENIA MAKRO PER DZIEŃ ═══
+  if (plan.days?.length > 0) {
+    html += `<div style="background:var(--bg2);border:1px solid rgba(250,168,85,0.2);border-radius:12px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:rgba(250,168,85,0.1);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;">📊</span>
+        <span style="font-size:11px;font-weight:600;color:#FAA855;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;">Zestawienie makro per dzień</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="padding:8px 12px;text-align:left;color:var(--tx3);font-family:'DM Mono',monospace;font-weight:500;white-space:nowrap;">Dzień</th>
+              <th style="padding:8px 10px;text-align:center;color:#FAA855;font-family:'DM Mono',monospace;font-weight:500;">Kcal</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--ac);font-family:'DM Mono',monospace;font-weight:500;">Białko</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--bl);font-family:'DM Mono',monospace;font-weight:500;">Węgle</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--gr);font-family:'DM Mono',monospace;font-weight:500;">Tłuszcze</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--tx3);font-family:'DM Mono',monospace;font-weight:500;">B%</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--tx3);font-family:'DM Mono',monospace;font-weight:500;">W%</th>
+              <th style="padding:8px 10px;text-align:center;color:var(--tx3);font-family:'DM Mono',monospace;font-weight:500;">T%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${plan.days.map((day, i) => {
+              // Zsumuj makro z posiłków jeśli brak w dniu
+              const meals = day.meals || [];
+              const totalKcal = day.totalKcal || meals.reduce((s,m) => s+(m.kcal||0), 0) || plan.dailyKcal;
+              const totalP = day.totalProtein || meals.reduce((s,m) => s+(m.protein||0), 0) || plan.dailyProtein;
+              const totalC = day.totalCarbs || meals.reduce((s,m) => s+(m.carbs||0), 0) || plan.dailyCarbs;
+              const totalF = day.totalFat || meals.reduce((s,m) => s+(m.fat||0), 0) || plan.dailyFat;
+              const pPct = totalKcal ? Math.round(totalP*4/totalKcal*100) : 0;
+              const cPct = totalKcal ? Math.round(totalC*4/totalKcal*100) : 0;
+              const fPct = totalKcal ? Math.round(totalF*9/totalKcal*100) : 0;
+              const bg = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+              return `<tr style="background:${bg};border-bottom:1px solid rgba(255,255,255,0.04);">
+                <td style="padding:7px 12px;color:var(--tx2);white-space:nowrap;">${day.dayName||'Dzień '+day.day}</td>
+                <td style="padding:7px 10px;text-align:center;font-weight:600;color:#FAA855;">${totalKcal}</td>
+                <td style="padding:7px 10px;text-align:center;color:var(--ac);">${totalP}g</td>
+                <td style="padding:7px 10px;text-align:center;color:var(--bl);">${totalC}g</td>
+                <td style="padding:7px 10px;text-align:center;color:var(--gr);">${totalF}g</td>
+                <td style="padding:7px 10px;text-align:center;color:var(--tx3);">${pPct}%</td>
+                <td style="padding:7px 10px;text-align:center;color:var(--tx3);">${cPct}%</td>
+                <td style="padding:7px 10px;text-align:center;color:var(--tx3);">${fPct}%</td>
+              </tr>`;
+            }).join('')}
+            <tr style="border-top:2px solid rgba(250,168,85,0.3);background:rgba(250,168,85,0.05);">
+              <td style="padding:8px 12px;color:#FAA855;font-weight:600;font-family:'DM Mono',monospace;">ŚREDNIA</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:#FAA855;">${plan.dailyKcal}</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--ac);">${plan.dailyProtein}g</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--bl);">${plan.dailyCarbs}g</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--gr);">${plan.dailyFat}g</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--tx2);">${plan.dailyKcal ? Math.round(plan.dailyProtein*4/plan.dailyKcal*100) : 0}%</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--tx2);">${plan.dailyKcal ? Math.round(plan.dailyCarbs*4/plan.dailyKcal*100) : 0}%</td>
+              <td style="padding:8px 10px;text-align:center;font-weight:600;color:var(--tx2);">${plan.dailyKcal ? Math.round(plan.dailyFat*9/plan.dailyKcal*100) : 0}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  // ═══ END TABELKA ═══
   (plan.days || []).forEach(day => {
     html += `<div class="diet-day">
       <div class="diet-day-head">

@@ -2324,14 +2324,32 @@ FORMAT JSON (zwróć TYLKO ten JSON):
           "protein": number,
           "carbs": number,
           "fat": number,
-          "prepNote": "string (krótka wskazówka przygotowania, max 60 znaków)"
+          "prepNote": "string (krótka wskazówka przygotowania, max 60 znaków)",
+          "alternatives": [
+            {
+              "name": "Wariant A",
+              "items": ["4 jajka sadzone", "2 kromki chleba żytniego", "1 awokado", "pomidor"],
+              "kcal": number,
+              "protein": number,
+              "carbs": number,
+              "fat": number
+            },
+            {
+              "name": "Wariant B",
+              "items": ["200g jogurtu greckiego 0%", "40g granoli", "150g truskawek", "15g miodu"],
+              "kcal": number,
+              "protein": number,
+              "carbs": number,
+              "fat": number
+            }
+          ]
         }
       ]
     }
   ]
 }
 
-Wygeneruj ${Math.min(dietDays, 3)} dni szczegółowo (reszta jako powtórzenie z wariantami). TYLKO JSON.`;
+WAŻNE: Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami o podobnym makro (±10% kalorii). Warianty muszą być smaczne, praktyczne i różnorodne. Wygeneruj ${Math.min(dietDays, 3)} dni szczegółowo. TYLKO JSON.`;
 
   try {
     const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
@@ -2472,6 +2490,7 @@ function dietRenderPlan(plan) {
         <div class="diet-day-kcal">${day.totalKcal || plan.dailyKcal} kcal</div>
       </div>`;
     (day.meals || []).forEach(meal => {
+      const mealId = `meal-${day.day}-${meal.mealNumber}`;
       html += `<div class="diet-meal">
         <div class="diet-meal-time">${meal.time||''}</div>
         <div style="flex:1;">
@@ -2479,6 +2498,20 @@ function dietRenderPlan(plan) {
           <div class="diet-meal-items">${(meal.items||[]).join(' · ')}</div>
           ${meal.prepNote ? `<div style="font-size:10px;color:#FAA855;margin-top:2px;">💡 ${meal.prepNote}</div>` : ''}
           <div class="diet-meal-macro">${meal.kcal ? meal.kcal+' kcal' : ''} ${meal.protein ? '· B:'+meal.protein+'g' : ''} ${meal.carbs ? '· W:'+meal.carbs+'g' : ''} ${meal.fat ? '· T:'+meal.fat+'g' : ''}</div>
+          ${meal.alternatives?.length ? `
+          <button onclick="dietToggleAlt('${mealId}')" style="margin-top:6px;background:rgba(250,168,85,0.08);border:1px solid rgba(250,168,85,0.2);border-radius:6px;padding:3px 10px;color:#FAA855;font-size:10px;cursor:pointer;font-family:'DM Mono',monospace;">
+            🔄 Alternatywy (${meal.alternatives.length})
+          </button>
+          <div id="${mealId}-alt" style="display:none;margin-top:8px;display:none;">
+            ${meal.alternatives.map((alt, ai) => `
+            <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:6px;">
+              <div style="font-size:10px;color:#FAA855;font-family:'DM Mono',monospace;font-weight:600;margin-bottom:4px;">
+                ${ai === 0 ? '🅰' : '🅱'} ${alt.name||'Wariant '+(ai+1)}
+              </div>
+              <div style="font-size:11px;color:var(--tx2);line-height:1.5;">${(alt.items||[]).join(' · ')}</div>
+              <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:3px;">${alt.kcal ? alt.kcal+' kcal' : ''} ${alt.protein ? '· B:'+alt.protein+'g' : ''} ${alt.carbs ? '· W:'+alt.carbs+'g' : ''} ${alt.fat ? '· T:'+alt.fat+'g' : ''}</div>
+            </div>`).join('')}
+          </div>` : ''}
         </div>
       </div>`;
     });
@@ -2500,6 +2533,19 @@ function dietRenderPlan(plan) {
   }
 
   document.getElementById('diet-content').innerHTML = html;
+}
+
+function dietToggleAlt(mealId) {
+  const el = document.getElementById(mealId + '-alt');
+  if (!el) return;
+  const isHidden = el.style.display === 'none' || el.style.display === '';
+  el.style.display = isHidden ? 'block' : 'none';
+  // Zmień tekst przycisku
+  const btn = el.previousElementSibling;
+  if (btn && btn.tagName === 'BUTTON') {
+    const count = el.querySelectorAll('[style*="border-radius:8px"]').length;
+    btn.textContent = isHidden ? `✕ Ukryj alternatywy` : `🔄 Alternatywy (${count})`;
+  }
 }
 
 function dietAskAI() {

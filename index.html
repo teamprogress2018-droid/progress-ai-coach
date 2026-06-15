@@ -2359,9 +2359,14 @@ function dietCalcMacro() {
   const kcal = tdee + deficit;
 
   // Makro
-  const protein = Math.round(w * (goal === 'redukcja' ? 2.4 : goal === 'masa' ? 2.2 : 2.0));
+  const effectiveGoal = goal || 'redukcja';
+  const proteinMultiplier = effectiveGoal === 'redukcja' ? 2.4 : effectiveGoal === 'masa' ? 2.2 : 2.0;
+  const protein = Math.round(w * proteinMultiplier);
   const proteinKcal = protein * 4;
-  const fat = Math.round(w * 1.0);
+  // Tłuszcze: minimum 0.8g/kg, przy keto więcej
+  const style = document.getElementById('diet-style')?.value || '';
+  const fatMultiplier = style === 'ketonowe' ? 1.8 : 0.9;
+  const fat = Math.round(w * fatMultiplier);
   const fatKcal = fat * 9;
   const carbs = Math.round((kcal - proteinKcal - fatKcal) / 4);
 
@@ -2797,16 +2802,30 @@ function dietRenderPlan(plan) {
     html += `</div>`;
   });
 
-  // Lista zakupów
+  // Lista zakupów - rozwijalna
   if (plan.shoppingList?.length) {
-    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px;">
-      <div style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🛒 Lista zakupów (${dietDays} dni)</div>
-      <div class="diet-shopping-list">
-        ${plan.shoppingList.map(item => `
-          <div class="diet-shop-item">
-            <input type="checkbox" onchange="this.parentElement.style.opacity=this.checked?'0.4':'1'">
-            <span>${item}</span>
-          </div>`).join('')}
+    const shopId = 'diet-shop-' + Date.now();
+    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:10px;">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.shop-arrow').textContent=this.nextElementSibling.style.display==='none'?'▸':'▾';"
+        style="cursor:pointer;background:rgba(74,222,128,0.08);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:14px;">🛒</span>
+          <span style="font-size:11px;font-weight:600;color:var(--gr);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;">Lista zakupów (${dietDays} dni) — ${plan.shoppingList.length} produktów</span>
+        </div>
+        <span class="shop-arrow" style="color:var(--gr);font-size:14px;">▾</span>
+      </div>
+      <div style="display:block;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:10px 12px;">
+          ${plan.shoppingList.map(item => `
+            <div class="diet-shop-item">
+              <input type="checkbox" onchange="this.parentElement.style.opacity=this.checked?'0.4':'1';this.parentElement.style.textDecoration=this.checked?'line-through':'none';">
+              <span>${item}</span>
+            </div>`).join('')}
+        </div>
+        <div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:8px;">
+          <button onclick="dietCopyShopList()" style="flex:1;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);border-radius:7px;padding:7px;color:var(--gr);font-size:11px;cursor:pointer;">📋 Kopiuj listę</button>
+          <button onclick="dietCheckAllShop(this)" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px;color:var(--tx2);font-size:11px;cursor:pointer;">✓ Zaznacz wszystko</button>
+        </div>
       </div>
     </div>`;
   }
@@ -2928,6 +2947,28 @@ function dietSetDaysStyled(n, btn) {
   btn.style.background = 'rgba(250,168,85,0.15)';
   btn.style.borderColor = 'rgba(250,168,85,0.3)';
   btn.style.color = '#FAA855';
+}
+
+function dietCopyShopList() {
+  if (!currentDietPlan?.shoppingList) return;
+  const text = currentDietPlan.shoppingList.map(i => '☐ ' + i).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Skopiowano!';
+    btn.style.background = 'rgba(74,222,128,0.2)';
+    setTimeout(() => { btn.textContent = '📋 Kopiuj listę'; btn.style.background = 'rgba(74,222,128,0.1)'; }, 2000);
+  });
+}
+
+function dietCheckAllShop(btn) {
+  const checked = btn.closest('div').previousElementSibling.querySelectorAll('input[type=checkbox]');
+  const allChecked = [...checked].every(c => c.checked);
+  checked.forEach(c => {
+    c.checked = !allChecked;
+    c.parentElement.style.opacity = !allChecked ? '0.4' : '1';
+    c.parentElement.style.textDecoration = !allChecked ? 'line-through' : 'none';
+  });
+  btn.textContent = allChecked ? '✓ Zaznacz wszystko' : '✗ Odznacz wszystko';
 }
 
 function dietToggleAlt(mealId) {

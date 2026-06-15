@@ -1658,6 +1658,19 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
           <button onclick="dietSetDaysStyled(30,this)" class="diet-days-btn" style="padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--tx2);font-size:12px;font-weight:600;cursor:pointer;text-align:center;"><div style="font-size:14px;">📆</div>30 dni</button>
         </div>
 
+        <!-- INTEGRACJA Z PLANEM TRENINGOWYM -->
+        <div id="diet-training-sync" style="background:rgba(127,119,221,0.08);border:1px solid rgba(127,119,221,0.25);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+          <div style="font-size:9px;color:#9f97e8;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">🔗 Sync z planem treningowym</div>
+          <div id="diet-plan-status" style="font-size:11px;color:var(--tx3);margin-bottom:7px;">Brak wczytanego planu treningowego</div>
+          <div style="display:flex;gap:5px;">
+            <button onclick="dietSyncWithTraining()" id="diet-sync-btn" style="flex:1;background:rgba(127,119,221,0.15);border:1px solid rgba(127,119,221,0.3);border-radius:6px;padding:6px;color:#9f97e8;font-size:10px;font-weight:600;cursor:pointer;">⚡ Wczytaj z planu</button>
+            <button onclick="dietToggleCarbCycling()" id="diet-carb-btn" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--tx3);font-size:10px;font-weight:600;cursor:pointer;">🔄 Carb cycling: OFF</button>
+          </div>
+          <div id="diet-training-days" style="display:none;margin-top:8px;font-size:10px;color:var(--tx3);line-height:1.6;"></div>
+        </div>
+        <input type="hidden" id="diet-carb-cycling" value="0">
+        <input type="hidden" id="diet-training-sessions" value="">
+
         <button id="diet-gen-btn" onclick="generateDiet()" style="width:100%;padding:11px;border-radius:8px;border:none;background:#FAA855;color:#1a0f00;font-size:13px;font-weight:700;cursor:pointer;">🥗 Generuj plan żywieniowy</button>
 
         <!-- Kalkulator makro -->
@@ -2393,7 +2406,7 @@ OBLICZONE MAKRO (zastosuj dokładnie):
 - Węglowodany: ${macro.carbs}g (${(macro.carbs*4/macro.kcal*100).toFixed(0)}%)
 - Tłuszcze: ${macro.fat}g (${(macro.fat*9/macro.kcal*100).toFixed(0)}%)
 - TDEE: ${macro.tdee} kcal, deficyt/nadwyżka: ${macro.deficit > 0 ? '+' : ''}${macro.deficit} kcal
-${ragContext}
+${ragContext}${getDietTrainingContext()}
 
 PROFIL KLIENTA: ${profile}
 FILOZOFIA TRENERA: ${philosophy || 'brak'}
@@ -2972,6 +2985,113 @@ function dietAutoFillFromProfile() {
   }
   dietCalcMacro();
 }
+// ===== INTEGRACJA TRENING + DIETA =====
+let carbCyclingEnabled = false;
+
+function dietSyncWithTraining() {
+  const btn = document.getElementById('diet-sync-btn');
+  const status = document.getElementById('diet-plan-status');
+  const trainingDays = document.getElementById('diet-training-days');
+
+  if (!currentPlanData || !currentPlanData.sessions) {
+    status.innerHTML = '<span style="color:var(--ac);">⚠ Brak planu treningowego. Wygeneruj plan w zakładce Plan 8 tyg.</span>';
+    return;
+  }
+
+  const plan = currentPlanData;
+  const sessions = plan.sessions || [];
+  const sessionsPerWeek = plan.sessionsPerWeek || sessions.length;
+  const split = plan.split || 'nieznany';
+
+  // Zapisz sesje do hidden input
+  document.getElementById('diet-training-sessions').value = JSON.stringify(
+    sessions.map(s => s.sessionName || s.name || 'Trening')
+  );
+
+  // Pokaż info
+  status.innerHTML = `<span style="color:#9f97e8;">✓ ${plan.planTitle?.split('—')[0]?.trim() || 'Plan'}</span><br><span style="color:var(--tx3);">Split: ${split} · ${sessionsPerWeek}x/tydz</span>`;
+
+  // Pokaż dni treningowe z makro
+  const carbCycling = carbCyclingEnabled;
+  const macro = dietCalcMacro();
+  if (macro && trainingDays) {
+    const daysHtml = sessions.slice(0, 7).map((s, i) => {
+      const isTraining = true;
+      const name = s.sessionName || s.name || `Sesja ${i+1}`;
+      const shortName = name.length > 35 ? name.substring(0, 35) + '...' : name;
+      const carbMod = carbCycling ? '+20%' : '=';
+      const fatMod = carbCycling ? '-10%' : '=';
+      return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <span style="color:#9f97e8;">🏋️ ${shortName}</span>
+        <span style="color:var(--tx3);font-size:9px;">W${carbMod} T${fatMod}</span>
+      </div>`;
+    }).join('');
+    trainingDays.innerHTML = daysHtml;
+    trainingDays.style.display = 'block';
+  }
+
+  btn.textContent = '✓ Zsynchronizowano';
+  btn.style.background = 'rgba(74,222,128,0.15)';
+  btn.style.borderColor = 'rgba(74,222,128,0.3)';
+  btn.style.color = 'var(--gr)';
+}
+
+function dietToggleCarbCycling() {
+  carbCyclingEnabled = !carbCyclingEnabled;
+  document.getElementById('diet-carb-cycling').value = carbCyclingEnabled ? '1' : '0';
+  const btn = document.getElementById('diet-carb-btn');
+  if (carbCyclingEnabled) {
+    btn.textContent = '🔄 Carb cycling: ON';
+    btn.style.background = 'rgba(250,168,85,0.15)';
+    btn.style.borderColor = 'rgba(250,168,85,0.3)';
+    btn.style.color = '#FAA855';
+  } else {
+    btn.textContent = '🔄 Carb cycling: OFF';
+    btn.style.background = 'rgba(255,255,255,0.03)';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--tx3)';
+  }
+  // Refresh sync jeśli jest plan
+  if (currentPlanData?.sessions) dietSyncWithTraining();
+}
+
+function getDietTrainingContext() {
+  const sessions = document.getElementById('diet-training-sessions')?.value;
+  const carbCycling = document.getElementById('diet-carb-cycling')?.value === '1';
+  if (!sessions || sessions === '') return '';
+
+  let sessionNames;
+  try { sessionNames = JSON.parse(sessions); } catch(e) { return ''; }
+
+  const macro = dietCalcMacro();
+  if (!macro) return '';
+
+  const trainCarbs = carbCycling ? Math.round(macro.carbs * 1.25) : macro.carbs;
+  const restCarbs  = carbCycling ? Math.round(macro.carbs * 0.75) : macro.carbs;
+  const trainFat   = carbCycling ? Math.round(macro.fat  * 0.85)  : macro.fat;
+  const restFat    = carbCycling ? Math.round(macro.fat  * 1.15)  : macro.fat;
+  const trainKcal  = carbCycling ? Math.round(macro.kcal * 1.05)  : macro.kcal;
+  const restKcal   = carbCycling ? Math.round(macro.kcal * 0.95)  : macro.kcal;
+
+  let ctx = `\n\nINTEGRACJA Z PLANEM TRENINGOWYM:\nSesje treningowe w tygodniu: ${sessionNames.join(', ')}\n`;
+
+  if (carbCycling) {
+    ctx += `\nCARB CYCLING (AKTYWNY):\n`;
+    ctx += `- DNI TRENINGOWE: ${trainKcal} kcal, węgle ${trainCarbs}g (+25%), tłuszcze ${trainFat}g (-15%), białko ${macro.protein}g (bez zmian)\n`;
+    ctx += `- DNI ODPOCZYNKU: ${restKcal} kcal, węgle ${restCarbs}g (-25%), tłuszcze ${restFat}g (+15%), białko ${macro.protein}g (bez zmian)\n`;
+    ctx += `- Węgle w dni treningowe: głównie około treningowo (pre: ryż/kasza, post: banan/jogurt)\n`;
+    ctx += `- W dni odpoczynku: więcej tłuszczów (awokado, orzechy, łosoś), mniej węgli\n`;
+    ctx += `- Każdy dzień planu musi mieć pole "dayType": "trening" lub "odpoczynek"\n`;
+  } else {
+    ctx += `Stałe makro każdego dnia: ${macro.kcal} kcal, B:${macro.protein}g, W:${macro.carbs}g, T:${macro.fat}g\n`;
+    ctx += `Timing: w dni treningowe węgle skupione przed (60-90 min) i po treningu (30-60 min)\n`;
+  }
+
+  ctx += `\nNazwy dni w JSON muszą odzwierciedlać plan treningowy: np. "Dzień 1 – PUSH (Klatka/Barki/Triceps)" lub "Dzień 2 – Odpoczynek"`;
+  return ctx;
+}
+// ===== END INTEGRACJA =====
+
 // ===== NUTRITION RAG =====
 const NUTRITION_RAG_TOPICS = {
   protein_muscle: {
@@ -3582,6 +3702,7 @@ function openOverlay(id){
     const name=document.getElementById('client-name')?.value||'';
     const lbl=document.getElementById('diet-client-label');
     if(lbl&&name)lbl.textContent='Klient: '+name;
+    setTimeout(()=>{ if(currentPlanData?.sessions) dietSyncWithTraining(); }, 100);
   }
 }
 function closeOverlay(){

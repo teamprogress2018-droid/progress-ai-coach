@@ -1863,37 +1863,112 @@ function getClientProfile(){
   const job=document.getElementById('client-job').value;
   const sleepEl=document.getElementById('client-sleep');
   const stressEl=document.getElementById('client-stress');
-  const sleepLabels=['Fatalny','Słaby','Średni','Dobry','Świetny'];
-  const stressLabels=['Brak','Niski','Średni','Wysoki','Bardzo wysoki'];
+  const sleepLabels=['Fatalny (<5h)','Słaby (5-6h)','Średni (6-7h)','Dobry (7-8h)','Świetny (>8h)'];
+  const stressLabels=['Brak','Niski','Średni','Wysoki','Bardzo wysoki – chroniczny'];
   const sleep=sleepLabels[(sleepEl?.value||3)-1];
   const stress=stressLabels[(stressEl?.value||3)-1];
+  const sleepVal=parseInt(sleepEl?.value||3);
+  const stressVal=parseInt(stressEl?.value||3);
   const shifts=document.getElementById('client-shifts')?.checked;
-  // posture
+
   const posture=[];
   if(document.getElementById('post-lordoza')?.checked) posture.push('hiperlordoza lędźwiowa');
   if(document.getElementById('post-kifoza')?.checked) posture.push('kifoza piersiowa');
   if(document.getElementById('post-kolana')?.checked) posture.push('koślawość kolan');
-  if(document.getElementById('post-barki')?.checked) posture.push('wysunięte barki/głowa');
-  // excluded moves
+  if(document.getElementById('post-barki')?.checked) posture.push('wysunięte barki/głowa do przodu');
+
   const excl=[];
   if(document.getElementById('excl-spine')?.checked) excl.push('brak osiowego obciążenia kręgosłupa');
   if(document.getElementById('excl-overhead')?.checked) excl.push('brak ruchów nad głowę');
   if(document.getElementById('excl-squat')?.checked) excl.push('brak głębokiego przysiadu');
   if(document.getElementById('excl-deadlift')?.checked) excl.push('brak martwego ciągu klasycznego');
   if(document.getElementById('excl-impact')?.checked) excl.push('brak high-impact/biegania');
-  // methods
+
   const methods=[];
   if(document.getElementById('met-dropset')?.checked) methods.push('drop-sety');
   if(document.getElementById('met-super')?.checked) methods.push('super-serie');
   if(document.getElementById('met-rir')?.checked) methods.push('RPE/RIR');
   if(document.getElementById('met-hiit')?.checked) methods.push('HIIT');
   if(document.getElementById('met-circuit')?.checked) methods.push('trening obwodowy');
+
   if(!name) return '';
-  let p='\n\n===PROFIL KLIENTA===';
-  if(name) p+=`\nImię: ${name}`;
+
+  // Oblicz BMI jeśli dostępne dane
+  let bmi = '';
+  if(weight && height) {
+    const h = parseFloat(height)/100;
+    bmi = (parseFloat(weight)/(h*h)).toFixed(1);
+  }
+
+  // Analiza czynników ryzyka stylu życia
+  const lifeRisks = [];
+  const lifeRecommendations = [];
+
+  // Praca siedząca
+  if(job && (job.toLowerCase().includes('siedz') || job.toLowerCase().includes('biur') || job.toLowerCase().includes('komputer'))) {
+    lifeRisks.push('PRACA SIEDZĄCA (8+ godz./dzień)');
+    lifeRecommendations.push('Priorytet: mobilność bioder i piersi klatki, wzmocnienie mięśni głębokich, anty-wzorzec siedzący (ciągi, wiosłowania, face pull)');
+    lifeRecommendations.push('Unikaj: nadmiaru ćwiczeń klatki/barków przednich – pogłębiają sylwetkę siedzącą');
+  }
+
+  // Sen
+  if(sleepVal <= 2) {
+    lifeRisks.push(`BARDZO SŁABY SEN (${sleep})`);
+    lifeRecommendations.push('Redukcja objętości o 25%, priorytet: ćwiczenia złożone (mniej serii), brak HIIT w dni po złym śnie, wydłuż regenerację między sesjami');
+    lifeRecommendations.push('Uwaga: kortyzol wysoki przy niedoborze snu → ryzyko katabolizmu → zwiększ białko do 2.5g/kg');
+  } else if(sleepVal === 3) {
+    lifeRisks.push(`PRZECIĘTNY SEN (${sleep})`);
+    lifeRecommendations.push('Umiarkowana objętość, priorytet RIR 2-3 zamiast max wysiłku');
+  }
+
+  // Stres
+  if(stressVal >= 4) {
+    lifeRisks.push(`WYSOKI STRES (${stress})`);
+    lifeRecommendations.push('Chroniczny stres podnosi kortyzol → hamuje syntezę białek → obniż intensywność o 15-20%, dodaj sesje oddechowe/mobilność');
+    lifeRecommendations.push('Preferuj: trening siłowy umiarkowany (RPE 6-7) zamiast do upadłości. Unikaj treningu w godzinach szczytowego stresu');
+  }
+
+  // Praca zmianowa
+  if(shifts) {
+    lifeRisks.push('PRACA ZMIANOWA/NOCNA');
+    lifeRecommendations.push('Zaburzony rytm dobowy → plan elastyczny, treningi dostosowane do zmiany, nacisk na regenerację i sen kompensacyjny');
+  }
+
+  // Wady postawy
+  if(posture.length) {
+    lifeRecommendations.push(`Korekcja postawy: ${posture.join(', ')} → w każdej sesji 1-2 ćwiczenia korygujące (face pull, bird-dog, ćwiczenia rotatorów)`);
+  }
+
+  // Psychodieta
+  const psychoCtx = typeof psychoGetContextForAI === 'function' ? psychoGetContextForAI() : '';
+  const psychoData = (() => {
+    try {
+      const key = 'psycho_' + name.toLowerCase().replace(/\s+/g,'_');
+      return JSON.parse(localStorage.getItem(key)||'{}');
+    } catch(e) { return {}; }
+  })();
+
+  const diagnosisList = [];
+  const d = psychoData.profile?.diagnosis || {};
+  if(d.io) { diagnosisList.push('insulinooporność'); lifeRecommendations.push('IO: trening siłowy 3-4x/tydz zwiększa wrażliwość insulinową, unikaj długich przerw między posiłkami, węgle po treningu'); }
+  if(d.diabetes) { diagnosisList.push('cukrzyca'); lifeRecommendations.push('Cukrzyca: monitoruj glikemię przed/po treningu, unikaj hipoglikemii, trening umiarkowany do intensywnego'); }
+  if(d.ibs) { diagnosisList.push('IBS/jelito drażliwe'); lifeRecommendations.push('IBS: unikaj ćwiczeń intensywnych bezpośrednio po posiłku, niskointensywny kardio korzystny'); }
+  if(d.hashimoto) { diagnosisList.push('Hashimoto'); lifeRecommendations.push('Hashimoto: unikaj przetrenowania, priorytet sen i regeneracja, trening siłowy korzystny dla metabolizmu'); }
+  if(d.pcos) { diagnosisList.push('PCOS'); lifeRecommendations.push('PCOS: trening siłowy poprawia wrażliwość insulinową, niedobór kaloryczny z ostrożnością'); }
+
+  const habitsList = [];
+  const h = psychoData.profile?.habits || {};
+  if(h.binge) habitsList.push('napady objadania');
+  if(h.snacking) habitsList.push('niekontrolowane podjadanie');
+  if(h.yoyo) habitsList.push('efekt yo-yo');
+  if(h.emotional) habitsList.push('jedzenie emocjonalne');
+
+  // Buduj profil
+  let p='\n\n===PEŁNY PROFIL KLIENTA===';
+  p+=`\nImię: ${name}`;
   if(ageNum) p+=`\nWiek: ${ageNum} lat`;
   if(gender) p+=`\nPłeć: ${gender}`;
-  if(weight) p+=`\nWaga: ${weight} kg`;
+  if(weight) p+=`\nWaga: ${weight} kg${bmi?' (BMI: '+bmi+')':''}`;
   if(height) p+=`\nWzrost: ${height} cm`;
   if(bf) p+=`\n% tkanki tłuszczowej: ${bf}`;
   if(goal) p+=`\nCel: ${goal}`;
@@ -1903,19 +1978,43 @@ function getClientProfile(){
   if(days) p+=`\nDni treningowe: ${days}`;
   if(duration) p+=`\nCzas treningu: ${duration}`;
   if(split) p+=`\nPreferowany podział: ${split}`;
-  if(methods.length) p+=`\nDostępne metody intensyfikacji: ${methods.join(', ')}`;
-  p+=`\n\n--- Styl życia ---`;
-  if(job) p+=`\nRodzaj pracy (NEAT): ${job}`;
+  if(methods.length) p+=`\nMetody intensyfikacji: ${methods.join(', ')}`;
+
+  p+=`\n\n--- STYL ŻYCIA I CZYNNIKI ZDROWOTNE ---`;
+  if(job) p+=`\nRodzaj pracy: ${job}`;
   p+=`\nJakość snu: ${sleep}`;
   p+=`\nPoziom stresu: ${stress}`;
-  if(shifts) p+=`\nPraca zmianowa/nocna: TAK — uwzględnij przy planowaniu dni treningowych`;
-  if(posture.length) p+=`\nWady postawy: ${posture.join(', ')} — uwzględnij ćwiczenia korygujące`;
-  if(excl.length) p+=`\nWYKLUCZONE RUCHY: ${excl.join(', ')} — OBOWIĄZKOWO zamień na bezpieczne alternatywy`;
+  if(shifts) p+=`\nPraca zmianowa/nocna: TAK`;
+
+  if(lifeRisks.length) {
+    p+=`\n\n⚠️ CZYNNIKI RYZYKA WYKRYTE AUTOMATYCZNIE:`;
+    lifeRisks.forEach(r => p+=`\n• ${r}`);
+  }
+
+  if(lifeRecommendations.length) {
+    p+=`\n\n📋 OBLIGATORYJNE WSKAZÓWKI DLA DOBORU ĆWICZEŃ:`;
+    lifeRecommendations.forEach(r => p+=`\n→ ${r}`);
+  }
+
+  if(posture.length) p+=`\n\nWady postawy: ${posture.join(', ')}`;
+  if(excl.length) p+=`\n\nBEZWZGLĘDNIE WYKLUCZONE: ${excl.join(', ')}`;
   if(limits) p+=`\nDodatkowe ograniczenia: ${limits}`;
-  // auto-adjust volume hint
-  const stressVal=parseInt(stressEl?.value||3);
-  const sleepVal=parseInt(sleepEl?.value||3);
-  if(stressVal>=4||sleepVal<=2) p+=`\nUWAGA: Wysoki stres (${stress}) i/lub słaby sen (${sleep}) — obniż objętość treningową o 15-20%, skróć serie robocze, priorytetyzuj regenerację`;
+
+  if(diagnosisList.length) p+=`\n\nDiagnozy medyczne: ${diagnosisList.join(', ')}`;
+  if(habitsList.length) p+=`\nProblemowe nawyki żywieniowe: ${habitsList.join(', ')}`;
+  if(psychoData.profile?.psychology?.barrier) p+=`\nGłówna bariera psychologiczna: ${psychoData.profile.psychology.barrier}`;
+
+  const recent = (psychoData.daily||[]).slice(-7);
+  if(recent.length) {
+    const avgMood = (recent.reduce((s,d)=>s+d.mood,0)/recent.length).toFixed(1);
+    const avgStress = (recent.reduce((s,d)=>s+d.stress,0)/recent.length).toFixed(1);
+    const avgSleep = (recent.reduce((s,d)=>s+d.sleep,0)/recent.length).toFixed(1);
+    p+=`\n\nDane z ostatnich 7 dni: nastrój ${avgMood}/5 · stres ${avgStress}/10 · sen ${avgSleep}h`;
+    if(parseFloat(avgMood) < 2.5 || parseFloat(avgStress) > 7) {
+      p+=`\n⚠️ ALERT: Niski nastrój/wysoki stres → rozważ deload lub lżejszą sesję regeneracyjną`;
+    }
+  }
+
   p+='\n===KONIEC PROFILU===';
   return p;
 }
@@ -2252,6 +2351,25 @@ Odpowiadaj zwięźle, bez zbędnej teorii. Plan w formie przejrzystej tabeli:
 Ćwiczenie | Serie | Powtórzenia | Przerwa | RPE | Uwagi techniczne
 
 ${modePrompts[currentMode]}
+===OBOWIĄZKOWE UZASADNIENIA DOBORU ĆWICZEŃ===
+Dla KAŻDEGO ćwiczenia w planie MUSISZ podać pole "biomechanicalReasoning" (maks. 120 znaków) wyjaśniające:
+1. DLACZEGO to ćwiczenie zostało wybrane (biomechanika, profil oporu, partia docelowa)
+2. DLACZEGO alternatywy zostały odrzucone (jeśli relevantne)
+3. Jak ćwiczenie odnosi się do czynników stylu życia klienta
+
+PRZYKŁADY UZASADNIEŃ:
+- "Wiosłowanie w opadzie: praca w rozciągnięciu, kontruje pochyloną sylwetkę z pracy siedzącej. Zamiast podciągania – łagodniejsze dla bark"
+- "RDL zamiast martwego ciągu: bezpieczne przy hiperlordozie, aktywuje tylną łańcuch bez osiowego obciążenia kręgosłupa"
+- "Face Pull: koryguje wysunięte barki/głowę (wada z pracy siedzącej). Rotatory zewnętrzne – priorytet dla zdrowia stawu ramieniowego"
+- "Dead Bug: stabilizacja głębokiego core, bezpieczne przy słabym śnie (niskie ryzyko kontuzji gdy zmęczony), fundament przy hiperlordozie"
+- "Przysiad Goblet zamiast Back Squat: mała doświadczenie (<6mies.), nauka wzorca, bezpieczne kolana, brak ryzyka przy zmęczeniu z nocnej zmiany"
+
+===OBOWIĄZKOWA ANALIZA STYLU ŻYCIA W OPISIE SESJI===
+W polu "sessionNotes" każdej sesji uwzględnij:
+- Jak sesja odnosi się do stylu życia klienta
+- Wskazówki na co zwrócić uwagę danego dnia (np. "Po nocnej zmianie: obniż ciężar o 10%, skróć przerwy")
+- Ostrzeżenia lifestyle (np. "Siedząca praca → zrób 5 min mobility bioder przed treningiem")
+
 ${profile}
 ${philosophy}
 ${kbCtx}`;

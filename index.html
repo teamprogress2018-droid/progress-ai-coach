@@ -1294,6 +1294,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <!-- PRAWA: timer + tygodniowy planer + objętość -->
     <div class="tl-sidebar">
 
+      <!-- Stoper treningu -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">⏱ Czas treningu</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--gr);flex:1;" id="tl-stopwatch">00:00</div>
+          <button id="tl-stopwatch-btn" onclick="tlStopwatchToggle()" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:6px 10px;color:var(--gr);font-size:12px;cursor:pointer;">▶</button>
+          <button onclick="tlStopwatchReset()" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--tx3);font-size:10px;cursor:pointer;">↺</button>
+        </div>
+      </div>
+
       <!-- Timer -->
       <div class="tl-timer">
         <div class="tl-timer-head">
@@ -4168,20 +4178,128 @@ const tlSessions=[
   {pill:'push',label:'Push B',vol:'6 210 kg'},{pill:'pull',label:'Pull B',vol:'5 300 kg'},
   {pill:'legs',label:'Legs B',vol:'7 010 kg'}
 ];
+
+// Stoper
+let tlStopwatch=null,tlStopwatchSeconds=0,tlStopwatchRunning=false;
+let tlTrainingLog={};
+
+function tlGetSessions(){
+  if(currentPlanData?.sessions?.length){
+    return currentPlanData.sessions.map(s=>({
+      pill:s.sessionName?.toLowerCase().includes('push')?'push':s.sessionName?.toLowerCase().includes('pull')?'pull':(s.sessionName?.toLowerCase().includes('leg')||s.sessionName?.toLowerCase().includes('nogi'))?'legs':'push',
+      label:(s.sessionName||'Trening').replace(/SESJA [A-Z] — /i,'').substring(0,20),
+      full:s.sessionName||'Trening',
+      exercises:s.exercises||[]
+    }));
+  }
+  return tlSessions.map(s=>({...s,full:s.label,exercises:[]}));
+}
+
+function tlStopwatchToggle(){
+  const btn=document.getElementById('tl-stopwatch-btn');
+  if(tlStopwatchRunning){clearInterval(tlStopwatch);tlStopwatchRunning=false;if(btn)btn.textContent='▶';}
+  else{
+    tlStopwatchRunning=true;if(btn)btn.textContent='⏸';
+    tlStopwatch=setInterval(()=>{
+      tlStopwatchSeconds++;
+      const h=Math.floor(tlStopwatchSeconds/3600),m=Math.floor((tlStopwatchSeconds%3600)/60),s=tlStopwatchSeconds%60;
+      const el=document.getElementById('tl-stopwatch');
+      if(el)el.textContent=h>0?`${h}:${tlPad(m)}:${tlPad(s)}`:`${tlPad(m)}:${tlPad(s)}`;
+    },1000);
+  }
+}
+function tlStopwatchReset(){clearInterval(tlStopwatch);tlStopwatchRunning=false;tlStopwatchSeconds=0;const el=document.getElementById('tl-stopwatch');if(el)el.textContent='00:00';const btn=document.getElementById('tl-stopwatch-btn');if(btn)btn.textContent='▶';}
+function tlAutoStartTimer(){if(!tlRunning){tlReset();setTimeout(()=>tlToggle(document.getElementById('tl-start-btn')),100);}}
+
+function tlLogSet(exName,kg,reps,rpe){
+  if(!kg||!reps)return;
+  const today=new Date().toISOString().split('T')[0];
+  if(!tlTrainingLog[exName])tlTrainingLog[exName]=[];
+  const entry=tlTrainingLog[exName].find(e=>e.date===today);
+  if(entry)entry.sets.push({kg:parseFloat(kg),reps:parseInt(reps),rpe:parseFloat(rpe)||0});
+  else tlTrainingLog[exName].push({date:today,sets:[{kg:parseFloat(kg),reps:parseInt(reps),rpe:parseFloat(rpe)||0}]});
+  try{
+    const key='tl_log_'+(document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+    const existing=JSON.parse(localStorage.getItem(key)||'{}');
+    existing[exName]=tlTrainingLog[exName];
+    localStorage.setItem(key,JSON.stringify(existing));
+  }catch(e){}
+}
+function tlGetHistory(exName){
+  try{
+    const key='tl_log_'+(document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+    return(JSON.parse(localStorage.getItem(key)||'{}')[exName]||[]).slice(-5).reverse();
+  }catch(e){return[];}
+}
+function tlConfirmDynSet(exIdx,setIdx,exName){
+  const kg=document.getElementById(`tlkg-${exIdx}-${setIdx}`)?.value;
+  const reps=document.getElementById(`tlrep-${exIdx}-${setIdx}`)?.value;
+  const rpe=document.getElementById(`tlrpe-${exIdx}-${setIdx}`)?.value;
+  if(!kg||!reps)return;
+  const row=document.getElementById(`tlrow-${exIdx}-${setIdx}`);
+  if(row){row.style.background='rgba(74,222,128,0.06)';row.style.borderRadius='6px';}
+  const btn=document.getElementById(`tlok-${exIdx}-${setIdx}`);
+  if(btn){btn.textContent='✓';btn.style.background='var(--gr)';btn.style.color='var(--bg)';}
+  tlLogSet(exName,kg,reps,rpe);
+  tlAutoStartTimer();
+  const totalEl=document.getElementById(`tl-ex-total-${exIdx}`);
+  if(totalEl){
+    const today=new Date().toISOString().split('T')[0];
+    const logToday=tlTrainingLog[exName]?.find(e=>e.date===today);
+    if(logToday){
+      const tonnage=logToday.sets.reduce((s,x)=>s+x.kg*x.reps,0);
+      const maxE1rm=Math.max(...logToday.sets.map(x=>x.kg*(1+x.reps/30)));
+      totalEl.style.display='block';
+      totalEl.innerHTML=`<span style="color:#FAA855;">Tonaż: ${Math.round(tonnage)}kg</span> · <span style="color:var(--gr);">e1RM: ${maxE1rm.toFixed(1)}kg</span>`;
+    }
+  }
+}
+function tlCopyDown(exIdx,setIdx){
+  const kg=document.getElementById(`tlkg-${exIdx}-${setIdx}`)?.value;
+  const reps=document.getElementById(`tlrep-${exIdx}-${setIdx}`)?.value;
+  const rpe=document.getElementById(`tlrpe-${exIdx}-${setIdx}`)?.value;
+  const nk=document.getElementById(`tlkg-${exIdx}-${setIdx+1}`);
+  const nr=document.getElementById(`tlrep-${exIdx}-${setIdx+1}`);
+  const np=document.getElementById(`tlrpe-${exIdx}-${setIdx+1}`);
+  if(nk&&kg)nk.value=kg;if(nr&&reps)nr.value=reps;if(np&&rpe)np.value=rpe;
+}
+
+let tlActiveWeekIdx=0;
 function tlRenderWeek(){
-  const days=['Pon','Wt','Śr','Czw','Pt','So','Nd'],nums=[9,10,11,12,13,14,15];
+  const sessions=tlGetSessions();
+  const today=new Date(),dow=today.getDay();
+  const monday=new Date(today);monday.setDate(today.getDate()-(dow===0?6:dow-1));
+  const days=['Pon','Wt','Śr','Czw','Pt','So','Nd'];
+  const nums=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d.getDate();});
+  const todayIdx=dow===0?6:dow-1;
   const grid=document.getElementById('tl-days-grid');if(!grid)return;
   grid.innerHTML=days.map((d,i)=>{
-    const s=tlSessions[i];
-    return `<div class="tl-day${i===2?' tl-day-active':''}" onclick="tlSelectDay(${i})">
-      <div class="tl-day-head-inner"><div class="tl-day-name">${d}</div><div class="tl-day-num">${nums[i]}</div></div>
-      <div class="tl-day-body">
-        ${s.pill!=='rest'?`<div class="tl-spill tl-spill-${s.pill}">${s.label}</div><div class="tl-spill-vol">${s.vol}</div>`:`<div class="tl-spill tl-spill-rest">${s.label}</div>`}
-      </div>
-    </div>`;
+    const s=sessions[i%sessions.length]||{pill:'rest',label:'Odp.',full:'Odpoczynek'};
+    return`<div class="tl-day${i===todayIdx?' tl-day-active':''}" onclick="tlSelectDay(${i})"><div class="tl-day-head-inner"><div class="tl-day-name">${d}</div><div class="tl-day-num">${nums[i]}</div></div><div class="tl-day-body">${s.pill!=='rest'?`<div class="tl-spill tl-spill-${s.pill}">${s.label}</div>`:`<div class="tl-spill tl-spill-rest">${s.label}</div>`}</div></div>`;
   }).join('');
 }
-function tlShowSummary(){document.getElementById('tl-summary-card').style.display='block';}
+function tlSelectDay(idx){
+  tlActiveWeekIdx=idx;
+  document.querySelectorAll('.tl-day').forEach((d,i)=>d.classList.toggle('tl-day-active',i===idx));
+  const sessions=tlGetSessions(),session=sessions[idx%sessions.length];
+  const label=document.getElementById('tl-session-label');
+  if(label&&session)label.textContent=session.full+' · '+new Date().toLocaleDateString('pl');
+  tlLoadFromPlan();
+}
+function tlShowSummary(){
+  const today=new Date().toISOString().split('T')[0];
+  let totalTonnage=0,totalSets=0;
+  Object.values(tlTrainingLog).forEach(exLog=>{
+    const todayLog=exLog.find(e=>e.date===today);
+    if(todayLog)todayLog.sets.forEach(s=>{totalTonnage+=s.kg*s.reps;totalSets++;});
+  });
+  const dMin=Math.floor(tlStopwatchSeconds/60);
+  const card=document.getElementById('tl-summary-card');if(!card)return;
+  card.style.display='block';
+  card.querySelector('.tl-sum-title').textContent=totalSets>0?`${totalSets} serii wykonanych!`:'Trening zakończony!';
+  card.querySelector('.tl-sum-sub').textContent=totalTonnage>0?`Tonaż: ${Math.round(totalTonnage)} kg · Czas: ${dMin} min`:`Czas treningu: ${dMin} min`;
+  clearInterval(tlStopwatch);tlStopwatchRunning=false;
+}
 // ===== END TRENING LIVE JS =====
 
 // OVERLAY

@@ -1834,6 +1834,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
       <button onclick="expandPlan()" id="plan-expand-btn" style="display:none;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:7px 14px;color:var(--yw);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📈 Rozszerz progresję</button>
       <button onclick="downloadPlanExcel()" id="plan-dl-btn" style="display:none;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 14px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz CSV</button>
       <button onclick="downloadPlanPDF()" id="plan-pdf-btn" style="display:none;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:7px 14px;color:var(--bl);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj</button>
+      <button onclick="exportFullReport()" id="plan-report-btn" style="display:none;background:rgba(127,119,221,0.12);border:1px solid rgba(127,119,221,0.3);border-radius:8px;padding:7px 14px;color:#9f97e8;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📄 Pełny raport</button>
     </div>
   </div>
   <div id="plan-loading" style="display:none;text-align:center;padding:60px 20px;">
@@ -4506,7 +4507,7 @@ function openPlanScreen() {
   document.getElementById('plan-client-tag').textContent = '👤 ' + name;
   document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3);"><div style="font-size:48px;margin-bottom:16px;">📋</div><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:8px;">GOTOWY DO WYGENEROWANIA PLANU</div><div style="font-size:12px;line-height:1.7;max-width:400px;margin:0 auto;">Uzupełnij profil klienta, a następnie kliknij <strong style="color:var(--ac)">Generuj plan AI</strong>.</div></div>`;
   document.getElementById('plan-dl-btn').style.display = 'none';
-  document.getElementById('plan-pdf-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
   openOverlay('screen-plan');
 }
 
@@ -4686,7 +4687,7 @@ async function generatePlan() {
   document.getElementById('plan-loading').style.display = 'block';
   document.getElementById('plan-content').innerHTML = '';
   document.getElementById('plan-dl-btn').style.display = 'none';
-  document.getElementById('plan-pdf-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
   document.getElementById('plan-expand-btn').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = true;
 
@@ -4748,7 +4749,7 @@ async function generatePlan() {
   currentPlanData = plan;
   renderPlan(plan);
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
-  document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
+  document.getElementById('plan-pdf-btn').style.display = 'inline-flex'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
   if (planWeeks < 8) {
     document.getElementById('plan-expand-btn').style.display = 'inline-flex';
     document.getElementById('plan-expand-btn').textContent = planWeeks === 1 ? '📈 Rozszerz do 4 tyg.' : '📈 Rozszerz do 8 tyg.';
@@ -5206,7 +5207,269 @@ function scrollToSession(i) {
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function downloadPlanPDF() { window.print(); }
+function downloadPlanPDF() {
+  if (!currentPlanData) { alert('Najpierw wygeneruj plan treningowy!'); return; }
+  exportPlanPDF(currentPlanData);
+}
+
+function exportPlanPDF(plan) {
+  const name = document.getElementById('client-name')?.value || 'Klient';
+  const w = window.open('', '_blank');
+
+  const phaseColors = {'Adaptacja':'#4ade80','Hipertrofia I':'#60a5fa','Hipertrofia II':'#818cf8','Siła':'#f59e0b','Deload':'#94a3b8','Szczyt':'#f43f5e'};
+
+  let h = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Plan treningowy – ${name}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',Arial,sans-serif;color:#1a1a2e;background:#fff;font-size:11px;line-height:1.4;}
+  .page{max-width:820px;margin:0 auto;padding:24px;}
+  .header{background:linear-gradient(135deg,#e8302a,#c41f19);color:white;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+  .header-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;}
+  .header-sub{font-size:11px;opacity:.8;margin-top:4px;}
+  .header-meta{text-align:right;font-size:11px;opacity:.9;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#e8302a;border-bottom:2px solid #e8302a;padding-bottom:4px;margin:18px 0 10px;}
+  .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+  .info-card{background:#f8f9fa;border:1px solid #e8e8e8;border-radius:8px;padding:10px;text-align:center;}
+  .info-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+  .info-val{font-size:16px;font-weight:700;color:#e8302a;}
+  .session{margin-bottom:16px;break-inside:avoid;}
+  .session-header{background:#1a1a2e;color:white;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:space-between;}
+  .session-name{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;}
+  .session-badge{font-size:9px;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:20px;}
+  table{width:100%;border-collapse:collapse;font-size:10px;}
+  th{background:#f0f0f0;padding:5px 8px;text-align:left;font-weight:600;color:#444;border-bottom:2px solid #ddd;font-size:9px;text-transform:uppercase;}
+  td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top;}
+  tr:nth-child(even){background:#fafafa;}
+  .ex-name{font-weight:600;color:#1a1a2e;}
+  .ex-notes{font-size:9px;color:#888;margin-top:2px;}
+  .phase-badge{display:inline-block;font-size:8px;padding:1px 6px;border-radius:10px;font-weight:600;}
+  .warmup-row td{background:#fff8ee;color:#d4841a;}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#aaa;text-align:center;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .note-box{background:#f8f9fa;border-left:3px solid #e8302a;border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:8px;font-size:10px;color:#444;line-height:1.6;}
+  @media print{body{padding:0;}.page{padding:16px;}button{display:none!important;}}
+</style></head><body><div class="page">`;
+
+  // NAGŁÓWEK
+  h += `<div class="header">
+    <div>
+      <div class="header-title">PROGRESS AI v2.0</div>
+      <div class="header-sub">Plan treningowy · ${plan.planTitle || 'Makrocykl'}</div>
+    </div>
+    <div class="header-meta">
+      <div><strong>${name}</strong></div>
+      <div>Split: ${plan.split || '–'}</div>
+      <div>${new Date().toLocaleDateString('pl',{day:'2-digit',month:'long',year:'numeric'})}</div>
+    </div>
+  </div>`;
+
+  // KAFELKI INFO
+  h += `<div class="info-grid">
+    <div class="info-card"><div class="info-label">Split</div><div class="info-val" style="font-size:13px;">${plan.split||'–'}</div></div>
+    <div class="info-card"><div class="info-label">Sesje/tydzień</div><div class="info-val">${plan.sessionsPerWeek||'–'}</div></div>
+    <div class="info-card"><div class="info-label">Tygodnie</div><div class="info-val">${plan.phases?Object.keys(plan.phases).length:'–'}</div></div>
+    <div class="info-card"><div class="info-label">Progresja</div><div class="info-val" style="font-size:11px;">${plan.progressionType||'AI'}</div></div>
+  </div>`;
+
+  // FAZY
+  if (plan.phases && Object.keys(plan.phases).length) {
+    h += `<div class="section-title">📅 Fazy makrocyklu</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">`;
+    Object.entries(plan.phases).forEach(([week, phase]) => {
+      const col = phaseColors[phase] || '#94a3b8';
+      h += `<div style="background:${col}22;border:1px solid ${col};border-radius:20px;padding:3px 10px;font-size:10px;font-weight:600;color:${col.replace('22','')};"><span style="color:#888;font-size:9px;">${week.toUpperCase()} · </span>${phase}</div>`;
+    });
+    h += `</div>`;
+  }
+
+  // NOTATKI
+  if (plan.progressionNotes) h += `<div class="note-box"><strong>📈 Progresja:</strong> ${plan.progressionNotes}</div>`;
+  if (plan.warmupProtocol) h += `<div class="note-box"><strong>🔥 Rozgrzewka:</strong> ${plan.warmupProtocol}</div>`;
+  if (plan.cooldownProtocol) h += `<div class="note-box"><strong>🧊 Schłodzenie:</strong> ${plan.cooldownProtocol}</div>`;
+
+  // SESJE
+  h += `<div class="section-title">🏋️ Plan sesji treningowych</div>`;
+  const weekKeys = plan.phases ? Object.keys(plan.phases) : ['w1'];
+
+  (plan.sessions || []).forEach(session => {
+    h += `<div class="session">
+      <div class="session-header">
+        <div class="session-name">${session.sessionName || 'Sesja'}</div>
+        <div class="session-badge">${session.exercises?.length || 0} ćwiczeń</div>
+      </div>`;
+
+    // Rozgrzewka
+    if (session.warmupExercises?.length) {
+      h += `<table><thead><tr><th>Rozgrzewka</th><th>Serie</th><th>Powt.</th><th>Uwagi</th></tr></thead><tbody>`;
+      session.warmupExercises.forEach(ex => {
+        h += `<tr class="warmup-row"><td>${ex.name||''} ${ex.emoji||''}</td><td>${ex.sets||''}</td><td>${ex.reps||''}</td><td>${ex.note||''}</td></tr>`;
+      });
+      h += `</tbody></table>`;
+    }
+
+    // Główne ćwiczenia
+    if (session.exercises?.length) {
+      const weekCols = weekKeys.slice(0, Math.min(4, weekKeys.length));
+      h += `<table><thead><tr><th style="width:28%">Ćwiczenie</th>`;
+      weekCols.forEach(w => h += `<th style="text-align:center;">${(plan.phases?.[w]||w).substring(0,10)}</th>`);
+      h += `<th>Uwagi</th></tr></thead><tbody>`;
+
+      session.exercises.forEach(ex => {
+        h += `<tr><td><div class="ex-name">${ex.name||''}</div>${ex.biomechanicalReasoning?`<div class="ex-notes">${ex.biomechanicalReasoning.substring(0,80)}...</div>`:''}</td>`;
+        weekCols.forEach(w => {
+          const wd = ex[w] || {};
+          const val = wd.s ? `${wd.s}×${wd.r||'?'}<br><span style="color:#888;font-size:8px;">@${wd.rpe||'?'} ${wd.rest||''}</span>` : '–';
+          h += `<td style="text-align:center;">${val}</td>`;
+        });
+        h += `<td style="font-size:9px;color:#666;">${(ex.notes||'').substring(0,60)}</td></tr>`;
+      });
+      h += `</tbody></table>`;
+    }
+    h += `</div>`;
+  });
+
+  // STOPKA + PRZYCISK DRUKU
+  h += `<div style="text-align:center;margin:20px 0;">
+    <button onclick="window.print()" style="background:#e8302a;color:white;border:none;border-radius:8px;padding:10px 30px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj / Zapisz PDF</button>
+  </div>`;
+  h += `<div class="footer">PROGRESS AI v2.0 · Plan wygenerowany przez AI na podstawie profilu klienta i wytycznych naukowych · Progress Studio, Wrocław · ${new Date().toLocaleDateString('pl')}</div>`;
+  h += `</div></body></html>`;
+
+  w.document.write(h);
+  w.document.close();
+}
+
+function exportFullReport() {
+  const hasPlan = !!currentPlanData?.sessions?.length;
+  const hasDiet = !!currentDietPlan;
+  if (!hasPlan && !hasDiet) { alert('Najpierw wygeneruj plan treningowy i/lub plan diety!'); return; }
+
+  const name = document.getElementById('client-name')?.value || 'Klient';
+  const w = window.open('', '_blank');
+
+  let h = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pełny raport – ${name}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',Arial,sans-serif;color:#1a1a2e;background:#fff;font-size:11px;line-height:1.5;}
+  .page{max-width:820px;margin:0 auto;padding:24px;}
+  .cover{background:linear-gradient(135deg,#1a1a2e 0%,#e8302a 100%);color:white;padding:40px 30px;border-radius:12px;margin-bottom:24px;text-align:center;}
+  .cover-logo{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:6px;margin-bottom:4px;}
+  .cover-sub{font-size:14px;opacity:.8;margin-bottom:20px;}
+  .cover-client{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;background:rgba(255,255,255,0.1);border-radius:8px;padding:10px 20px;display:inline-block;}
+  .cover-date{font-size:12px;opacity:.7;margin-top:10px;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#e8302a;border-bottom:3px solid #e8302a;padding-bottom:6px;margin:24px 0 14px;}
+  .macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
+  .macro-card{background:#f8f9fa;border:1px solid #e8e8e8;border-radius:8px;padding:10px;text-align:center;}
+  .macro-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+  .macro-val{font-size:18px;font-weight:700;}
+  .meal{background:#fafafa;border:1px solid #eee;border-radius:6px;padding:8px 10px;margin-bottom:6px;}
+  .meal-name{font-weight:700;font-size:12px;}
+  .meal-items{font-size:10px;color:#555;margin:3px 0;}
+  .meal-macro{font-size:9px;color:#888;}
+  .day-header{background:#1a1a2e;color:white;padding:7px 12px;border-radius:6px;margin:12px 0 6px;font-weight:700;font-size:12px;}
+  table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0;}
+  th{background:#f0f0f0;padding:5px 8px;text-align:left;font-weight:600;color:#444;border-bottom:2px solid #ddd;font-size:9px;}
+  td{padding:5px 8px;border-bottom:1px solid #eee;}
+  tr:nth-child(even){background:#fafafa;}
+  .note-box{background:#fff8ee;border-left:3px solid #e8302a;padding:8px 12px;border-radius:0 6px 6px 0;font-size:10px;color:#444;margin:8px 0;}
+  .session-h{background:#1a1a2e;color:white;padding:8px 12px;border-radius:6px 6px 0 0;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;margin-top:12px;}
+  .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+  .shop-item{font-size:10px;padding:3px 0;border-bottom:1px solid #eee;}
+  .footer{margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#aaa;text-align:center;}
+  .page-break{page-break-before:always;}
+  .print-btn{background:#e8302a;color:white;border:none;border-radius:8px;padding:10px 30px;font-size:13px;font-weight:600;cursor:pointer;display:block;margin:20px auto;}
+  @media print{.print-btn{display:none!important;}.page-break{page-break-before:always;}}
+</style></head><body><div class="page">`;
+
+  // OKŁADKA
+  h += `<div class="cover">
+    <div class="cover-logo">PROGRESS AI</div>
+    <div class="cover-sub">Kompleksowy plan treningowo-dietetyczny</div>
+    <div class="cover-client">${name}</div>
+    <div class="cover-date">${new Date().toLocaleDateString('pl',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  </div>`;
+
+  // SEKCJA PLAN TRENINGOWY
+  if (hasPlan) {
+    const plan = currentPlanData;
+    h += `<div class="section-title">🏋️ PLAN TRENINGOWY</div>`;
+
+    // Info
+    h += `<div class="macro-grid">
+      <div class="macro-card"><div class="macro-label">Split</div><div class="macro-val" style="font-size:13px;color:#e8302a;">${plan.split||'–'}</div></div>
+      <div class="macro-card"><div class="macro-label">Sesje/tydzień</div><div class="macro-val" style="color:#1a1a2e;">${plan.sessionsPerWeek||'–'}</div></div>
+      <div class="macro-card"><div class="macro-label">Tygodnie</div><div class="macro-val" style="color:#1a1a2e;">${plan.phases?Object.keys(plan.phases).length:'–'}</div></div>
+      <div class="macro-card"><div class="macro-label">Progresja</div><div class="macro-val" style="font-size:11px;color:#1a1a2e;">${plan.progressionType||'AI'}</div></div>
+    </div>`;
+
+    if (plan.progressionNotes) h += `<div class="note-box"><strong>📈 Progresja:</strong> ${plan.progressionNotes}</div>`;
+    if (plan.warmupProtocol) h += `<div class="note-box"><strong>🔥 Rozgrzewka:</strong> ${plan.warmupProtocol}</div>`;
+
+    const weekKeys = plan.phases ? Object.keys(plan.phases) : ['w1'];
+    const weekCols = weekKeys.slice(0, Math.min(4, weekKeys.length));
+
+    (plan.sessions||[]).forEach(session => {
+      h += `<div class="session-h">${session.sessionName||'Sesja'}</div>`;
+      if (session.exercises?.length) {
+        h += `<table><thead><tr><th style="width:30%">Ćwiczenie</th>`;
+        weekCols.forEach(w => h += `<th style="text-align:center;">${(plan.phases?.[w]||w).substring(0,8)}</th>`);
+        h += `<th>Uwagi</th></tr></thead><tbody>`;
+        session.exercises.forEach(ex => {
+          h += `<tr><td style="font-weight:600;">${ex.name||''}</td>`;
+          weekCols.forEach(w => {
+            const wd = ex[w]||{};
+            h += `<td style="text-align:center;font-size:10px;">${wd.s?`${wd.s}×${wd.r||'?'} @${wd.rpe||'?'}`:'-'}</td>`;
+          });
+          h += `<td style="font-size:9px;color:#666;">${(ex.notes||'').substring(0,50)}</td></tr>`;
+        });
+        h += `</tbody></table>`;
+      }
+    });
+  }
+
+  // SEKCJA DIETA
+  if (hasDiet) {
+    const plan = dietNormalizePlan(currentDietPlan);
+    h += `<div class="section-title page-break">🥗 PLAN ŻYWIENIOWY</div>`;
+
+    h += `<div class="macro-grid">
+      <div class="macro-card"><div class="macro-label">Kalorie</div><div class="macro-val" style="color:#d4841a;">${plan.dailyKcal}</div><div class="macro-label">kcal/dzień</div></div>
+      <div class="macro-card"><div class="macro-label">Białko</div><div class="macro-val" style="color:#e05;">${plan.dailyProtein}g</div></div>
+      <div class="macro-card"><div class="macro-label">Węgle</div><div class="macro-val" style="color:#38a;">${plan.dailyCarbs}g</div></div>
+      <div class="macro-card"><div class="macro-label">Tłuszcze</div><div class="macro-val" style="color:#2a8;">${plan.dailyFat}g</div></div>
+    </div>`;
+
+    if (plan.nutritionNotes) h += `<div class="note-box">💡 ${plan.nutritionNotes}</div>`;
+    if (plan.supplementation?.length) h += `<div class="note-box"><strong>💊 Suplementacja:</strong> ${plan.supplementation.join(' · ')}</div>`;
+
+    (plan.days||[]).forEach(day => {
+      h += `<div class="day-header">📅 ${day.dayName||'Dzień '+day.day} — ${day.totalKcal||plan.dailyKcal} kcal</div>`;
+      (day.meals||[]).forEach(meal => {
+        h += `<div class="meal">
+          <div class="meal-name">${meal.time||''} ${meal.name||''}</div>
+          <div class="meal-items">${(meal.items||[]).join(' · ')}</div>
+          ${meal.prepNote?`<div style="font-size:9px;color:#d4841a;">💡 ${meal.prepNote}</div>`:''}
+          <div class="meal-macro">${meal.kcal?meal.kcal+' kcal':''} ${meal.protein?'· B:'+meal.protein+'g':''} ${meal.carbs?'· W:'+meal.carbs+'g':''} ${meal.fat?'· T:'+meal.fat+'g':''}</div>
+        </div>`;
+      });
+    });
+
+    if (plan.shoppingList?.length) {
+      h += `<div class="section-title">🛒 Lista zakupów</div><div class="shop-grid">`;
+      plan.shoppingList.forEach(item => h += `<div class="shop-item">☐ ${item}</div>`);
+      h += `</div>`;
+    }
+  }
+
+  h += `<button class="print-btn" onclick="window.print()">🖨 Drukuj / Zapisz PDF</button>`;
+  h += `<div class="footer">PROGRESS AI v2.0 · Plan wygenerowany przez AI · Progress Studio Treningu Personalnego, Wrocław · ${new Date().toLocaleDateString('pl')}</div>`;
+  h += `</div></body></html>`;
+
+  w.document.write(h);
+  w.document.close();
+}
 
 function downloadPlanExcel() {
   if (!currentPlanData) return;

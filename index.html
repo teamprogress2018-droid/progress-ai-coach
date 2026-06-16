@@ -1394,6 +1394,30 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         <div class="ba-field"><label>Wzrost (cm)</label><input id="ba-height" type="number" placeholder="178"></div>
       </div>
       <div class="ba-field" style="margin-bottom:12px;"><label>Płeć</label><select id="ba-gender"><option value="mężczyzna">Mężczyzna</option><option value="kobieta">Kobieta</option></select></div>
+
+      <!-- POMIARY OBWODÓW -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📏 Pomiary obwodów (cm)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Szyja</div><input id="ba-neck" type="number" placeholder="38" step="0.5" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:12px;outline:none;"></div>
+          <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Klatka piersiowa</div><input id="ba-chest" type="number" placeholder="100" step="0.5" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:12px;outline:none;"></div>
+          <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Talia (pępek)</div><input id="ba-waist" type="number" placeholder="82" step="0.5" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:12px;outline:none;"></div>
+          <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Biodra</div><input id="ba-hips" type="number" placeholder="96" step="0.5" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:12px;outline:none;"></div>
+          <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Udo (lewe)</div><input id="ba-thigh" type="number" placeholder="56" step="0.5" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:12px;outline:none;"></div>
+          <div><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Ramię (biceps)</div><input id="ba-arm" type="number" placeholder="36" step="0.5" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:12px;outline:none;"></div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <button onclick="baSaveMeasurements()" style="flex:1;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.25);border-radius:6px;padding:6px;color:var(--gr);font-size:10px;font-weight:600;cursor:pointer;">💾 Zapisz pomiary</button>
+          <button onclick="baShowHistory()" style="flex:1;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);border-radius:6px;padding:6px;color:var(--bl);font-size:10px;font-weight:600;cursor:pointer;">📊 Historia</button>
+        </div>
+      </div>
+
+      <!-- % tkanki tłuszczowej (opcjonalnie) -->
+      <div class="ba-form-row">
+        <div class="ba-field"><label>% tkanki tłuszczowej (jeśli znany)</label><input id="ba-bf" type="number" placeholder="18" step="0.1"></div>
+        <div class="ba-field"><label>Data pomiaru</label><input id="ba-date" type="date"></div>
+      </div>
+
       <div class="ba-field" style="margin-bottom:10px;"><label>Aktualny cel</label></div>
       <div class="ba-goals">
         <div class="ba-goal active" onclick="baSetGoal(this,'masa')">💪<br><span style="font-size:10px;">Budowa masy</span></div>
@@ -1402,6 +1426,16 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         <div class="ba-goal" onclick="baSetGoal(this,'kondycja')">🏃<br><span style="font-size:10px;">Kondycja</span></div>
       </div>
       <div class="ba-field" style="margin-bottom:16px;"><label>Poziom zaawansowania</label><select id="ba-level"><option value="poczatkujacy">Początkujący (0–1 rok)</option><option value="sredni" selected>Średniozaawansowany (1–3 lata)</option><option value="zaawansowany">Zaawansowany (3+ lat)</option></select></div>
+
+      <!-- Historia pomiarów inline -->
+      <div id="ba-history-panel" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:10px;color:var(--bl);font-family:'DM Mono',monospace;text-transform:uppercase;">📊 Historia pomiarów</div>
+          <button onclick="document.getElementById('ba-history-panel').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;">✕</button>
+        </div>
+        <div id="ba-history-list" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+
       <div style="display:flex;gap:8px;">
         <button class="ba-btn-ghost" onclick="baGoStep(1)">← Wróć</button>
         <button class="ba-btn" style="flex:1;" onclick="baStartAnalysis()">🔍 Analizuj sylwetkę AI</button>
@@ -3398,6 +3432,301 @@ function buildNutritionRAGContext(ragData, goal) {
 // ===== END NUTRITION RAG =====
 
 // ===== END DIETA JS =====
+
+// ===== BODY ASSESSMENT - CORE FUNCTIONS =====
+let baPhotos = {front:null, side:null, back:null};
+let baCurrentGoal = 'masa';
+
+function baGoStep(n) {
+  document.querySelectorAll('.ba-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ba-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('ba-pane'+n).classList.add('active');
+  document.getElementById('ba-st'+n).classList.add('active');
+}
+
+function baSetGoal(el, goal) {
+  baCurrentGoal = goal;
+  document.querySelectorAll('.ba-goal').forEach(g => g.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function baLoadPhoto(side, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    baPhotos[side] = e.target.result;
+    const slot = document.getElementById('ba-slot-'+side);
+    slot.style.backgroundImage = `url(${e.target.result})`;
+    slot.style.backgroundSize = 'cover';
+    slot.style.backgroundPosition = 'center';
+    slot.querySelector('.ba-slot-add').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function baStartAnalysis() {
+  const name = document.getElementById('ba-name')?.value || 'Klient';
+  const age = document.getElementById('ba-age')?.value || '?';
+  const weight = document.getElementById('ba-weight')?.value || '?';
+  const height = document.getElementById('ba-height')?.value || '?';
+  const gender = document.getElementById('ba-gender')?.value || 'mężczyzna';
+  const level = document.getElementById('ba-level')?.value || 'sredni';
+  const measurements = baMeasurementsToPrompt();
+
+  baGoStep(3);
+  document.getElementById('ba-analyzing').style.display = 'flex';
+  document.getElementById('ba-result').style.display = 'none';
+
+  const statuses = ['Przesyłam zdjęcia do Claude Vision...','Analizuję skład ciała...','Oceniam proporcje...','Generuję rekomendacje...'];
+  let si = 0;
+  const ticker = setInterval(() => {
+    si = (si+1) % statuses.length;
+    const el = document.getElementById('ba-status');
+    if (el) el.textContent = statuses[si];
+  }, 2500);
+
+  // Przygotuj zdjęcia
+  const photoContent = [];
+  ['front','side','back'].forEach(s => {
+    if (baPhotos[s]) {
+      const b64 = baPhotos[s].split(',')[1];
+      const mt = baPhotos[s].split(';')[0].split(':')[1];
+      photoContent.push({type:'image', source:{type:'base64', media_type:mt, data:b64}});
+      photoContent.push({type:'text', text:`Powyższe zdjęcie to: ${s==='front'?'PRZÓD':s==='side'?'BOK':'TYŁ'} klienta.`});
+    }
+  });
+
+  const hasPhotos = photoContent.length > 0;
+  const textPrompt = `Jesteś ekspertem oceny sylwetki i składu ciała (NSCA, certyfikowany trener).
+  
+Klient: ${name}, ${age} lat, ${gender}, waga: ${weight}kg, wzrost: ${height}cm
+Cel: ${baCurrentGoal}, poziom: ${level}${measurements}
+
+${hasPhotos ? 'Przeanalizuj zdjęcia i' : 'Na podstawie danych'} oceń sylwetkę i odpowiedz w języku polskim w formacie JSON:
+{
+  "overall_score": number (1-10),
+  "body_fat_estimate": "string (np. '15-18%')",
+  "body_type": "string (Ektomorfik/Mezomorfik/Endomorfik)",
+  "strong_points": ["string", "string", "string"],
+  "weak_points": ["string", "string"],
+  "posture_notes": "string (uwagi o postawie jeśli widoczne na zdjęciach)",
+  "muscle_balance": "string (ocena balansu mięśniowego)",
+  "priority_muscles": ["string", "string", "string"],
+  "training_recommendations": ["string", "string", "string"],
+  "diet_recommendations": ["string", "string"],
+  "weekly_plan_suggestion": "string",
+  "motivation_note": "string (krótka motywacja dla klienta)"
+}
+TYLKO JSON.`;
+
+  const messages = hasPhotos
+    ? [{role:'user', content:[...photoContent, {type:'text', text:textPrompt}]}]
+    : [{role:'user', content:textPrompt}];
+
+  try {
+    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6', max_tokens:2000, messages})
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const result = JSON.parse(raw);
+    baRenderResult(result, name);
+  } catch(e) {
+    document.getElementById('ba-analyzing').style.display = 'none';
+    document.getElementById('ba-result').style.display = 'block';
+    document.getElementById('ba-result').innerHTML = `<div style="text-align:center;padding:30px;color:var(--ac);">❌ Błąd analizy: ${e.message}<br><button onclick="baGoStep(2)" style="margin-top:12px;background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:white;cursor:pointer;">← Wróć</button></div>`;
+  } finally {
+    clearInterval(ticker);
+  }
+}
+
+function baRenderResult(r, name) {
+  document.getElementById('ba-analyzing').style.display = 'none';
+  const el = document.getElementById('ba-result');
+  el.style.display = 'block';
+
+  const score = r.overall_score || 7;
+  const scoreColor = score >= 8 ? 'var(--gr)' : score >= 6 ? '#FAA855' : 'var(--ac)';
+
+  el.innerHTML = `
+    <div class="ba-result-header">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(232,48,42,0.1);border:2px solid ${scoreColor};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;color:${scoreColor};">${score}/10</div>
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;">ANALIZA SYLWETKI – ${name.toUpperCase()}</div>
+        <div style="font-size:11px;color:var(--tx3);">Typ: ${r.body_type||'–'} · BF: ${r.body_fat_estimate||'–'} · ${new Date().toLocaleDateString('pl')}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;">
+      <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:10px;">
+        <div style="font-size:9px;color:var(--gr);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">✅ Mocne strony</div>
+        ${(r.strong_points||[]).map(p=>`<div style="font-size:11px;color:var(--tx2);padding:2px 0;">• ${p}</div>`).join('')}
+      </div>
+      <div style="background:rgba(232,48,42,0.06);border:1px solid rgba(232,48,42,0.15);border-radius:8px;padding:10px;">
+        <div style="font-size:9px;color:var(--ac);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">⚠️ Do poprawy</div>
+        ${(r.weak_points||[]).map(p=>`<div style="font-size:11px;color:var(--tx2);padding:2px 0;">• ${p}</div>`).join('')}
+      </div>
+    </div>
+
+    ${r.posture_notes ? `<div style="background:rgba(250,168,85,0.08);border-left:3px solid #FAA855;border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;color:var(--tx2);margin-bottom:8px;"><strong style="color:#FAA855;">🦴 Postawa:</strong> ${r.posture_notes}</div>` : ''}
+    ${r.muscle_balance ? `<div style="background:rgba(96,165,250,0.08);border-left:3px solid var(--bl);border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;color:var(--tx2);margin-bottom:8px;"><strong style="color:var(--bl);">⚖️ Balans mięśniowy:</strong> ${r.muscle_balance}</div>` : ''}
+
+    ${r.priority_muscles?.length ? `<div style="margin-bottom:8px;"><div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">🎯 Priorytety treningowe</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.priority_muscles.map(m=>`<span style="background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--ac);">${m}</span>`).join('')}</div></div>` : ''}
+
+    <div style="margin-bottom:8px;">
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">💪 Rekomendacje treningowe</div>
+      ${(r.training_recommendations||[]).map(p=>`<div style="font-size:11px;color:var(--tx2);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">→ ${p}</div>`).join('')}
+    </div>
+
+    <div style="margin-bottom:8px;">
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">🥗 Rekomendacje dietetyczne</div>
+      ${(r.diet_recommendations||[]).map(p=>`<div style="font-size:11px;color:var(--tx2);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">→ ${p}</div>`).join('')}
+    </div>
+
+    ${r.weekly_plan_suggestion ? `<div style="background:rgba(127,119,221,0.08);border:1px solid rgba(127,119,221,0.2);border-radius:8px;padding:10px;margin-bottom:8px;"><div style="font-size:9px;color:#9f97e8;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">📅 Sugestia planu tygodniowego</div><div style="font-size:11px;color:var(--tx2);">${r.weekly_plan_suggestion}</div></div>` : ''}
+
+    ${r.motivation_note ? `<div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.15);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--tx2);font-style:italic;line-height:1.5;">💬 "${r.motivation_note}"</div>` : ''}
+
+    <div style="display:flex;gap:8px;">
+      <button onclick="baGoStep(1)" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--tx2);font-size:11px;cursor:pointer;">🔄 Nowa analiza</button>
+      <button onclick="baSaveAnalysisResult(${JSON.stringify(r).replace(/"/g,'&quot;')}, '${name}')" style="flex:1;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.25);border-radius:8px;padding:8px;color:var(--gr);font-size:11px;font-weight:600;cursor:pointer;">💾 Zapisz raport</button>
+    </div>`;
+}
+
+function baSaveAnalysisResult(result, name) {
+  const key = 'ba_report_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now();
+  localStorage.setItem(key, JSON.stringify({result, date:new Date().toISOString(), name}));
+  const btn = event.target;
+  btn.textContent = '✓ Zapisano!';
+  setTimeout(() => btn.textContent = '💾 Zapisz raport', 2000);
+}
+// ===== END BODY ASSESSMENT CORE =====
+
+// ===== BODY ASSESSMENT - POMIARY I HISTORIA =====
+function openBodyAssessment() {
+  closeOverlay();
+  document.getElementById('screen-body').style.display = 'block';
+  // Ustaw dzisiejszą datę
+  const dateEl = document.getElementById('ba-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  // Wczytaj dane z profilu klienta
+  const name = document.getElementById('client-name')?.value;
+  const age = document.getElementById('client-age-num')?.value;
+  const weight = document.getElementById('client-weight')?.value;
+  const height = document.getElementById('client-height')?.value;
+  if (name) document.getElementById('ba-name').value = name;
+  if (age) document.getElementById('ba-age').value = age;
+  if (weight) document.getElementById('ba-weight').value = weight;
+  if (height) document.getElementById('ba-height').value = height;
+}
+
+function baSaveMeasurements() {
+  const name = document.getElementById('ba-name')?.value || document.getElementById('client-name')?.value || 'Klient';
+  const date = document.getElementById('ba-date')?.value || new Date().toISOString().split('T')[0];
+  const measurement = {
+    date,
+    weight: document.getElementById('ba-weight')?.value || '',
+    bf: document.getElementById('ba-bf')?.value || '',
+    neck: document.getElementById('ba-neck')?.value || '',
+    chest: document.getElementById('ba-chest')?.value || '',
+    waist: document.getElementById('ba-waist')?.value || '',
+    hips: document.getElementById('ba-hips')?.value || '',
+    thigh: document.getElementById('ba-thigh')?.value || '',
+    arm: document.getElementById('ba-arm')?.value || '',
+  };
+
+  const key = 'measurements_' + name.toLowerCase().replace(/\s+/g,'_');
+  const history = JSON.parse(localStorage.getItem(key) || '[]');
+  // Sprawdź czy już jest pomiar z tej daty
+  const existIdx = history.findIndex(m => m.date === date);
+  if (existIdx >= 0) history[existIdx] = measurement;
+  else history.push(measurement);
+  history.sort((a,b) => new Date(a.date) - new Date(b.date));
+  localStorage.setItem(key, JSON.stringify(history));
+
+  const btn = event.target;
+  btn.textContent = '✓ Zapisano!';
+  btn.style.background = 'rgba(74,222,128,0.3)';
+  setTimeout(() => { btn.textContent = '💾 Zapisz pomiary'; btn.style.background = 'rgba(74,222,128,0.12)'; }, 2000);
+}
+
+function baShowHistory() {
+  const panel = document.getElementById('ba-history-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'none') return;
+
+  const name = document.getElementById('ba-name')?.value || document.getElementById('client-name')?.value || 'Klient';
+  const key = 'measurements_' + name.toLowerCase().replace(/\s+/g,'_');
+  const history = JSON.parse(localStorage.getItem(key) || '[]');
+  const list = document.getElementById('ba-history-list');
+
+  if (!history.length) {
+    list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px;">Brak zapisanych pomiarów</div>';
+    return;
+  }
+
+  // Odwróć kolejność (najnowsze pierwsze)
+  const sorted = [...history].reverse();
+  list.innerHTML = sorted.map((m, i) => {
+    const prev = sorted[i+1];
+    const weightDiff = prev && m.weight && prev.weight ? (parseFloat(m.weight) - parseFloat(prev.weight)).toFixed(1) : null;
+    const waistDiff = prev && m.waist && prev.waist ? (parseFloat(m.waist) - parseFloat(prev.waist)).toFixed(1) : null;
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <div style="font-size:11px;font-weight:600;color:var(--tx);">${m.date}</div>
+        <div style="display:flex;gap:8px;">
+          ${m.weight ? `<span style="font-size:12px;font-weight:700;color:#FAA855;">${m.weight} kg ${weightDiff !== null ? `<span style="font-size:10px;color:${parseFloat(weightDiff)<0?'var(--gr)':'var(--ac)'}">${weightDiff>0?'+':''}${weightDiff}</span>` : ''}</span>` : ''}
+          ${m.bf ? `<span style="font-size:10px;color:var(--tx3);">${m.bf}% BF</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${m.chest ? `<span style="font-size:10px;color:var(--tx3);">Klatka: <strong style="color:var(--tx2);">${m.chest}cm</strong></span>` : ''}
+        ${m.waist ? `<span style="font-size:10px;color:var(--tx3);">Talia: <strong style="color:var(--tx2);">${m.waist}cm</strong>${waistDiff !== null ? ` <span style="color:${parseFloat(waistDiff)<0?'var(--gr)':'var(--ac)'}">${waistDiff>0?'+':''}${waistDiff}</span>` : ''}</span>` : ''}
+        ${m.hips ? `<span style="font-size:10px;color:var(--tx3);">Biodra: <strong style="color:var(--tx2);">${m.hips}cm</strong></span>` : ''}
+        ${m.arm ? `<span style="font-size:10px;color:var(--tx3);">Ramię: <strong style="color:var(--tx2);">${m.arm}cm</strong></span>` : ''}
+        ${m.thigh ? `<span style="font-size:10px;color:var(--tx3);">Udo: <strong style="color:var(--tx2);">${m.thigh}cm</strong></span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function baMeasurementsToPrompt() {
+  const m = {
+    weight: document.getElementById('ba-weight')?.value,
+    bf: document.getElementById('ba-bf')?.value,
+    neck: document.getElementById('ba-neck')?.value,
+    chest: document.getElementById('ba-chest')?.value,
+    waist: document.getElementById('ba-waist')?.value,
+    hips: document.getElementById('ba-hips')?.value,
+    thigh: document.getElementById('ba-thigh')?.value,
+    arm: document.getElementById('ba-arm')?.value,
+  };
+  const parts = [];
+  if (m.weight) parts.push(`Waga: ${m.weight} kg`);
+  if (m.bf) parts.push(`Tkanka tłuszczowa: ${m.bf}%`);
+  if (m.neck) parts.push(`Szyja: ${m.neck} cm`);
+  if (m.chest) parts.push(`Klatka: ${m.chest} cm`);
+  if (m.waist) parts.push(`Talia: ${m.waist} cm`);
+  if (m.hips) parts.push(`Biodra: ${m.hips} cm`);
+  if (m.thigh) parts.push(`Udo: ${m.thigh} cm`);
+  if (m.arm) parts.push(`Ramię (biceps): ${m.arm} cm`);
+  // WHR i BMI
+  if (m.waist && m.hips) {
+    const whr = (parseFloat(m.waist)/parseFloat(m.hips)).toFixed(2);
+    parts.push(`WHR (talia/biodra): ${whr}`);
+  }
+  if (m.weight && document.getElementById('ba-height')?.value) {
+    const h = parseFloat(document.getElementById('ba-height').value)/100;
+    const bmi = (parseFloat(m.weight)/(h*h)).toFixed(1);
+    parts.push(`BMI: ${bmi}`);
+  }
+  return parts.length ? `\n\nPOMIARY OBWODÓW:\n${parts.join(', ')}` : '';
+}
+// ===== END BODY ASSESSMENT =====
 
 // ===== TRENING LIVE JS =====
 let tlTimer=null,tlSeconds=180,tlRunning=false;

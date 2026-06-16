@@ -1909,6 +1909,79 @@ function getKnowledgeContext(){
 }
 function getKBImages(){return knowledgeBase.filter(d=>d.type==='image' && d.content && d.content.startsWith('[IMAGE]'));}
 
+// Skrócony profil tylko z danymi klucznymi dla planu treningowego
+function getClientProfileShort() {
+  const name = document.getElementById('client-name')?.value || '';
+  if (!name) return '';
+  const age = document.getElementById('client-age-num')?.value || '';
+  const gender = document.getElementById('client-gender')?.value || '';
+  const weight = document.getElementById('client-weight')?.value || '';
+  const height = document.getElementById('client-height')?.value || '';
+  const goal = document.getElementById('client-goal')?.value || '';
+  const priority = document.getElementById('client-priority')?.value || '';
+  const level = document.getElementById('client-level')?.value || '';
+  const equipment = document.getElementById('client-equipment')?.value || '';
+  const days = document.getElementById('client-days')?.value || '';
+  const duration = document.getElementById('client-duration')?.value || '';
+  const split = document.getElementById('client-split')?.value || '';
+  const job = document.getElementById('client-job')?.value || '';
+  const sleepVal = parseInt(document.getElementById('client-sleep')?.value || 3);
+  const stressVal = parseInt(document.getElementById('client-stress')?.value || 3);
+  const sleepLabels = ['Fatalny','Słaby','Średni','Dobry','Świetny'];
+  const stressLabels = ['Brak','Niski','Średni','Wysoki','Bardzo wysoki'];
+
+  const posture = [];
+  if(document.getElementById('post-lordoza')?.checked) posture.push('hiperlordoza');
+  if(document.getElementById('post-kifoza')?.checked) posture.push('kifoza');
+  if(document.getElementById('post-kolana')?.checked) posture.push('koślawość kolan');
+  if(document.getElementById('post-barki')?.checked) posture.push('wysunięte barki');
+
+  const excl = [];
+  if(document.getElementById('excl-spine')?.checked) excl.push('brak osiowego');
+  if(document.getElementById('excl-overhead')?.checked) excl.push('brak overhead');
+  if(document.getElementById('excl-squat')?.checked) excl.push('brak przysiadu');
+  if(document.getElementById('excl-deadlift')?.checked) excl.push('brak DL');
+
+  const methods = [];
+  if(document.getElementById('met-dropset')?.checked) methods.push('drop-sety');
+  if(document.getElementById('met-super')?.checked) methods.push('super-serie');
+  if(document.getElementById('met-rir')?.checked) methods.push('RPE/RIR');
+
+  // Anatomia
+  const femur = document.getElementById('client-femur')?.value || '';
+  const ankle = document.getElementById('client-ankle')?.value || '';
+  const wingspan = document.getElementById('client-wingspan')?.value || '';
+
+  // Diagnoza z psycho
+  const psychoKey = 'psycho_' + name.toLowerCase().replace(/\s+/g,'_');
+  let diagList = [];
+  try {
+    const pd = JSON.parse(localStorage.getItem(psychoKey)||'{}');
+    const d = pd.profile?.diagnosis || {};
+    if(d.io) diagList.push('insulinooporność');
+    if(d.hashimoto) diagList.push('Hashimoto');
+    if(d.ibs) diagList.push('IBS');
+  } catch(e) {}
+
+  let p = `\n\n===PROFIL KLIENTA===\n${name}, ${age}lat, ${gender}, ${weight}kg/${height}cm`;
+  p += `\nCel: ${goal} | Staż: ${level} | Sprzęt: ${equipment}`;
+  p += `\nDni: ${days} | Czas: ${duration} | Split: ${split}`;
+  if(priority) p += `\nPriorytet: ${priority}`;
+  if(methods.length) p += `\nMetody: ${methods.join(', ')}`;
+  p += `\nPraca: ${job} | Sen: ${sleepLabels[sleepVal-1]} | Stres: ${stressLabels[stressVal-1]}`;
+  if(posture.length) p += `\nWady postawy: ${posture.join(', ')}`;
+  if(excl.length) p += `\nWykluczone: ${excl.join(', ')}`;
+  if(femur.includes('długa') || ankle.includes('ograniczona')) p += `\nBIOMECHANIKA: długa kość udowa/ograniczona skokowa → zastąp przysiad hack/suwnicą`;
+  if(wingspan.includes('długi')) p += `\nDługi zasięg ramion → korzystny DL, trudniejszy BP`;
+  if(diagList.length) p += `\nDiagnozy: ${diagList.join(', ')}`;
+  if(stressVal >= 4 || sleepVal <= 2) p += `\n⚠️ Wysoki stres/słaby sen → obniż objętość o 20%`;
+
+  const limits = document.getElementById('client-limits')?.value;
+  if(limits) p += `\nOgraniczenia: ${limits.substring(0,100)}`;
+  p += '\n===KONIEC===';
+  return p;
+}
+
 function getClientProfile(){
   const name=document.getElementById('client-name')?.value||'';
   const ageNum=document.getElementById('client-age-num').value;
@@ -7098,13 +7171,15 @@ async function generatePlan() {
     if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
   }, 2000);
 
-  const tokenBudget = planWeeks === 1 ? 6000 : planWeeks === 4 ? 14000 : 20000;
+  const tokenBudget = planWeeks === 1 ? 8000 : planWeeks === 4 ? 16000 : 24000;
 
   let plan = null;
   let errMsg = '';
   try {
     const sysPrompt = buildPlanPrompt(planWeeks);
     const kbCtx = getKnowledgeContext();
+    // Skrócony profil dla planu (bez danych daily psycho i SFR)
+    const shortProfile = getClientProfileShort();
     // RAG wytyczne naukowe
     let ragGuide = '';
     try {
@@ -7127,7 +7202,7 @@ async function generatePlan() {
     } catch(re) {}
     plan = await callAPI(
       sysPrompt,
-      'Wygeneruj plan. TYLKO JSON.\n\n' + profile + '\n' + philosophy + (kbCtx ? '\n\n' + kbCtx : '') + ragGuide,
+      'Wygeneruj plan. TYLKO JSON.\n\n' + shortProfile + '\n' + philosophy + (kbCtx ? '\n\n' + kbCtx : '') + ragGuide,
       tokenBudget
     );
   } catch(err) { console.error('generatePlan error:', err); plan = null; errMsg = err.message || 'Nieznany blad'; }

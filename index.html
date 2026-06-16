@@ -3698,6 +3698,10 @@ function baSaveAnalysisResult(result, name) {
 // ===== END BODY ASSESSMENT CORE =====
 
 // ===== BODY ASSESSMENT - POMIARY I HISTORIA =====
+function openMeasurements() {
+  openOverlay('screen-measurements');
+}
+
 function openBodyAssessment() {
   closeOverlay();
   document.getElementById('screen-body').style.display = 'block';
@@ -4643,21 +4647,29 @@ async function callAPI(system, userMsg, maxTokens) {
   const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
   if (first === -1) { console.error('No { in response'); return null; }
   let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
+
+  // Pre-processing: napraw typowe problemy z JSON od AI
+  jsonStr = jsonStr
+    .replace(/[\u0000-\u001F\u007F]/g, ' ') // usuń control chars
+    .replace(/,\s*([}\]])/g, '$1')           // trailing commas
+    .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3'); // unquoted keys
+
   try { return JSON.parse(jsonStr); }
   catch(e) {
     let rep = jsonStr;
-    // Remove unterminated string/value at end
+    // Usuń niezakończone stringi na końcu
     rep = rep.replace(/,?\s*"[^"]*$/, '');
     rep = rep.replace(/,?\s*"[^"]*":\s*"[^"]*$/, '');
+    rep = rep.replace(/,?\s*"[^"]*":\s*\[[^\]]*$/, '');
     rep = rep.replace(/,\s*$/, '');
-    // Close open brackets
+    // Zamknij nawiasy
     const opens = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
     const openb = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
     for(let i=0;i<Math.max(0,opens);i++) rep+=']';
     for(let i=0;i<Math.max(0,openb);i++) rep+='}';
     try { const r=JSON.parse(rep); console.log('Repair OK'); return r; }
     catch(e2) {
-      // Last resort: cut back to last complete exercise
+      // Cofnij do ostatniego kompletnego ćwiczenia
       const cut = rep.lastIndexOf(',{"name":');
       if(cut>0) {
         let t=rep.substring(0,cut);
@@ -4668,7 +4680,7 @@ async function callAPI(system, userMsg, maxTokens) {
         for(let i=0;i<Math.max(0,b);i++) t+='}';
         try { return JSON.parse(t); } catch(e3) {}
       }
-      // Krok 3: cofnij do ostatniej sesji
+      // Cofnij do ostatniej sesji
       const cut2 = rep.lastIndexOf(',{"sessionName":');
       if(cut2>0) {
         let t=rep.substring(0,cut2);

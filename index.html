@@ -238,6 +238,67 @@ button:disabled{opacity:.5;cursor:not-allowed;}
       <div class="fg"><label>Inne ograniczenia / uwagi zdrowotne</label><textarea id="client-limits" rows="2" placeholder="np. bóle kolan, rwas kulszowy, po operacji..."></textarea></div>
     </div>
 
+    <!-- SEKCJA: ANATOMIA I BIOMECHANIKA -->
+    <div class="acc-header" onclick="toggleAcc('acc-anatomia')">
+      <span>🦴 Anatomia & Biomechanika</span><span class="acc-arrow" id="arr-anatomia">▾</span>
+    </div>
+    <div class="acc-body" id="acc-anatomia">
+      <div class="fg"><label>Długość kości udowej</label>
+        <select id="client-femur">
+          <option value="">— Nieznana —</option>
+          <option value="krótka (korzystna do przysiadu klasycznego)">🟢 Krótka (dobry dźwig do przysiadu)</option>
+          <option value="średnia (standardowa)">🟡 Średnia (standardowa)</option>
+          <option value="długa (wymaga modyfikacji przysiadu)">🔴 Długa (wymaga hack/rampy/suwnica)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Zasięg ramion (wingspan)</label>
+        <select id="client-wingspan">
+          <option value="">— Nieznany —</option>
+          <option value="krótki (korzystny do wyciskania)">🟢 Krótki (korzystny do wyciskania)</option>
+          <option value="średni (standardowy)">🟡 Średni (standardowy)</option>
+          <option value="długi (korzystny do martwego ciągu)">🟣 Długi (korzystny do DL, trudniejszy BP)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Mobilność stawu skokowego</label>
+        <select id="client-ankle">
+          <option value="">— Nieznana —</option>
+          <option value="dobra (kolano wychodzi daleko za palce)">✅ Dobra (pełny przysiad)</option>
+          <option value="ograniczona (wymaga klina/rampy pod pięty)">⚠️ Ograniczona (wymaga rampy/klina)</option>
+          <option value="bardzo ograniczona (uniemożliwia przysiad)">❌ Bardzo ograniczona (brak przysiadu)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Budowa miednicy</label>
+        <select id="client-pelvis">
+          <option value="">— Nieznana —</option>
+          <option value="wąska (szeroki stance może być niekomfortowy)">Wąska (narrow stance)</option>
+          <option value="standardowa">Standardowa</option>
+          <option value="szeroka (szeroki stance korzystny w przysiadu)">Szeroka (wide stance korzystny)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Dominacja stron / asymetrie</label>
+        <select id="client-asymmetry">
+          <option value="">— Brak znanych —</option>
+          <option value="silna dominacja prawej strony (różnica siły >15%)">Silna dominacja prawa (>15%)</option>
+          <option value="silna dominacja lewej strony (różnica siły >15%)">Silna dominacja lewa (>15%)</option>
+          <option value="skrzywienie kręgosłupa (skolioza)">Skolioza</option>
+          <option value="nierówna długość nóg">Nierówna długość nóg</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- SEKCJA: SFR TRACKER -->
+    <div class="acc-header" onclick="toggleAcc('acc-sfr')">
+      <span>📊 Objętość & SFR Tracker</span><span class="acc-arrow" id="arr-sfr">▾</span>
+    </div>
+    <div class="acc-body" id="acc-sfr">
+      <div style="font-size:10px;color:var(--tx3);margin-bottom:8px;line-height:1.5;">Stimulus-to-Fatigue Ratio – monitoruj ile serii na partię tydzień i feedback zmęczenia stawowego.</div>
+      <div id="sfr-grid" style="display:flex;flex-direction:column;gap:5px;">
+        <!-- renderowane przez JS -->
+      </div>
+      <button onclick="sfrReset()" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--tx3);font-size:10px;cursor:pointer;">↺ Reset tygodnia</button>
+      <div id="sfr-warning" style="display:none;margin-top:8px;background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.2);border-radius:8px;padding:8px;font-size:11px;color:var(--ac);"></div>
+    </div>
+
     <!-- SEKCJA 3: STYL ŻYCIA -->
     <div class="acc-header" onclick="toggleAcc('acc-styl')">
       <span>🌙 Styl życia</span><span class="acc-arrow" id="arr-styl">▾</span>
@@ -699,6 +760,9 @@ button:disabled{opacity:.5;cursor:not-allowed;}
         <div class="chip" onclick="quickAction('Techniki motywacyjne oparte na psychologii sportu')">🧠 Psychologia</div>
         <div class="chip" onclick="quickAction('Jak radzić sobie z klientem który ma zbyt duże oczekiwania?')">🔥 Trudny klient</div>
         <div class="chip" onclick="quickAction('Jak ocenić postępy klienta po miesiącu?')">📊 Postępy</div>
+        <div class="chip" onclick="openExerciseMatrix()">🔄 Matryca zamienników</div>
+        <div class="chip" onclick="openFridgeRecipe()">🥗 Kreator z lodówki</div>
+        <div class="chip" onclick="openWeeklyReport()">📊 Raport tygodniowy</div>
       </div>
     </div>
   </div>
@@ -1765,7 +1829,7 @@ function onClientNameChange() {
 const modeLabels={trening:'💪 Trening',dieta:'🥗 Dieta',motywacja:'🧠 Motywacja',analiza:'📊 Analiza'};
 const modePrompts={trening:'Jesteś ekspertem w treningu personalnym. Tworzysz skuteczne plany treningowe, dobierasz ćwiczenia i progresję obciążeń.',dieta:'Jesteś ekspertem w żywieniu sportowym. Tworzysz plany żywieniowe i edukujesz o odżywianiu.',motywacja:'Jesteś ekspertem w psychologii sportu i coachingu. Pomagasz radzić sobie z trudnymi sytuacjami z klientami.',analiza:'Jesteś ekspertem w analizie postępów. Oceniasz wyniki, identyfikujesz problemy i dostosowujesz programy.'};
 
-function showSideTab(tab,btn){document.querySelectorAll('.sidebar-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');btn.classList.add('active');if(tab==='produkty')initProducts();if(tab==='historia')initHistPanel();if(tab==='psycho'){psychoLoadProfile();}}
+function showSideTab(tab,btn){document.querySelectorAll('.sidebar-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');btn.classList.add('active');if(tab==='produkty')initProducts();if(tab==='historia')initHistPanel();if(tab==='psycho'){psychoLoadProfile();}if(tab==='profil'){sfrInit();}}
 
 function toggleAcc(id){const body=document.getElementById(id);const arrow=document.getElementById('arr-'+id.replace('acc-',''));body.classList.toggle('hidden');arrow.classList.toggle('closed');}
 
@@ -1939,8 +2003,24 @@ function getClientProfile(){
     lifeRecommendations.push(`Korekcja postawy: ${posture.join(', ')} → w każdej sesji 1-2 ćwiczenia korygujące (face pull, bird-dog, ćwiczenia rotatorów)`);
   }
 
-  // Psychodieta
-  const psychoCtx = typeof psychoGetContextForAI === 'function' ? psychoGetContextForAI() : '';
+  // Anatomia
+  const femur = document.getElementById('client-femur')?.value || '';
+  const wingspan = document.getElementById('client-wingspan')?.value || '';
+  const ankle = document.getElementById('client-ankle')?.value || '';
+  const pelvis = document.getElementById('client-pelvis')?.value || '';
+  const asymmetry = document.getElementById('client-asymmetry')?.value || '';
+
+  // Anatomiczne czynniki biomechaniczne
+  if(femur.includes('długa') || ankle.includes('ograniczona')) {
+    lifeRisks.push('DŁUGA KOŚĆ UDOWA / OGRANICZONA SKOKOWA');
+    lifeRecommendations.push('Przysiad klasyczny ZASTĄP: Hack maszyna, suwnica, przysiad bułgarski – brak transferu obciążenia na lędźwie przy długich udach');
+  }
+  if(wingspan.includes('długi')) {
+    lifeRecommendations.push('Długi zasięg ramion: korzystny dla martwego ciągu (dłuższe ramię dźwigni), wyciskanie może być trudniejsze – preferuj hantle');
+  }
+  if(asymmetry) {
+    lifeRecommendations.push(`Asymetria: ${asymmetry} → ćwiczenia jednostronne (lunges, hantlowe wiosłowanie) aby korygować różnicę siły`);
+  }
   const psychoData = (() => {
     try {
       const key = 'psycho_' + name.toLowerCase().replace(/\s+/g,'_');
@@ -2003,6 +2083,18 @@ function getClientProfile(){
   if(diagnosisList.length) p+=`\n\nDiagnozy medyczne: ${diagnosisList.join(', ')}`;
   if(habitsList.length) p+=`\nProblemowe nawyki żywieniowe: ${habitsList.join(', ')}`;
   if(psychoData.profile?.psychology?.barrier) p+=`\nGłówna bariera psychologiczna: ${psychoData.profile.psychology.barrier}`;
+
+  // Anatomia
+  if(femur) p+=`\n\nANATOMIA BIOMECHANICZNA:`;
+  if(femur) p+=`\n• Kość udowa: ${femur}`;
+  if(wingspan) p+=`\n• Zasięg ramion: ${wingspan}`;
+  if(ankle) p+=`\n• Mobilność skokowa: ${ankle}`;
+  if(pelvis) p+=`\n• Miednica: ${pelvis}`;
+  if(asymmetry) p+=`\n• Asymetria: ${asymmetry}`;
+
+  // SFR
+  const sfrCtx = typeof sfrGetContextForAI === 'function' ? sfrGetContextForAI() : '';
+  if(sfrCtx) p+=sfrCtx;
 
   const recent = (psychoData.daily||[]).slice(-7);
   if(recent.length) {
@@ -3509,7 +3601,575 @@ function motLoadGoal() {
 setTimeout(() => motInitWelcome(), 300);
 // ===== END MOTYWACJA =====
 
-// ===== PANEL HISTORII KLIENTA =====
+// ===== 1. SFR TRACKER =====
+const SFR_MUSCLES = ['Klatka','Plecy','Barki','Biceps','Triceps','Nogi','Pośladki','Core'];
+const SFR_LIMITS = { // MEV/MRV per tydzień
+  'Klatka':{mev:10,mrv:20},'Plecy':{mev:10,mrv:22},'Barki':{mev:12,mrv:22},
+  'Biceps':{mev:8,mrv:16},'Triceps':{mev:8,mrv:16},'Nogi':{mev:12,mrv:24},
+  'Pośladki':{mev:6,mrv:16},'Core':{mev:8,mrv:16}
+};
+
+let sfrData = {};
+
+function sfrGetKey() {
+  const name = document.getElementById('client-name')?.value || 'klient';
+  return 'sfr_' + name.toLowerCase().replace(/\s+/g,'_') + '_' + getWeekKey();
+}
+
+function getWeekKey() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const week = Math.ceil((d - new Date(year,0,1)) / (7*24*3600*1000));
+  return `${year}W${week}`;
+}
+
+function sfrInit() {
+  const key = sfrGetKey();
+  sfrData = JSON.parse(localStorage.getItem(key) || '{}');
+  SFR_MUSCLES.forEach(m => { if(!sfrData[m]) sfrData[m] = {sets:0, fatigue:5}; });
+  sfrRender();
+}
+
+function sfrRender() {
+  const grid = document.getElementById('sfr-grid');
+  if (!grid) return;
+  const stressVal = parseInt(document.getElementById('client-stress')?.value || 3);
+  const sleepVal = parseInt(document.getElementById('client-sleep')?.value || 3);
+  const multiplier = (stressVal >= 4 || sleepVal <= 2) ? 0.75 : (stressVal === 3 && sleepVal === 3) ? 0.9 : 1.0;
+
+  grid.innerHTML = SFR_MUSCLES.map(m => {
+    const d = sfrData[m] || {sets:0, fatigue:5};
+    const lim = SFR_LIMITS[m];
+    const adjMrv = Math.round(lim.mrv * multiplier);
+    const pct = Math.min(100, Math.round(d.sets / adjMrv * 100));
+    const color = pct >= 100 ? 'var(--ac)' : pct >= 75 ? 'var(--yw)' : 'var(--gr)';
+    const fatigueEmoji = d.fatigue <= 3 ? '😊' : d.fatigue <= 6 ? '😐' : '😫';
+    return `<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <div style="font-size:11px;font-weight:500;color:var(--tx);">${m}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;">${d.sets}/${adjMrv} serii</span>
+          <button onclick="sfrAddSet('${m}')" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.25);border-radius:4px;padding:1px 6px;color:var(--gr);font-size:11px;cursor:pointer;">+</button>
+          <button onclick="sfrRemoveSet('${m}')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--tx3);font-size:11px;cursor:pointer;">-</button>
+        </div>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;margin-bottom:5px;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:20px;transition:width .3s;"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:9px;color:var(--tx3);">Zmęczenie stawowe: ${fatigueEmoji}</span>
+        <input type="range" min="1" max="10" value="${d.fatigue}" oninput="sfrSetFatigue('${m}',this.value)" style="width:80px;accent-color:${color};">
+        <span style="font-size:9px;color:${color};font-family:'DM Mono',monospace;">${d.fatigue}/10</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  sfrCheckWarnings(multiplier);
+}
+
+function sfrAddSet(muscle) {
+  if(!sfrData[muscle]) sfrData[muscle] = {sets:0, fatigue:5};
+  sfrData[muscle].sets++;
+  localStorage.setItem(sfrGetKey(), JSON.stringify(sfrData));
+  sfrRender();
+}
+
+function sfrRemoveSet(muscle) {
+  if(sfrData[muscle]?.sets > 0) sfrData[muscle].sets--;
+  localStorage.setItem(sfrGetKey(), JSON.stringify(sfrData));
+  sfrRender();
+}
+
+function sfrSetFatigue(muscle, val) {
+  if(!sfrData[muscle]) sfrData[muscle] = {sets:0, fatigue:5};
+  sfrData[muscle].fatigue = parseInt(val);
+  localStorage.setItem(sfrGetKey(), JSON.stringify(sfrData));
+  sfrRender();
+}
+
+function sfrReset() {
+  if(!confirm('Zresetować objętość na ten tydzień?')) return;
+  sfrData = {};
+  SFR_MUSCLES.forEach(m => { sfrData[m] = {sets:0, fatigue:5}; });
+  localStorage.setItem(sfrGetKey(), JSON.stringify(sfrData));
+  sfrRender();
+}
+
+function sfrCheckWarnings(multiplier) {
+  const warningEl = document.getElementById('sfr-warning');
+  if(!warningEl) return;
+  const warnings = [];
+  SFR_MUSCLES.forEach(m => {
+    const d = sfrData[m];
+    const adjMrv = Math.round(SFR_LIMITS[m].mrv * multiplier);
+    if(d?.sets >= adjMrv) warnings.push(`⚠️ ${m}: MRV osiągnięte (${d.sets}/${adjMrv} serii)`);
+    if(d?.fatigue >= 8) warnings.push(`🦴 ${m}: Wysokie zmęczenie stawowe (${d.fatigue}/10) – rozważ deload`);
+  });
+  if(warnings.length) {
+    warningEl.style.display = 'block';
+    warningEl.innerHTML = warnings.join('<br>');
+  } else {
+    warningEl.style.display = 'none';
+  }
+}
+
+function sfrGetContextForAI() {
+  if(!Object.keys(sfrData).length) return '';
+  const stressVal = parseInt(document.getElementById('client-stress')?.value || 3);
+  const sleepVal = parseInt(document.getElementById('client-sleep')?.value || 3);
+  const multiplier = (stressVal >= 4 || sleepVal <= 2) ? 0.75 : 0.9;
+  const lines = SFR_MUSCLES.map(m => {
+    const d = sfrData[m];
+    if(!d || d.sets === 0) return null;
+    const adjMrv = Math.round(SFR_LIMITS[m].mrv * multiplier);
+    return `${m}: ${d.sets}/${adjMrv} serii, zmęczenie stawowe: ${d.fatigue}/10`;
+  }).filter(Boolean);
+  if(!lines.length) return '';
+  return `\n\nSFR TRACKER (bieżący tydzień):\n${lines.join('\n')}\nLimit MRV dostosowany do stylu życia (mnożnik: ${multiplier}x)`;
+}
+// ===== END SFR TRACKER =====
+
+// ===== 2. MATRYCA ZAMIENNIKÓW ĆWICZEŃ =====
+const EXERCISE_MATRIX = {
+  // Klatka - ćwiczenia i ich zamienniki wg krzywej oporu
+  'Wyciskanie sztangi (ławka płaska)': {
+    curve: 'max_skurcz', muscle: 'Klatka',
+    alternatives: {
+      'Brak sztangi': 'Wyciskanie hantli (ławka płaska) – identyczna krzywa, dodatkowy zakres ruchu',
+      'Brak ławki': 'Wyciskanie na maszynie Hammer – stałe napięcie w pełnym zakresie',
+      'Brak wolnych ciężarów': 'Wyciskanie na maszynie Smith – kontrolowana trajektoria, bezpieczne',
+      'Kontuzja barku': 'Wyciskanie neutralnym chwytem – zmniejsza rotację zewnętrzną'
+    }
+  },
+  'Rozpiętki (Pec Deck / maszyna zbieżna)': {
+    curve: 'max_skurcz_klatka',
+    alternatives: {
+      'Brak maszyny Pec Deck': 'Rozpiętki na linkach wyciągu skrzyżowanego – identyczna krzywa skurczu klatki',
+      'Brak wyciągu': 'Rozpiętki hantlami leżąc – uwaga: mniejsze napięcie w skurczu'
+    }
+  },
+  'Podciąganie na drążku': {
+    curve: 'max_skurcz_plecy', muscle: 'Plecy',
+    alternatives: {
+      'Brak drążka': 'Ściąganie drążka na wyciągu górnym – identyczna trajektoria, regulowany ciężar',
+      'Za słaby': 'Podciąganie ze wspomaganiem (maszyna gravitron) lub guma oporowa',
+      'Kontuzja nadgarstka': 'Ściąganie linkami (chwyt neutralny) – odciąża nadgarstek'
+    }
+  },
+  'Martwy ciąg klasyczny': {
+    curve: 'max_rozciagniecie_plecy', muscle: 'Plecy/Nogi',
+    alternatives: {
+      'Hiperlordoza / ból pleców': 'RDL z hantlami – brak ładowania kręgosłupa w stanie zmęczenia, łatwiejsza kontrola',
+      'Długa kość udowa': 'Sumo deadlift – szersza pozycja stóp, krótszy zakres pleców, lepiej dla długonogich',
+      'Brak sztangi': 'RDL z hantlami lub trap-bar deadlift – lepsza mechanika dla wielu sylwetek'
+    }
+  },
+  'Przysiad ze sztangą (Back Squat)': {
+    curve: 'max_rozciagniecie_nogi', muscle: 'Nogi',
+    alternatives: {
+      'Długa kość udowa + ograniczona skokowa': 'Hack maszyna lub suwnica – wymusza pionowy tułów, chroni plecy',
+      'Hiperlordoza': 'Goblet squat lub przysiad na suwnicy – minimalizuje obciążenie lędźwiowe',
+      'Ból kolan': 'Leg press (szeroki rozstaw stóp) – redukuje moment siły w kolanie',
+      'Brak sztangi': 'Przysiad bułgarski z hantlami – jednostronny, większy zakres, omija mobilność skokową'
+    }
+  },
+  'OHP (Overhead Press)': {
+    curve: 'max_skurcz_barki', muscle: 'Barki',
+    alternatives: {
+      'Ból barku': 'Wyciskanie hantli neutralnym chwytem (chwyt młotkowy) – mniejszy nacisk na staw AC',
+      'Brak sztangi': 'Arnold Press lub wyciskanie hantli – pełny zakres ruchu barek',
+      'Wysunięte barki (postawa)': 'Landmine press – tor ruchu pod kątem, bezpieczny dla łopatki'
+    }
+  }
+};
+
+function openExerciseMatrix() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:600;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  const equipment = document.getElementById('client-equipment')?.value || '';
+  const femur = document.getElementById('client-femur')?.value || '';
+  const ankle = document.getElementById('client-ankle')?.value || '';
+  const postureLordoza = document.getElementById('post-lordoza')?.checked;
+  const postureBarki = document.getElementById('post-barki')?.checked;
+
+  // Auto-wykryj potrzebne zamienniki
+  const autoAlts = [];
+  if(femur.includes('długa') || ankle.includes('ograniczona')) {
+    autoAlts.push({ex:'Przysiad ze sztangą (Back Squat)', reason:'Długa kość udowa/ograniczona skokowa', alt:'Hack maszyna lub suwnica – wymusza pionowy tułów'});
+  }
+  if(postureLordoza) {
+    autoAlts.push({ex:'Martwy ciąg klasyczny', reason:'Hiperlordoza lędźwiowa', alt:'RDL z hantlami – brak osiowego przeciążenia kręgosłupa'});
+  }
+  if(postureBarki) {
+    autoAlts.push({ex:'OHP / Wyciskanie górne', reason:'Wysunięte barki/głowa', alt:'Landmine press lub wyciskanie neutralnym chwytem'});
+  }
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:24px;max-width:600px;width:92%;max-height:88vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--ps-gold);">🔄 MATRYCA ZAMIENNIKÓW</div>
+          <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">Identyczna krzywa oporu · Zachowany bodziec hipertroficzny</div>
+        </div>
+        <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;">✕</button>
+      </div>
+
+      ${autoAlts.length ? `
+      <div style="background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.2);border-radius:10px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:10px;color:var(--ac);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:8px;">⚠️ AUTO-WYKRYTE na podstawie profilu klienta</div>
+        ${autoAlts.map(a => `
+          <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="font-size:12px;font-weight:600;color:var(--tx);line-through:line-through;">❌ ${a.ex}</div>
+            <div style="font-size:10px;color:var(--tx3);margin:2px 0;">Powód: ${a.reason}</div>
+            <div style="font-size:11px;color:var(--gr);">✅ ${a.alt}</div>
+          </div>`).join('')}
+      </div>` : ''}
+
+      <div style="margin-bottom:12px;">
+        <input id="matrix-search" placeholder="Szukaj ćwiczenia..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--tx);font-size:12px;outline:none;" oninput="matrixFilter(this.value)">
+      </div>
+
+      <div id="matrix-list">
+        ${Object.entries(EXERCISE_MATRIX).map(([ex, data]) => `
+          <div class="matrix-item" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:600;color:var(--tx);margin-bottom:8px;">🏋️ ${ex}</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              ${Object.entries(data.alternatives).map(([situation, alt]) => `
+                <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <div style="font-size:10px;color:var(--ac);font-family:'DM Mono',monospace;">Gdy: ${situation}</div>
+                  <div style="font-size:11px;color:var(--tx2);">→ ${alt}</div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <button onclick="matrixAskAI()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,var(--ac),#cc1f1a);border:none;border-radius:8px;padding:10px;color:white;font-size:12px;font-weight:600;cursor:pointer;">🤖 Zapytaj AI o zamiennik dla ${document.getElementById('client-name')?.value||'klienta'}</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function matrixFilter(query) {
+  const items = document.querySelectorAll('.matrix-item');
+  items.forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(query.toLowerCase()) ? 'block' : 'none';
+  });
+}
+
+function matrixAskAI() {
+  const femur = document.getElementById('client-femur')?.value;
+  const ankle = document.getElementById('client-ankle')?.value;
+  const equipment = document.getElementById('client-equipment')?.value;
+  const postureList = [];
+  if(document.getElementById('post-lordoza')?.checked) postureList.push('hiperlordoza');
+  if(document.getElementById('post-barki')?.checked) postureList.push('wysunięte barki');
+
+  const prompt = `Na podstawie profilu klienta zaproponuj zamienniki ćwiczeń zachowujące identyczną krzywą oporu:
+${femur ? '• Kość udowa: ' + femur : ''}
+${ankle ? '• Mobilność skokowa: ' + ankle : ''}
+${equipment ? '• Sprzęt: ' + equipment : ''}
+${postureList.length ? '• Wady postawy: ' + postureList.join(', ') : ''}
+Dla każdego kluczowego ćwiczenia (przysiad, martwy ciąg, wyciskanie, podciąganie) podaj konkretny zamiennik z wyjaśnieniem biomechanicznym.`;
+
+  quickAction(prompt);
+  document.querySelector('[style*="position:fixed"][style*="z-index:600"]')?.remove();
+}
+// ===== END MATRYCA =====
+
+// ===== 3. KREATOR PRZEPISÓW Z LODÓWKI =====
+async function openFridgeRecipe() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:600;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  const selectedProducts = [];
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:24px;max-width:540px;width:92%;max-height:88vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--ps-gold);">🥗 KREATOR Z LODÓWKI</div>
+          <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">Zero waste · Dopasowane do makro dnia</div>
+        </div>
+        <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;">✕</button>
+      </div>
+
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">Zaznacz co masz w domu (3-6 produktów):</div>
+
+      <!-- Szybki wybór z bazy -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;" id="fridge-quick">
+        ${['Pierś z kurczaka','Jajka','Twaróg chudy','Ryż basmati','Brokuł','Szpinak','Jogurt grecki 0%','Łosoś','Tuńczyk w wodzie','Bataty','Marchew','Płatki owsiane','Oliwa z oliwek','Awokado','Mozzarella','Pomidor','Ogórek','Papryka'].map(p =>
+          `<button onclick="fridgeToggle(this,'${p}')" style="font-size:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 9px;color:var(--tx3);cursor:pointer;transition:all .15s;">${p}</button>`
+        ).join('')}
+      </div>
+
+      <input id="fridge-custom" placeholder="Lub wpisz własny produkt..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--tx);font-size:12px;outline:none;margin-bottom:10px;" onkeydown="if(event.key==='Enter'){fridgeAddCustom();}">
+
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:12px;min-height:40px;">
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:6px;">WYBRANE PRODUKTY:</div>
+        <div id="fridge-selected" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:4px;">PORA POSIŁKU</div>
+          <select id="fridge-meal-time" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--tx);font-size:11px;outline:none;">
+            <option>🌅 Śniadanie</option><option>☀️ Obiad</option><option>🌤️ Kolacja</option>
+            <option>💪 Posiłek po treningu</option><option>🍎 Przekąska</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:4px;">DOCELOWE KCAL</div>
+          <input id="fridge-kcal" type="number" placeholder="500" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--tx);font-size:12px;font-weight:600;outline:none;">
+        </div>
+      </div>
+
+      <button onclick="fridgeGenerate()" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--ps-gold),#a88a3a);border:none;border-radius:8px;color:#1a0a0a;font-size:13px;font-weight:700;cursor:pointer;">🍳 Generuj przepis AI</button>
+      <div id="fridge-result" style="margin-top:14px;"></div>
+    </div>`;
+
+  window._fridgeSelected = [];
+  document.body.appendChild(overlay);
+}
+
+function fridgeToggle(btn, product) {
+  if(!window._fridgeSelected) window._fridgeSelected = [];
+  const idx = window._fridgeSelected.indexOf(product);
+  if(idx >= 0) {
+    window._fridgeSelected.splice(idx, 1);
+    btn.style.background = 'rgba(255,255,255,0.04)';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--tx3)';
+  } else {
+    if(window._fridgeSelected.length >= 8) return;
+    window._fridgeSelected.push(product);
+    btn.style.background = 'rgba(201,168,76,0.15)';
+    btn.style.borderColor = 'rgba(201,168,76,0.4)';
+    btn.style.color = 'var(--ps-gold)';
+  }
+  document.getElementById('fridge-selected').innerHTML = window._fridgeSelected.map(p =>
+    `<span style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--ps-gold);">${p}</span>`
+  ).join('');
+}
+
+function fridgeAddCustom() {
+  const input = document.getElementById('fridge-custom');
+  const val = input.value.trim();
+  if(!val || !window._fridgeSelected) return;
+  if(!window._fridgeSelected.includes(val)) {
+    window._fridgeSelected.push(val);
+    document.getElementById('fridge-selected').innerHTML += `<span style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--ps-gold);">${val}</span>`;
+  }
+  input.value = '';
+}
+
+async function fridgeGenerate() {
+  const products = window._fridgeSelected || [];
+  if(products.length < 2) { alert('Wybierz min. 2 produkty!'); return; }
+  const mealTime = document.getElementById('fridge-meal-time')?.value || 'Obiad';
+  const kcal = document.getElementById('fridge-kcal')?.value || '500';
+  const clientName = document.getElementById('client-name')?.value || 'klient';
+  const diagnosis = typeof psychoGetContextForAI === 'function' ? psychoGetContextForAI() : '';
+
+  const btn = event.target;
+  btn.textContent = '⏳ Generuję...';
+  btn.disabled = true;
+
+  const resultEl = document.getElementById('fridge-result');
+  resultEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);">🍳 AI komponuje przepis...</div>';
+
+  try {
+    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 1200,
+        system: 'Jesteś dietetykiem sportowym. Odpowiadasz WYŁĄCZNIE w JSON bez markdown.',
+        messages:[{role:'user', content:
+          `Klient: ${clientName}. Pora: ${mealTime}. Cel: ~${kcal} kcal.
+Dostępne produkty (TYLKO z tych): ${products.join(', ')}.
+${diagnosis ? 'Profil zdrowotny: ' + diagnosis : ''}
+Stwórz pełnowartościowy posiłek. JSON:
+{"name":"string","prep_time":"string","ingredients":[{"product":"string","amount":"string","kcal":number,"protein":number,"carbs":number,"fat":number}],"steps":["string"],"total":{"kcal":number,"protein":number,"carbs":number,"fat":number},"tips":"string","why_this_meal":"string"}`
+        }]
+      })
+    });
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message);
+    let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const recipe = JSON.parse(raw);
+
+    resultEl.innerHTML = `
+      <div style="background:var(--bg3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--ps-gold);margin-bottom:4px;">${recipe.name}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:10px;">⏱ ${recipe.prep_time}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;">
+          <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:7px;"><div style="font-size:9px;color:var(--tx3);">Kcal</div><div style="font-size:16px;font-weight:700;color:#FAA855;">${recipe.total?.kcal}</div></div>
+          <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:7px;"><div style="font-size:9px;color:var(--tx3);">Białko</div><div style="font-size:16px;font-weight:700;color:var(--ac);">${recipe.total?.protein}g</div></div>
+          <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:7px;"><div style="font-size:9px;color:var(--tx3);">Węgle</div><div style="font-size:16px;font-weight:700;color:var(--ps-gold);">${recipe.total?.carbs}g</div></div>
+          <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:7px;"><div style="font-size:9px;color:var(--tx3);">Tłuszcze</div><div style="font-size:16px;font-weight:700;color:var(--gr);">${recipe.total?.fat}g</div></div>
+        </div>
+        <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">Składniki</div>
+        ${(recipe.ingredients||[]).map(i => `<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:var(--tx2);">• ${i.product}</span><span style="color:var(--ps-gold);font-family:'DM Mono',monospace;">${i.amount}</span></div>`).join('')}
+        <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin:10px 0 5px;">Przygotowanie</div>
+        ${(recipe.steps||[]).map((s,i) => `<div style="font-size:11px;color:var(--tx2);padding:3px 0;"><strong style="color:var(--ps-gold);">${i+1}.</strong> ${s}</div>`).join('')}
+        ${recipe.tips ? `<div style="margin-top:10px;background:rgba(201,168,76,0.08);border-left:3px solid var(--ps-gold);border-radius:0 6px 6px 0;padding:8px 10px;font-size:11px;color:var(--tx2);">💡 ${recipe.tips}</div>` : ''}
+        ${recipe.why_this_meal ? `<div style="margin-top:6px;font-size:10px;color:var(--tx3);font-style:italic;">🎯 ${recipe.why_this_meal}</div>` : ''}
+      </div>`;
+  } catch(e) {
+    resultEl.innerHTML = `<div style="color:var(--ac);padding:12px;font-size:11px;">❌ ${e.message}</div>`;
+  } finally {
+    btn.textContent = '🍳 Generuj przepis AI';
+    btn.disabled = false;
+  }
+}
+// ===== END KREATOR Z LODÓWKI =====
+
+// ===== 4. TYGODNIOWY RAPORT POSTĘPÓW =====
+async function openWeeklyReport() {
+  const clientName = document.getElementById('client-name')?.value;
+  if(!clientName) { alert('Wpisz imię klienta!'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:600;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  // Zbierz dane
+  const logKey = 'tl_log_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  const measKey = 'measurements_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  const psychoKey = 'psycho_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  const log = JSON.parse(localStorage.getItem(logKey)||'{}');
+  const measurements = JSON.parse(localStorage.getItem(measKey)||'[]');
+  const psychoData = JSON.parse(localStorage.getItem(psychoKey)||'{}');
+
+  // Oblicz metryki tygodniowe
+  const today = new Date().toISOString().split('T')[0];
+  const monday = new Date(); monday.setDate(monday.getDate()-(monday.getDay()||7)+1);
+  const mondayStr = monday.toISOString().split('T')[0];
+  const prevMonday = new Date(monday); prevMonday.setDate(prevMonday.getDate()-7);
+  const prevMondayStr = prevMonday.toISOString().split('T')[0];
+
+  // Sesje tego tygodnia
+  const thisWeekSessions = new Set();
+  const lastWeekSessions = new Set();
+  Object.values(log).forEach(exLog => {
+    (exLog||[]).forEach(s => {
+      if(s.date >= mondayStr) thisWeekSessions.add(s.date);
+      else if(s.date >= prevMondayStr) lastWeekSessions.add(s.date);
+    });
+  });
+
+  // Siła - e1RM per ćwiczenie
+  const strengthData = {};
+  Object.entries(log).forEach(([ex, sessions]) => {
+    const thisWeek = sessions.filter(s=>s.date>=mondayStr);
+    const lastWeek = sessions.filter(s=>s.date>=prevMondayStr&&s.date<mondayStr);
+    if(thisWeek.length) {
+      const maxE1rm = Math.max(...thisWeek.flatMap(s=>(s.sets||[]).map(x=>x.kg*(1+x.reps/30))));
+      const prevE1rm = lastWeek.length ? Math.max(...lastWeek.flatMap(s=>(s.sets||[]).map(x=>x.kg*(1+x.reps/30)))) : 0;
+      strengthData[ex] = {curr: maxE1rm.toFixed(1), prev: prevE1rm.toFixed(1), delta: (maxE1rm-prevE1rm).toFixed(1)};
+    }
+  });
+
+  // Waga
+  const latestMeas = measurements.filter(m=>m.date>=mondayStr)[0] || measurements[measurements.length-1];
+  const prevMeas = measurements.filter(m=>m.date<mondayStr).slice(-1)[0];
+  const weightDelta = latestMeas?.weight && prevMeas?.weight ? (parseFloat(latestMeas.weight)-parseFloat(prevMeas.weight)).toFixed(1) : null;
+
+  // Nastrój / sen / stres z ostatnich 7 dni
+  const recentDaily = (psychoData.daily||[]).filter(d=>d.date>=mondayStr);
+  const avgMood = recentDaily.length ? (recentDaily.reduce((s,d)=>s+d.mood,0)/recentDaily.length).toFixed(1) : null;
+  const avgSleep = recentDaily.length ? (recentDaily.reduce((s,d)=>s+d.sleep,0)/recentDaily.length).toFixed(1) : null;
+  const avgStress = recentDaily.length ? (recentDaily.reduce((s,d)=>s+d.stress,0)/recentDaily.length).toFixed(1) : null;
+
+  // SFR
+  const sfrKey = 'sfr_' + clientName.toLowerCase().replace(/\s+/g,'_') + '_' + getWeekKey();
+  const sfrWeek = JSON.parse(localStorage.getItem(sfrKey)||'{}');
+  const highFatigueMuscles = Object.entries(sfrWeek).filter(([,v])=>v.fatigue>=8).map(([k])=>k);
+
+  // Generuj rekomendację AI
+  let aiRec = '';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:24px;max-width:640px;width:92%;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--ps-gold);">📊 RAPORT TYGODNIOWY</div>
+          <div style="font-size:11px;color:var(--tx3);">${clientName} · ${mondayStr} – ${today}</div>
+        </div>
+        <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;">✕</button>
+      </div>
+
+      <!-- Metryki -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">💪 Sesje</div>
+          <div style="font-size:26px;font-weight:700;font-family:'Bebas Neue',sans-serif;color:var(--ps-gold);">${thisWeekSessions.size}</div>
+          <div style="font-size:10px;color:${thisWeekSessions.size>=lastWeekSessions.size?'var(--gr)':'var(--ac)'};">${thisWeekSessions.size>=lastWeekSessions.size?'↑':'↓'} ${Math.abs(thisWeekSessions.size-lastWeekSessions.size)} vs poprzedni</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">⚖️ Waga</div>
+          <div style="font-size:26px;font-weight:700;font-family:'Bebas Neue',sans-serif;color:#FAA855;">${latestMeas?.weight||'–'}kg</div>
+          <div style="font-size:10px;color:${weightDelta&&parseFloat(weightDelta)<0?'var(--gr)':weightDelta&&parseFloat(weightDelta)>0?'var(--ac)':'var(--tx3)'};">${weightDelta?(parseFloat(weightDelta)>0?'↑+':'↓')+Math.abs(weightDelta)+'kg':'brak pomiaru'}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">😴 Śr. sen</div>
+          <div style="font-size:26px;font-weight:700;font-family:'Bebas Neue',sans-serif;color:${parseFloat(avgSleep||0)>=7?'var(--gr)':parseFloat(avgSleep||0)>=6?'var(--yw)':'var(--ac)'};">${avgSleep||'–'}h</div>
+          <div style="font-size:10px;color:var(--tx3);">stres: ${avgStress||'–'}/10</div>
+        </div>
+      </div>
+
+      <!-- Progres siłowy -->
+      ${Object.keys(strengthData).length ? `
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:var(--ps-gold);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:8px;">📈 Progres siłowy (e1RM)</div>
+        ${Object.entries(strengthData).slice(0,5).map(([ex,d])=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <div style="font-size:11px;color:var(--tx);">${ex.substring(0,28)}</div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <span style="font-size:12px;font-weight:600;color:var(--ps-gold);font-family:'DM Mono',monospace;">${d.curr}kg</span>
+              <span style="font-size:10px;color:${parseFloat(d.delta)>0?'var(--gr)':parseFloat(d.delta)<0?'var(--ac)':'var(--tx3)'};">${parseFloat(d.delta)>0?'↑+':'↓'}${Math.abs(d.delta)}kg</span>
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${highFatigueMuscles.length ? `
+      <div style="background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--ac);">
+        ⚠️ Wysokie zmęczenie stawowe: <strong>${highFatigueMuscles.join(', ')}</strong> – rozważ deload lub redukcję serii
+      </div>` : ''}
+
+      <!-- Rekomendacja AI -->
+      <div id="weekly-ai-rec" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:var(--ps-gold);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">🤖 Rekomendacja AI</div>
+        <div style="font-size:12px;color:var(--tx2);">⏳ Generuję rekomendację...</div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="weeklyReportPDF()" style="flex:1;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);border-radius:8px;padding:8px;color:var(--ps-gold);font-size:11px;font-weight:600;cursor:pointer;">⬇ PDF Raportu</button>
+        <button onclick="this.closest('[style*=position]').remove()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--tx2);font-size:11px;cursor:pointer;">Zamknij</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Generuj rekomendację AI
+  try {
+    const context = `Klient: ${clientName}
+Sesje ten tydzień: ${thisWeekSessions.size} (poprzednio: ${lastWeekSessions.size})
+Waga: ${latestMeas?.weight||'brak'}kg (zmiana: ${weightDelta||'brak'}kg)
+Sen: ${avgSleep||'brak'}h, Stres: ${avgStress||'brak'}/10, Nastrój: ${avgMood||'brak'}/5
+${Object.entries(strengthData).slice(0,3).map(([ex,d])=>`${ex}: ${d.curr}kg (${parseFloat(d.delta)>0?'+':''}${d.delta}kg)`).join(', ')}
+${highFatigueMuscles.length?'Zmęczone: '+highFatigueMuscles.join(', '):''}
+Plan treningowy: ${currentPlanData?.sessionsPerWeek||4} sesji/tydzień`;
+
+    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:400,
+        messages:[{role:'user',content:`Jako trener personalny, napisz JEDNĄ konkretną rekomendację dla klienta na następny tydzień (max 80 słów). Bazuj na danych:\n${context}\n\nFormat: zdanie o ocenie tygodnia + konkretna zmiana na następny tydzień.`}]
+      })
+    });
+    const data = await resp.json();
+    const rec = (data.content||[]).map(b=>b.text||'').join('');
+    const recEl = document.getElementById('weekly-ai-rec');
+    if(recEl) recEl.innerHTML = `<div style="font-size:10px;color:var(--ps-gold);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">🤖 Rekomendacja AI</div><div style="font-size:12px;color:var(--tx2);line-height:1.6;">${rec}</div>`;
+  } catch(e) {}
+}
+// ===== END WEEKLY REPORT =====
 function histGetKey(suffix) {
   const name = document.getElementById('client-name')?.value || 'klient';
   return `hist_${name.toLowerCase().replace(/\s+/g,'_')}_${suffix}`;

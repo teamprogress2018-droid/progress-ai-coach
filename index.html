@@ -856,8 +856,10 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
       <button class="an-tab" onclick="anSwitchTab('tonaz',this)">🏋️ Tonaż</button>
       <button class="an-tab" onclick="anSwitchTab('rpe',this)">🎯 RPE</button>
       <button class="an-tab" onclick="anSwitchTab('volume',this)">📊 Objętość</button>
+      <button class="an-tab" onclick="anSwitchTab('body',this)">⚖️ Sylwetka</button>
     </div>
-    <div style="margin-left:auto;">
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <span id="an-data-source" style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;">Demo dane</span>
       <button style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:5px 12px;color:var(--ac);font-size:11px;cursor:pointer;" onclick="anAskAI()">🤖 Zapytaj AI o postępy</button>
     </div>
   </div>
@@ -954,6 +956,32 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
         </div>
         <div class="an-insight">
           <strong>💡 Uwaga:</strong> Biceps poniżej MEV (10 serii vs min 12). Dodaj 1-2 serie uginania w Pull B.
+        </div>
+      </div>
+
+      <!-- PANEL: SYLWETKA (waga + obwody) -->
+      <div id="an-panel-body" class="an-card" style="display:none;">
+        <div class="an-card-title">
+          <span>⚖️ Waga i obwody ciała w czasie</span>
+        </div>
+
+        <!-- Wykres wagi -->
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Waga ciała (kg)</div>
+        <div class="an-chart-wrap" style="height:160px;">
+          <canvas id="an-chart-weight" role="img">Waga ciała w czasie.</canvas>
+        </div>
+
+        <!-- Wykres obwodów -->
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;">Obwody (cm)</div>
+        <div class="an-chart-wrap" style="height:160px;">
+          <canvas id="an-chart-measurements" role="img">Obwody ciała w czasie.</canvas>
+        </div>
+
+        <!-- Najnowsze pomiary -->
+        <div id="an-body-stats" style="margin-top:12px;"></div>
+
+        <div class="an-insight">
+          💡 Pomiary pobrane z modułu <strong>📸 Sylwetka</strong>. Dodaj pomiary tam aby zobaczyć postępy.
         </div>
       </div>
 
@@ -3910,29 +3938,126 @@ td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;text-align:center
 const anCharts={};
 const anWeeks=['T-7','T-6','T-5','T-4','T-3','T-2','T-1','Dziś'];
 
-const anData={
-  e1rm:{
-    bench:[100,101,102,104,105,107,110,112],
-    ohp:[68,69,70,71,72,73,74,76],
-    squat:[155,156,158,160,162,164,166,168],
-    rdl:[108,109,110,112,113,115,116,118]
-  },
-  tonaz:[19800,20200,20600,21000,21400,21800,22400,23480],
-  rpe:[7.8,8.0,8.1,8.2,8.3,8.5,8.7,8.4],
-  volume:{
-    labels:['Klatka','Barki','Plecy','Nogi','Biceps','Triceps'],
-    current:[18,22,20,24,10,14],
-    mev:[10,12,12,16,8,8],
-    mrv:[20,22,22,26,16,16]
-  },
-  consistency:[4,4,5,4,5,5,4,5]
-};
-
 const anColors={bench:'#378ADD',ohp:'#9f97e8',squat:'#EF9F27',rdl:'#1D9E75'};
 const anLabels={bench:'Bench press',ohp:'OHP',squat:'Przysiad',rdl:'RDL'};
 
 let anCurrentEx='bench';
 let anCurrentPeriod=8;
+
+// Pobierz dynamiczne dane z localStorage
+function anGetRealData() {
+  const clientName = document.getElementById('client-name')?.value || 'klient';
+  const logKey = 'tl_log_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  const measKey = 'measurements_' + clientName.toLowerCase().replace(/\s+/g,'_');
+
+  let log = {};
+  let measurements = [];
+  try { log = JSON.parse(localStorage.getItem(logKey) || '{}'); } catch(e) {}
+  try { measurements = JSON.parse(localStorage.getItem(measKey) || '[]'); } catch(e) {}
+
+  // Wygeneruj ostatnie 8 dat (tygodnie)
+  const dates = [];
+  for (let i = 7; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i * 7);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  const labels = dates.map((d,i) => i === 7 ? 'Dziś' : `T-${7-i}`);
+
+  // e1RM per ćwiczenie
+  const e1rmData = {};
+  const exNames = Object.keys(log);
+
+  if (exNames.length > 0) {
+    // Użyj prawdziwych ćwiczeń
+    exNames.slice(0,4).forEach((name, idx) => {
+      const colors = ['#378ADD','#9f97e8','#EF9F27','#1D9E75'];
+      const shortKey = 'ex'+idx;
+      anColors[shortKey] = colors[idx];
+      anLabels[shortKey] = name.substring(0,25);
+
+      e1rmData[shortKey] = dates.map(date => {
+        const entries = (log[name]||[]).filter(e => e.date <= date);
+        if (!entries.length) return null;
+        const lastEntry = entries[entries.length-1];
+        const maxE1rm = Math.max(...(lastEntry.sets||[]).map(s => s.kg*(1+s.reps/30)));
+        return parseFloat(maxE1rm.toFixed(1));
+      });
+    });
+
+    if (exNames.length === 0 || Object.keys(e1rmData).length === 0) {
+      // Fallback na przykładowe dane
+      e1rmData.bench = [100,101,102,104,105,107,110,112];
+    }
+  } else {
+    // Demo dane gdy brak historii
+    e1rmData.bench = [100,101,102,104,105,107,110,112];
+    e1rmData.ohp = [68,69,70,71,72,73,74,76];
+    e1rmData.squat = [155,156,158,160,162,164,166,168];
+  }
+
+  // Waga z pomiarów
+  const weightData = dates.map(date => {
+    const m = measurements.filter(m => m.date <= date).pop();
+    return m?.weight ? parseFloat(m.weight) : null;
+  });
+
+  // Obwody
+  const waistData = dates.map(date => {
+    const m = measurements.filter(m => m.date <= date).pop();
+    return m?.waist ? parseFloat(m.waist) : null;
+  });
+  const armData = dates.map(date => {
+    const m = measurements.filter(m => m.date <= date).pop();
+    return m?.arm ? parseFloat(m.arm) : null;
+  });
+
+  // Tonaż tygodniowy
+  const tonazData = dates.map((date, i) => {
+    const prevDate = i > 0 ? dates[i-1] : '2000-01-01';
+    let tonnage = 0;
+    Object.values(log).forEach(exLog => {
+      (exLog||[]).filter(e => e.date > prevDate && e.date <= date).forEach(entry => {
+        (entry.sets||[]).forEach(s => tonnage += s.kg * s.reps);
+      });
+    });
+    return tonnage > 0 ? Math.round(tonnage) : null;
+  });
+
+  // Konsekwencja (ile sesji w tygodniu)
+  const consistencyData = dates.map((date, i) => {
+    const prevDate = i > 0 ? dates[i-1] : '2000-01-01';
+    const sessionDates = new Set();
+    Object.values(log).forEach(exLog => {
+      (exLog||[]).filter(e => e.date > prevDate && e.date <= date).forEach(e => sessionDates.add(e.date));
+    });
+    return sessionDates.size || null;
+  });
+
+  return {
+    labels,
+    e1rm: e1rmData,
+    weight: weightData,
+    waist: waistData,
+    arm: armData,
+    tonaz: tonazData.some(v=>v) ? tonazData : [19800,20200,20600,21000,21400,21800,22400,23480],
+    rpe: [7.8,8.0,8.1,8.2,8.3,8.5,8.7,8.4], // z logu gdy RPE będzie
+    volume: {
+      labels:['Klatka','Barki','Plecy','Nogi','Biceps','Triceps'],
+      current:[18,22,20,24,10,14],mev:[10,12,12,16,8,8],mrv:[20,22,22,26,16,16]
+    },
+    consistency: consistencyData.some(v=>v) ? consistencyData : [4,4,5,4,5,5,4,5],
+    hasRealData: exNames.length > 0 || measurements.length > 0
+  };
+}
+
+let anData = {
+  e1rm:{bench:[100,101,102,104,105,107,110,112],ohp:[68,69,70,71,72,73,74,76],squat:[155,156,158,160,162,164,166,168],rdl:[108,109,110,112,113,115,116,118]},
+  tonaz:[19800,20200,20600,21000,21400,21800,22400,23480],
+  rpe:[7.8,8.0,8.1,8.2,8.3,8.5,8.7,8.4],
+  volume:{labels:['Klatka','Barki','Plecy','Nogi','Biceps','Triceps'],current:[18,22,20,24,10,14],mev:[10,12,12,16,8,8],mrv:[20,22,22,26,16,16]},
+  consistency:[4,4,5,4,5,5,4,5]
+};
 
 function anBuildChart(id,type,data,opts){
   if(anCharts[id]){anCharts[id].destroy();}
@@ -4008,6 +4133,63 @@ function anInitConsistency(){
   );
 }
 
+function anInitBody(){
+  const realData = anGetRealData();
+
+  // Wykres wagi
+  const weightVals = realData.weight;
+  const hasWeight = weightVals.some(v => v !== null);
+
+  anBuildChart('an-chart-weight','line',{
+    labels: realData.labels,
+    datasets:[{
+      label:'Waga (kg)',
+      data: hasWeight ? weightVals : [82,81.5,81,80.5,80,79.5,79,78.5],
+      borderColor:'#FAA855',
+      backgroundColor:'rgba(250,168,85,0.1)',
+      fill:true,tension:0.35,borderWidth:2,
+      pointRadius:4,pointBackgroundColor:'#FAA855',
+      spanGaps:true
+    }]
+  },{dec:1,unit:'kg',yFmt:v=>v+'kg'});
+
+  // Wykres obwodów
+  const waistVals = realData.waist;
+  const armVals = realData.arm;
+  const hasMeas = waistVals.some(v=>v) || armVals.some(v=>v);
+
+  anBuildChart('an-chart-measurements','line',{
+    labels: realData.labels,
+    datasets:[
+      {label:'Talia (cm)',data:hasMeas?waistVals:[82,81.5,81,80,79.5,79,78.5,78],borderColor:'var(--ac)',backgroundColor:'rgba(232,48,42,0.08)',fill:false,tension:0.35,borderWidth:2,pointRadius:3,spanGaps:true},
+      {label:'Ramię (cm)',data:hasMeas?armVals:[36,36.2,36.5,36.8,37,37,37.2,37.5],borderColor:'var(--gr)',backgroundColor:'rgba(74,222,128,0.08)',fill:false,tension:0.35,borderWidth:2,pointRadius:3,spanGaps:true}
+    ]
+  },{dec:1,unit:'cm',extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:10}}}}});
+
+  // Pokaż najnowsze pomiary
+  const statsEl = document.getElementById('an-body-stats');
+  if (!statsEl) return;
+
+  const clientName = document.getElementById('client-name')?.value || 'klient';
+  const measKey = 'measurements_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  let measurements = [];
+  try { measurements = JSON.parse(localStorage.getItem(measKey) || '[]'); } catch(e) {}
+
+  if (measurements.length > 0) {
+    const last = measurements[measurements.length-1];
+    const prev = measurements.length > 1 ? measurements[measurements.length-2] : null;
+    statsEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
+        ${last.weight ? `<div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Waga</div><div style="font-size:18px;font-weight:700;color:#FAA855;">${last.weight}kg</div>${prev?.weight?`<div style="font-size:9px;color:${parseFloat(last.weight)<parseFloat(prev.weight)?'var(--gr)':'var(--ac)'};">${(parseFloat(last.weight)-parseFloat(prev.weight)>0?'+':'') + (parseFloat(last.weight)-parseFloat(prev.weight)).toFixed(1)}kg</div>`:''}` : ''}
+        ${last.waist ? `<div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Talia</div><div style="font-size:18px;font-weight:700;color:var(--ac);">${last.waist}cm</div>${prev?.waist?`<div style="font-size:9px;color:${parseFloat(last.waist)<parseFloat(prev.waist)?'var(--gr)':'var(--ac)'};">${(parseFloat(last.waist)-parseFloat(prev.waist)>0?'+':'')+(parseFloat(last.waist)-parseFloat(prev.waist)).toFixed(1)}cm</div>`:''}` : ''}
+        ${last.arm ? `<div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--tx3);margin-bottom:3px;">Ramię</div><div style="font-size:18px;font-weight:700;color:var(--gr);">${last.arm}cm</div>${prev?.arm?`<div style="font-size:9px;color:${parseFloat(last.arm)>parseFloat(prev.arm)?'var(--gr)':'var(--ac)'};">${(parseFloat(last.arm)-parseFloat(prev.arm)>0?'+':'')+(parseFloat(last.arm)-parseFloat(prev.arm)).toFixed(1)}cm</div>`:''}` : ''}
+      </div>
+      <div style="font-size:9px;color:var(--tx3);text-align:right;">Ostatni pomiar: ${last.date}</div>`;
+  } else {
+    statsEl.innerHTML = `<div style="text-align:center;padding:12px;font-size:11px;color:var(--tx3);">Brak pomiarów. Dodaj je w <strong style="color:var(--ac);">📸 Sylwetka → Dane klienta</strong></div>`;
+  }
+}
+
 function anSwitchTab(tab,btn){
   document.querySelectorAll('.an-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -4019,6 +4201,7 @@ function anSwitchTab(tab,btn){
     else if(tab==='tonaz')anInitTonaz();
     else if(tab==='rpe')anInitRPE();
     else if(tab==='volume')anInitVolume();
+    else if(tab==='body')anInitBody();
   },50);
 }
 
@@ -4050,6 +4233,14 @@ function anAskAI(){
 
 function openAnaliza(){
   openOverlay('screen-analiza');
+  // Załaduj realne dane
+  const realData = anGetRealData();
+  anData = realData;
+  // Aktualizuj etykiety ćwiczeń jeśli mamy realne dane
+  if (realData.hasRealData) {
+    const infoEl = document.getElementById('an-data-source');
+    if (infoEl) infoEl.textContent = '✅ Dane z Twoich treningów';
+  }
   setTimeout(()=>{anInitE1rm();anInitConsistency();},100);
 }
 // ===== END ANALIZA JS =====

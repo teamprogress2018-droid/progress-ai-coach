@@ -814,7 +814,9 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div class="tl-title">TRENING LIVE</div>
     <div class="tl-sub" id="tl-session-label">Push A · śr 11.06 · 0:00</div>
     <div style="margin-left:auto;display:flex;gap:6px;">
-      <button style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:5px 12px;color:var(--gr);font-size:11px;cursor:pointer;" onclick="tlShowSummary()">✓ Zakończ trening</button>
+      <button onclick="openVideoAnalysis()" style="background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.25);border-radius:8px;padding:5px 10px;color:var(--ac);font-size:11px;cursor:pointer;">🎬 Analiza wideo</button>
+      <button onclick="openDeloadCalculator()" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:5px 10px;color:var(--yw);font-size:11px;cursor:pointer;">⚠️ Deload</button>
+      <button style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:5px 12px;color:var(--gr);font-size:11px;cursor:pointer;" onclick="tlShowSummary()">✓ Zakończ</button>
     </div>
   </div>
 
@@ -1349,6 +1351,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div id="diet-client-label" style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;"></div>
     <div style="margin-left:auto;display:flex;gap:6px;">
       <button onclick="printDietPDF()" style="background:rgba(250,168,85,0.12);border:1px solid rgba(250,168,85,0.3);border-radius:8px;padding:5px 12px;color:#FAA855;font-size:11px;cursor:pointer;">⬇ Pobierz</button>
+      <button onclick="dietInitMacroCountdown();document.getElementById('diet-countdown-widget').scrollIntoView({behavior:'smooth'})" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:5px 12px;color:var(--gr);font-size:11px;cursor:pointer;">📊 Live</button>
       <button onclick="dietAskAI()" style="background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.25);border-radius:8px;padding:5px 12px;color:var(--ac);font-size:11px;cursor:pointer;">🤖 AI</button>
     </div>
   </div>
@@ -1562,6 +1565,8 @@ button:disabled{opacity:.5;cursor:not-allowed;}
         <div style="font-size:14px;font-weight:500;color:var(--tx2);margin-bottom:6px;" id="diet-status">Generuję plan...</div>
         <div style="font-size:11px;color:var(--tx3);">To może zająć 20-30 sekund</div>
       </div>
+      <!-- COUNTDOWN WIDGET -->
+      <div id="diet-countdown-widget" style="margin-bottom:14px;"></div>
       <div id="diet-content">
         <div style="text-align:center;padding:80px 20px;color:var(--tx3);">
           <div style="font-size:56px;margin-bottom:16px;">🥗</div>
@@ -4582,6 +4587,439 @@ function tlShowSummary(){
   clearInterval(tlStopwatch);tlStopwatchRunning=false;
 }
 // ===== END TRENING LIVE JS =====
+
+// ===== 1. ANALIZA WIDEO AI =====
+let videoAnalysisData = null;
+
+function openVideoAnalysis() {
+  const overlay = document.getElementById('video-analysis-overlay');
+  if (overlay) { overlay.style.display = 'flex'; return; }
+
+  const div = document.createElement('div');
+  div.id = 'video-analysis-overlay';
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:600;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  div.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid rgba(232,48,42,0.3);border-radius:16px;padding:24px;max-width:560px;width:90%;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--ac);">🎬 ANALIZA WIDEO AI</div>
+          <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;">Claude Vision · Technika · Tempo · Głębokość</div>
+        </div>
+        <button onclick="document.getElementById('video-analysis-overlay').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;">✕</button>
+      </div>
+
+      <!-- Upload wideo -->
+      <div id="va-upload-zone" style="border:2px dashed rgba(232,48,42,0.3);border-radius:12px;padding:30px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all .2s;" onclick="document.getElementById('va-video-input').click()" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='rgba(232,48,42,0.3)'">
+        <div style="font-size:40px;margin-bottom:10px;">🎥</div>
+        <div style="font-size:14px;color:var(--tx2);font-weight:500;">Wrzuć filmik z serii</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px;">MP4, MOV, WebM · max 20MB · lub wyślij klatkę (zdjęcie)</div>
+        <input id="va-video-input" type="file" accept="video/*,image/*" style="display:none;" onchange="vaHandleFile(this)">
+      </div>
+
+      <!-- Lub zdjęcie klatki -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <button onclick="document.getElementById('va-frame-input').click()" style="background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.2);border-radius:8px;padding:10px;color:var(--ac);font-size:11px;cursor:pointer;">
+          📸 Wyślij klatkę (zdjęcie)
+          <input id="va-frame-input" type="file" accept="image/*" style="display:none;" onchange="vaHandleImage(this)">
+        </button>
+        <button onclick="vaUseSampleFrame()" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:10px;color:var(--ps-gold);font-size:11px;cursor:pointer;">
+          🎯 Przykład (demo)
+        </button>
+      </div>
+
+      <!-- Parametry analizy -->
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:10px;">⚙️ Parametry analizy</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;">ĆWICZENIE</label>
+            <select id="va-exercise" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--tx);font-size:11px;outline:none;">
+              <option>Przysiad (Squat)</option>
+              <option>Martwy ciąg (Deadlift)</option>
+              <option>Wyciskanie (Bench Press)</option>
+              <option>OHP (Overhead Press)</option>
+              <option>Wiosłowanie (Row)</option>
+              <option>Hip Thrust</option>
+              <option>Inne</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;">CO ANALIZOWAĆ</label>
+            <select id="va-focus" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--tx);font-size:11px;outline:none;">
+              <option>Pełna analiza techniki</option>
+              <option>Tempo (ekscentryczna/koncentryczna)</option>
+              <option>Głębokość ruchu</option>
+              <option>Ustawienie kręgosłupa</option>
+              <option>Pozycja kolan/stóp</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <label style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;display:block;margin-bottom:4px;">DODATKOWY KONTEKST (opcjonalnie)</label>
+          <input id="va-context" placeholder="np. ból w kolanie, chcę poprawić głębokość, RPE było 8..." style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--tx);font-size:11px;outline:none;">
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="va-preview" style="display:none;margin-bottom:16px;"></div>
+
+      <!-- Przycisk analizy -->
+      <button id="va-analyze-btn" onclick="vaAnalyze()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--ac),#cc1f1a);border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;" disabled>
+        🤖 Analizuj techniką AI
+      </button>
+
+      <!-- Wyniki -->
+      <div id="va-result" style="display:none;margin-top:16px;"></div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+let vaCurrentImage = null;
+
+function vaHandleImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    vaCurrentImage = e.target.result;
+    const preview = document.getElementById('va-preview');
+    preview.style.display = 'block';
+    preview.innerHTML = `<img src="${vaCurrentImage}" style="width:100%;border-radius:8px;max-height:300px;object-fit:contain;">`;
+    document.getElementById('va-analyze-btn').disabled = false;
+    document.getElementById('va-analyze-btn').textContent = '🤖 Analizuj techniką AI';
+  };
+  reader.readAsDataURL(file);
+}
+
+function vaHandleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.type.startsWith('image/')) {
+    vaHandleImage(input);
+  } else {
+    // Wideo - pobierz klatkę
+    const video = document.createElement('video');
+    video.src = URL.createObjectURL(file);
+    video.onloadeddata = () => {
+      video.currentTime = 0.5;
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        vaCurrentImage = canvas.toDataURL('image/jpeg', 0.85);
+        const preview = document.getElementById('va-preview');
+        preview.style.display = 'block';
+        preview.innerHTML = `
+          <div style="font-size:10px;color:var(--ps-gold);margin-bottom:6px;">📹 Klatka z wideo (${(file.size/1024/1024).toFixed(1)}MB)</div>
+          <img src="${vaCurrentImage}" style="width:100%;border-radius:8px;max-height:280px;object-fit:contain;">`;
+        document.getElementById('va-analyze-btn').disabled = false;
+        URL.revokeObjectURL(video.src);
+      };
+    };
+  }
+}
+
+function vaUseSampleFrame() {
+  // Demo bez zdjęcia
+  vaCurrentImage = null;
+  document.getElementById('va-preview').style.display = 'block';
+  document.getElementById('va-preview').innerHTML = `<div style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:10px;font-size:11px;color:var(--ps-gold);">🎯 Tryb demo – analiza bez zdjęcia (ogólne wskazówki techniczne)</div>`;
+  document.getElementById('va-analyze-btn').disabled = false;
+}
+
+async function vaAnalyze() {
+  const exercise = document.getElementById('va-exercise')?.value || 'Przysiad';
+  const focus = document.getElementById('va-focus')?.value || 'Pełna analiza techniki';
+  const context = document.getElementById('va-context')?.value || '';
+  const btn = document.getElementById('va-analyze-btn');
+  const resultEl = document.getElementById('va-result');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizuję...';
+  resultEl.style.display = 'none';
+
+  const systemPrompt = `Jesteś certyfikowanym trenerem personalnym i ekspertem biomechaniki (NSCA, FMS). Analizujesz technikę ćwiczeń siłowych. Odpowiadasz WYŁĄCZNIE w JSON.`;
+
+  const userPrompt = `${vaCurrentImage ? 'Na zdjęciu widzisz wykonanie ćwiczenia.' : 'Bez zdjęcia – podaj ogólne wskazówki techniczne.'}\n\nĆwiczenie: ${exercise}\nFokus analizy: ${focus}\n${context ? 'Kontekst: ' + context : ''}\n\nOdpowiedz w JSON:\n{"overall_score":number(1-10),"phase_analysis":{"eccentric":"string","concentric":"string","pause":"string"},"depth_assessment":"string","spine_position":"string","key_errors":["string"],"immediate_fixes":["string"],"coaching_cues":["string"],"tempo_recommendation":"string","safety_concerns":"string|null","progress_tips":["string"]}`;
+
+  try {
+    const messages = vaCurrentImage
+      ? [{role:'user', content:[
+          {type:'image', source:{type:'base64', media_type:vaCurrentImage.split(';')[0].split(':')[1], data:vaCurrentImage.split(',')[1]}},
+          {type:'text', text:userPrompt}
+        ]}]
+      : [{role:'user', content:userPrompt}];
+
+    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6', max_tokens:1500, system:systemPrompt, messages})
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const r = JSON.parse(raw);
+    vaRenderResult(r, exercise);
+  } catch(e) {
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `<div style="color:var(--ac);text-align:center;padding:20px;">❌ Błąd: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Analizuj ponownie';
+  }
+}
+
+function vaRenderResult(r, exercise) {
+  const el = document.getElementById('va-result');
+  el.style.display = 'block';
+  const score = r.overall_score || 7;
+  const scoreColor = score >= 8 ? 'var(--gr)' : score >= 6 ? 'var(--ps-gold)' : 'var(--ac)';
+
+  el.innerHTML = `
+    <div style="background:var(--bg3);border:1px solid rgba(232,48,42,0.2);border-radius:12px;padding:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:52px;height:52px;border-radius:50%;border:2px solid ${scoreColor};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:${scoreColor};">${score}/10</div>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;">${exercise.toUpperCase()} – ANALIZA TECHNIKI</div>
+          <div style="font-size:10px;color:var(--tx3);">Progress Studio AI · ${new Date().toLocaleDateString('pl')}</div>
+        </div>
+      </div>
+
+      ${r.phase_analysis ? `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:9px;color:var(--ps-gold);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:8px;">⏱ Analiza faz ruchu</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+          <div style="background:var(--bg2);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--tx3);">Ekscentryczna</div><div style="font-size:11px;color:var(--tx2);margin-top:3px;">${r.phase_analysis.eccentric||'–'}</div></div>
+          <div style="background:var(--bg2);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--tx3);">Pauza</div><div style="font-size:11px;color:var(--tx2);margin-top:3px;">${r.phase_analysis.pause||'–'}</div></div>
+          <div style="background:var(--bg2);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--tx3);">Koncentryczna</div><div style="font-size:11px;color:var(--tx2);margin-top:3px;">${r.phase_analysis.concentric||'–'}</div></div>
+        </div>
+      </div>` : ''}
+
+      ${r.tempo_recommendation ? `<div style="background:rgba(201,168,76,0.08);border-left:3px solid var(--ps-gold);border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;color:var(--tx2);margin-bottom:10px;"><strong style="color:var(--ps-gold);">⏱ Rekomendacja tempo:</strong> ${r.tempo_recommendation}</div>` : ''}
+
+      ${r.key_errors?.length ? `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:9px;color:var(--ac);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">⚠️ Błędy techniczne</div>
+        ${r.key_errors.map(e => `<div style="font-size:11px;color:var(--tx2);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">• ${e}</div>`).join('')}
+      </div>` : ''}
+
+      ${r.immediate_fixes?.length ? `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:9px;color:var(--gr);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">✅ Natychmiastowe poprawki</div>
+        ${r.immediate_fixes.map(f => `<div style="font-size:11px;color:var(--tx2);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">→ ${f}</div>`).join('')}
+      </div>` : ''}
+
+      ${r.coaching_cues?.length ? `
+      <div style="background:rgba(232,48,42,0.06);border-radius:8px;padding:10px;margin-bottom:10px;">
+        <div style="font-size:9px;color:var(--ac);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:6px;">🎯 Cues dla klienta</div>
+        ${r.coaching_cues.map(c => `<div style="font-size:12px;color:var(--tx);padding:3px 0;font-style:italic;">"${c}"</div>`).join('')}
+      </div>` : ''}
+
+      ${r.safety_concerns ? `<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px;font-size:11px;color:var(--yw);"><strong>⚠️ Bezpieczeństwo:</strong> ${r.safety_concerns}</div>` : ''}
+    </div>`;
+}
+
+// ===== 2. DELOAD CALCULATOR =====
+function deloadCheck() {
+  const clientName = document.getElementById('client-name')?.value || 'klient';
+  const logKey = 'tl_log_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  let log = {};
+  try { log = JSON.parse(localStorage.getItem(logKey) || '{}'); } catch(e) {}
+
+  const exNames = Object.keys(log);
+  if (!exNames.length) return null;
+
+  const results = {};
+  exNames.forEach(ex => {
+    const sessions = (log[ex] || []).slice(-6).reverse(); // ostatnie 6 sesji
+    if (sessions.length < 3) return;
+
+    // Oblicz e1RM per sesja
+    const e1rms = sessions.map(s => {
+      const best = Math.max(...(s.sets||[]).map(x => x.kg*(1+x.reps/30)));
+      return { date: s.date, e1rm: parseFloat(best.toFixed(1)) };
+    });
+
+    // Sprawdź plateau (ostatnie 3 sesje bez wzrostu)
+    const last3 = e1rms.slice(0, 3);
+    const maxLast3 = Math.max(...last3.map(s => s.e1rm));
+    const minLast3 = Math.min(...last3.map(s => s.e1rm));
+    const plateau = (maxLast3 - minLast3) < (maxLast3 * 0.02); // <2% różnicy = plateau
+
+    // Sprawdź RPE trend (rośnie?)
+    const rpes = sessions.slice(0,4).flatMap(s => (s.sets||[]).map(x => x.rpe).filter(r => r > 0));
+    const avgRpe = rpes.length ? rpes.reduce((a,b) => a+b, 0) / rpes.length : 0;
+    const highFatigue = avgRpe >= 8.5;
+
+    results[ex] = { e1rms, plateau, avgRpe, highFatigue, sessions: sessions.length };
+  });
+
+  const plateauExercises = Object.entries(results).filter(([,v]) => v.plateau && v.sessions >= 3);
+  const fatigueScore = Object.values(results).filter(v => v.highFatigue).length;
+
+  return { results, plateauExercises, fatigueScore, recommendation: plateauExercises.length >= 2 || fatigueScore >= 2 };
+}
+
+function openDeloadCalculator() {
+  const check = deloadCheck();
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:600;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+
+  const noData = !check || !check.plateauExercises;
+  const needsDeload = check?.recommendation;
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid rgba(232,48,42,0.3);border-radius:16px;padding:24px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:${needsDeload?'var(--yw)':'var(--gr)'};">
+            ${needsDeload ? '⚠️ DELOAD CALCULATOR' : '✅ DELOAD CALCULATOR'}
+          </div>
+          <div style="font-size:11px;color:var(--tx3);font-family:'DM Mono',monospace;">Wykrywanie plateau i zmęczenia</div>
+        </div>
+        <button onclick="this.closest('[style*=\"position:fixed\"]').remove()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;">✕</button>
+      </div>
+
+      ${noData ? `
+      <div style="text-align:center;padding:30px;color:var(--tx3);">
+        <div style="font-size:32px;margin-bottom:12px;">📊</div>
+        <div style="font-size:13px;color:var(--tx2);">Brak danych treningowych</div>
+        <div style="font-size:11px;margin-top:6px;">Wykonaj kilka treningów w module Trening Live aby zebrać dane</div>
+      </div>` : `
+
+      <!-- Status główny -->
+      <div style="background:${needsDeload?'rgba(245,158,11,0.08)':'rgba(74,222,128,0.08)'};border:1px solid ${needsDeload?'rgba(245,158,11,0.25)':'rgba(74,222,128,0.2)'};border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:8px;">${needsDeload ? '🔴' : '🟢'}</div>
+        <div style="font-size:15px;font-weight:600;color:${needsDeload?'var(--yw)':'var(--gr)'};">
+          ${needsDeload ? 'Rekomendowany tydzień deloadu!' : 'Stan treningowy OK'}
+        </div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px;">
+          ${needsDeload
+            ? `Plateau w ${check.plateauExercises.length} ćwiczeniach · Zmęczenie: ${check.fatigueScore > 0 ? 'wysokie (RPE≥8.5)' : 'umiarkowane'}`
+            : 'Brak plateau · Zmęczenie w normie · Kontynuuj plan'}
+        </div>
+      </div>
+
+      <!-- Analiza per ćwiczenie -->
+      ${Object.entries(check.results).slice(0,5).map(([ex, data]) => `
+      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="font-size:12px;font-weight:500;color:var(--tx);">${ex.substring(0,30)}</div>
+          <div style="display:flex;gap:6px;">
+            ${data.plateau ? `<span style="font-size:9px;background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.25);border-radius:20px;padding:2px 7px;color:var(--ac);">PLATEAU</span>` : `<span style="font-size:9px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:20px;padding:2px 7px;color:var(--gr);">PROGRES</span>`}
+            ${data.highFatigue ? `<span style="font-size:9px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:2px 7px;color:var(--yw);">ZMĘCZENIE</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          ${data.e1rms.slice(0,4).map((s,i) => `<div style="text-align:center;flex:1;"><div style="font-size:9px;color:var(--tx3);">${s.date.slice(5)}</div><div style="font-size:12px;font-weight:600;color:${i===0?'var(--ps-gold)':'var(--tx2)'};">${s.e1rm}kg</div></div>`).join('')}
+        </div>
+        ${data.avgRpe > 0 ? `<div style="font-size:10px;color:var(--tx3);margin-top:4px;">Śr. RPE: ${data.avgRpe.toFixed(1)}</div>` : ''}
+      </div>`).join('')}
+
+      ${needsDeload ? `
+      <!-- Plan deloadu -->
+      <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:14px;margin-top:12px;">
+        <div style="font-size:10px;color:var(--yw);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:10px;">📋 Proponowany plan deloadu (7 dni)</div>
+        <div style="font-size:11px;color:var(--tx2);line-height:1.7;">
+          <div>• <strong>Objętość:</strong> -40% serii (np. 3×10 → 2×8)</div>
+          <div>• <strong>Intensywność:</strong> -10-15% ciężaru (RPE max 6)</div>
+          <div>• <strong>Częstotliwość:</strong> zachowaj te same sesje, skróć czas</div>
+          <div>• <strong>Cel:</strong> aktywna regeneracja, nie postęp</div>
+          <div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;font-size:10px;color:var(--tx3);">
+            💡 Po delodzie zaplanuj nowy blok z wyższym ciężarem startowym (+2.5-5%)
+          </div>
+        </div>
+        <button onclick="deloadApplyToChat();this.closest('[style*=\\"position:fixed\\"]').remove();" style="width:100%;margin-top:10px;padding:9px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;color:var(--yw);font-size:11px;font-weight:600;cursor:pointer;">
+          💬 Zapytaj AI o szczegółowy plan deloadu
+        </button>
+      </div>` : ''}
+      `}
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function deloadApplyToChat() {
+  const check = deloadCheck();
+  if (!check) return;
+  const plateauList = check.plateauExercises.map(([ex]) => ex).join(', ');
+  quickAction(`Zaplanuj mi tydzień deloadu. Plateau wykryte w: ${plateauList}. Zmęczenie wysokie (RPE≥8.5). Podaj konkretne wartości ciężarów i serii dla każdej sesji.`);
+}
+
+// ===== 3. INTERAKTYWNE POSIŁKI - MAKRO COUNTDOWN =====
+let dietMacroState = { kcal:0, protein:0, carbs:0, fat:0, eaten:{kcal:0,protein:0,carbs:0,fat:0} };
+
+function dietInitMacroCountdown() {
+  // Pobierz total makro z aktualnego planu
+  const plan = currentDietPlan ? dietNormalizePlan(currentDietPlan) : null;
+  if (!plan) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const day = plan.days?.find(d => {
+    // Znajdź dzisiejszy dzień lub pierwszy dzień
+    return true;
+  }) || plan.days?.[0];
+
+  dietMacroState = {
+    kcal: day?.totalKcal || plan.dailyKcal || 0,
+    protein: day?.totalProtein || plan.dailyProtein || 0,
+    carbs: day?.totalCarbs || plan.dailyCarbs || 0,
+    fat: day?.totalFat || plan.dailyFat || 0,
+    eaten: {kcal:0, protein:0, carbs:0, fat:0}
+  };
+  dietUpdateCountdownWidget();
+}
+
+function dietMealToggle(mealIdx, dayIdx, kcal, protein, carbs, fat, checkbox) {
+  const eaten = checkbox.checked;
+  const mult = eaten ? 1 : -1;
+  dietMacroState.eaten.kcal += (kcal || 0) * mult;
+  dietMacroState.eaten.protein += (protein || 0) * mult;
+  dietMacroState.eaten.carbs += (carbs || 0) * mult;
+  dietMacroState.eaten.fat += (fat || 0) * mult;
+
+  // Wizualny feedback
+  const mealEl = checkbox.closest('.diet-meal');
+  if (mealEl) {
+    mealEl.style.opacity = eaten ? '0.5' : '1';
+    mealEl.style.background = eaten ? 'rgba(74,222,128,0.04)' : '';
+  }
+
+  dietUpdateCountdownWidget();
+}
+
+function dietUpdateCountdownWidget() {
+  const widget = document.getElementById('diet-countdown-widget');
+  if (!widget) return;
+
+  const s = dietMacroState;
+  const remaining = {
+    kcal: Math.max(0, s.kcal - s.eaten.kcal),
+    protein: Math.max(0, s.protein - s.eaten.protein),
+    carbs: Math.max(0, s.carbs - s.eaten.carbs),
+    fat: Math.max(0, s.fat - s.eaten.fat)
+  };
+  const pct = s.kcal > 0 ? Math.min(100, Math.round(s.eaten.kcal / s.kcal * 100)) : 0;
+
+  widget.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(232,48,42,0.08),rgba(201,168,76,0.05));border:1px solid rgba(232,48,42,0.15);border-radius:12px;padding:12px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:9px;color:var(--ac);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;">📊 Makro (live) – pozostało</div>
+        <div style="font-size:10px;color:var(--ps-gold);font-family:'DM Mono',monospace;">${pct}% zjedzone</div>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;margin-bottom:10px;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--ac),var(--ps-gold));border-radius:20px;transition:width .4s;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--tx3);">Kcal</div><div style="font-size:16px;font-weight:700;color:${remaining.kcal<200?'var(--gr)':'#FAA855'};">${remaining.kcal}</div></div>
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--tx3);">Białko</div><div style="font-size:16px;font-weight:700;color:var(--ac);">${remaining.protein}g</div></div>
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--tx3);">Węgle</div><div style="font-size:16px;font-weight:700;color:var(--ps-gold);">${remaining.carbs}g</div></div>
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--tx3);">Tłuszcze</div><div style="font-size:16px;font-weight:700;color:var(--gr);">${remaining.fat}g</div></div>
+      </div>
+      ${pct >= 100 ? `<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--gr);">✅ Dzienny cel osiągnięty!</div>` : ''}
+    </div>`;
+}
+// ===== END NOWE FUNKCJE =====
 
 // OVERLAY
 function openOverlay(id){

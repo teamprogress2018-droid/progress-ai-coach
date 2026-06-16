@@ -120,7 +120,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
       <span>👤 Profil podstawowy</span><span class="acc-arrow" id="arr-podstawowy">▾</span>
     </div>
     <div class="acc-body" id="acc-podstawowy">
-      <div class="fg"><label>Imię klienta</label><input type="text" id="client-name" placeholder="np. Anna Kowalska"></div>
+      <div class="fg"><label>Imię klienta</label><input type="text" id="client-name" placeholder="np. Anna Kowalska" oninput="onClientNameChange()"></div>
       <div class="fg-row">
         <div class="fg"><label>Wiek</label><input type="number" id="client-age-num" placeholder="28" min="10" max="80"></div>
         <div class="fg"><label>Płeć</label>
@@ -482,7 +482,47 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div class="welcome" id="welcome">
       <div class="welcome-logo">AI<span> Coach</span></div>
       <div class="welcome-sub" style="margin-bottom:12px">Asystent Trenera Personalnego v2.0</div>
-      <p style="font-size:12px;color:var(--tx3);line-height:1.7;margin-bottom:20px">
+
+      <!-- Quote of the day -->
+      <div id="mot-quote-box" style="background:linear-gradient(135deg,rgba(232,48,42,0.08),rgba(127,119,221,0.08));border:1px solid rgba(232,48,42,0.15);border-radius:12px;padding:14px 18px;margin-bottom:16px;max-width:480px;cursor:pointer;" onclick="motNextQuote()" title="Kliknij po nowy cytat">
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">💬 Cytat dnia</div>
+        <div id="mot-quote-text" style="font-size:14px;color:var(--tx2);line-height:1.6;font-style:italic;"></div>
+        <div id="mot-quote-author" style="font-size:10px;color:var(--tx3);text-align:right;margin-top:6px;font-family:'DM Mono',monospace;"></div>
+      </div>
+
+      <!-- Statystyki klienta -->
+      <div id="mot-stats-row" style="display:none;display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;justify-content:center;max-width:480px;">
+        <div style="background:rgba(250,168,85,0.1);border:1px solid rgba(250,168,85,0.2);border-radius:8px;padding:8px 14px;text-align:center;min-width:80px;">
+          <div style="font-size:20px;font-weight:700;color:#FAA855;font-family:'Bebas Neue',sans-serif;" id="mot-streak">0</div>
+          <div style="font-size:9px;color:var(--tx3);">🔥 streak</div>
+        </div>
+        <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:8px 14px;text-align:center;min-width:80px;">
+          <div style="font-size:20px;font-weight:700;color:var(--gr);font-family:'Bebas Neue',sans-serif;" id="mot-total">0</div>
+          <div style="font-size:9px;color:var(--tx3);">💪 treningów</div>
+        </div>
+        <div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:8px;padding:8px 14px;text-align:center;min-width:80px;">
+          <div style="font-size:20px;font-weight:700;color:var(--bl);font-family:'Bebas Neue',sans-serif;" id="mot-week">0/0</div>
+          <div style="font-size:9px;color:var(--tx3);">📅 ten tydzień</div>
+        </div>
+      </div>
+
+      <!-- Cel miesięczny -->
+      <div id="mot-goal-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;max-width:480px;width:100%;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;">🎯 Cel miesięczny</div>
+          <button onclick="motSetGoal()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:10px;">✏️ Edytuj</button>
+        </div>
+        <div id="mot-goal-text" style="font-size:12px;color:var(--tx2);margin-bottom:8px;"></div>
+        <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;">
+          <div id="mot-goal-bar" style="height:100%;border-radius:20px;background:linear-gradient(90deg,var(--ac),#FAA855);transition:width .5s ease;width:0%;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--tx3);margin-top:4px;">
+          <span id="mot-goal-progress">0%</span>
+          <span id="mot-goal-days"></span>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:var(--tx3);line-height:1.7;margin-bottom:16px;max-width:480px;">
         Uzupełnij <strong style="color:var(--tx2)">profil klienta</strong>, wpisz swoją <strong style="color:var(--tx2)">filozofię treningu</strong> i dodaj <strong style="color:var(--tx2)">bazę wiedzy</strong> — AI będzie odpowiadać w Twoim stylu.
       </p>
       <div class="welcome-chips">
@@ -1539,6 +1579,16 @@ button:disabled{opacity:.5;cursor:not-allowed;}
 <script>
 let currentMode='trening',conversationHistory=[],knowledgeBase=[];
 document.addEventListener('DOMContentLoaded',()=>{ loadKB(); loadPhilosophy(); renderSavedProfiles(); });
+
+// Aktualizuj statystyki motywacyjne gdy wpisywane jest imię klienta
+function onClientNameChange() {
+  const name = document.getElementById('client-name')?.value?.trim();
+  if (name) {
+    motUpdateStats(name);
+    const row = document.getElementById('mot-stats-row');
+    if (row) row.style.display = 'flex';
+  }
+}
 const modeLabels={trening:'💪 Trening',dieta:'🥗 Dieta',motywacja:'🧠 Motywacja',analiza:'📊 Analiza'};
 const modePrompts={trening:'Jesteś ekspertem w treningu personalnym. Tworzysz skuteczne plany treningowe, dobierasz ćwiczenia i progresję obciążeń.',dieta:'Jesteś ekspertem w żywieniu sportowym. Tworzysz plany żywieniowe i edukujesz o odżywianiu.',motywacja:'Jesteś ekspertem w psychologii sportu i coachingu. Pomagasz radzić sobie z trudnymi sytuacjami z klientami.',analiza:'Jesteś ekspertem w analizie postępów. Oceniasz wyniki, identyfikujesz problemy i dostosowujesz programy.'};
 
@@ -2765,6 +2815,151 @@ function dietAutoFillFromProfile() {
   }
   dietCalcMacro();
 }
+// ===== MODUŁ MOTYWACJI =====
+const MOT_QUOTES = [
+  {text: "Sukces to suma małych wysiłków powtarzanych dzień po dniu.", author: "Robert Collier"},
+  {text: "Nie liczy się jak szybko, liczy się jak konsekwentnie.", author: "Layne Norton PhD"},
+  {text: "Każdy trening zbliża Cię do celu. Każdy opuszczony trening oddala.", author: "Progress Studio"},
+  {text: "Ciało osiągnie to, w co wierzy umysł.", author: "Napoleon Hill"},
+  {text: "Ból jest tymczasowy. Rezygnacja jest wieczna.", author: "Lance Armstrong"},
+  {text: "Wyniki wymagają czasu. Cierpliwość jest częścią treningu.", author: "Mike Israetel PhD"},
+  {text: "Postęp, nie perfekcja.", author: "Brad Schoenfeld"},
+  {text: "Najlepszy trening to ten, który się wykonuje.", author: "Eric Helms"},
+  {text: "Silny umysł buduje silne ciało.", author: "Progress Studio"},
+  {text: "Każda seria przybliża Cię do lepszej wersji siebie.", author: "Progress Studio"},
+  {text: "Trening to inwestycja w siebie. Zwrot jest gwarantowany.", author: "Alan Aragon"},
+  {text: "Nie masz złego treningu. Masz gorszy dzień. A gorszy dzień też liczy.", author: "Layne Norton"},
+  {text: "Regularność bije intensywność. Zawsze.", author: "Greg Nuckols"},
+  {text: "Twoje ciało może zrobić prawie wszystko. To głowa musi być przekonana.", author: "Progress Studio"},
+  {text: "Małe postępy codziennie składają się na wielkie rezultaty.", author: "Progress Studio"},
+  {text: "Dyscyplina jest mostem między celami a osiągnięciami.", author: "Jim Rohn"},
+  {text: "Nie trenuj ciężko. Trenuj mądrze i ciężko.", author: "Eric Helms"},
+  {text: "Każdy jest początkującym. Różnica to tylko czas spędzony na treningu.", author: "Progress Studio"},
+  {text: "Cel bez planu to tylko marzenie.", author: "Antoine de Saint-Exupéry"},
+  {text: "Twój jedyny konkurent to ty sprzed roku.", author: "Progress Studio"},
+];
+
+let motCurrentQuoteIdx = -1;
+
+function motGetDailyQuote() {
+  const day = new Date().getDay() + new Date().getDate();
+  return MOT_QUOTES[day % MOT_QUOTES.length];
+}
+
+function motNextQuote() {
+  motCurrentQuoteIdx = (motCurrentQuoteIdx + 1) % MOT_QUOTES.length;
+  const q = MOT_QUOTES[motCurrentQuoteIdx];
+  motShowQuote(q);
+}
+
+function motShowQuote(q) {
+  const textEl = document.getElementById('mot-quote-text');
+  const authEl = document.getElementById('mot-quote-author');
+  if (!textEl || !authEl) return;
+  textEl.style.opacity = '0';
+  setTimeout(() => {
+    textEl.textContent = `"${q.text}"`;
+    authEl.textContent = `— ${q.author}`;
+    textEl.style.transition = 'opacity .4s';
+    textEl.style.opacity = '1';
+  }, 150);
+}
+
+function motInitWelcome() {
+  // Quote of the day
+  const q = motGetDailyQuote();
+  motCurrentQuoteIdx = MOT_QUOTES.indexOf(q);
+  motShowQuote(q);
+
+  // Statystyki
+  const clientName = document.getElementById('client-name')?.value;
+  if (clientName) {
+    motUpdateStats(clientName);
+    document.getElementById('mot-stats-row').style.display = 'flex';
+  }
+
+  // Cel miesięczny
+  motLoadGoal();
+}
+
+function motUpdateStats(clientName) {
+  const logKey = 'tl_log_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  const log = JSON.parse(localStorage.getItem(logKey) || '{}');
+  const trainDates = new Set();
+  Object.values(log).forEach(exLog => (exLog||[]).forEach(e => trainDates.add(e.date)));
+  const dates = [...trainDates].sort().reverse();
+
+  // Streak
+  let streak = 0, checkDate = new Date().toISOString().split('T')[0];
+  while (dates.includes(checkDate)) {
+    streak++;
+    const d = new Date(checkDate); d.setDate(d.getDate()-1);
+    checkDate = d.toISOString().split('T')[0];
+  }
+
+  // Ten tydzień
+  const monday = new Date();
+  monday.setDate(monday.getDate() - (monday.getDay()||7) + 1);
+  const thisWeek = dates.filter(d => d >= monday.toISOString().split('T')[0]).length;
+  const planWeek = currentPlanData?.sessionsPerWeek || 4;
+
+  const s = document.getElementById('mot-streak');
+  const t = document.getElementById('mot-total');
+  const w = document.getElementById('mot-week');
+  if (s) s.textContent = streak;
+  if (t) t.textContent = dates.length;
+  if (w) w.textContent = `${thisWeek}/${planWeek}`;
+  if (document.getElementById('mot-stats-row')) document.getElementById('mot-stats-row').style.display = 'flex';
+}
+
+function motSetGoal() {
+  const current = localStorage.getItem('mot_monthly_goal') || '';
+  const goal = prompt('Cel miesięczny (np. "Zredukować wagę o 3kg", "Poprawić e1RM bench o 10kg"):', current);
+  if (goal !== null) {
+    localStorage.setItem('mot_monthly_goal', goal);
+    localStorage.setItem('mot_goal_start', new Date().toISOString().split('T')[0]);
+    localStorage.setItem('mot_goal_progress', '0');
+    motLoadGoal();
+  }
+}
+
+function motLoadGoal() {
+  const goal = localStorage.getItem('mot_monthly_goal');
+  const box = document.getElementById('mot-goal-box');
+  if (!goal || !box) return;
+  box.style.display = 'block';
+
+  const progress = parseInt(localStorage.getItem('mot_goal_progress') || '0');
+  const startDate = localStorage.getItem('mot_goal_start') || new Date().toISOString().split('T')[0];
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 30);
+  const daysLeft = Math.max(0, Math.ceil((endDate - new Date()) / (1000*60*60*24)));
+
+  const textEl = document.getElementById('mot-goal-text');
+  const barEl = document.getElementById('mot-goal-bar');
+  const progressEl = document.getElementById('mot-goal-progress');
+  const daysEl = document.getElementById('mot-goal-days');
+
+  if (textEl) textEl.textContent = goal;
+  if (barEl) barEl.style.width = `${Math.min(100, progress)}%`;
+  if (progressEl) progressEl.textContent = `${progress}%`;
+  if (daysEl) daysEl.textContent = `${daysLeft} dni`;
+
+  // Kliknij progress bar żeby zaktualizować
+  if (barEl) barEl.parentElement.style.cursor = 'pointer';
+  if (barEl) barEl.parentElement.onclick = () => {
+    const newProg = prompt('Postęp w % (0-100):', progress);
+    if (newProg !== null && !isNaN(newProg)) {
+      localStorage.setItem('mot_goal_progress', Math.min(100, Math.max(0, parseInt(newProg))).toString());
+      motLoadGoal();
+    }
+  };
+}
+
+// Inicjalizuj przy starcie
+setTimeout(() => motInitWelcome(), 300);
+// ===== END MOTYWACJA =====
+
 // ===== PANEL HISTORII KLIENTA =====
 function histGetKey(suffix) {
   const name = document.getElementById('client-name')?.value || 'klient';

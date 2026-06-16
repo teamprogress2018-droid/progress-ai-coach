@@ -651,8 +651,9 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div style="margin-bottom:10px;">
       <div class="mono-label mb-6">🔍 Szukaj produktu</div>
       <div style="display:flex;gap:5px;">
-        <input id="prod-search" placeholder="np. kurczak, ryż, jajka..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 9px;color:var(--tx);font-size:11px;outline:none;" oninput="prodSearch(this.value)" onkeydown="if(event.key==='Enter')prodSearch(this.value)">
+        <input id="prod-search" placeholder="🔍 Szukaj + Enter = Open Food Facts..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 9px;color:var(--tx);font-size:11px;outline:none;" oninput="prodSearch(this.value)" onkeydown="if(event.key==='Enter')prodSearchOFF(this.value)">
         <button onclick="prodSearch(document.getElementById('prod-search').value)" style="background:rgba(250,168,85,0.15);border:1px solid rgba(250,168,85,0.3);border-radius:7px;padding:6px 10px;color:#FAA855;font-size:12px;cursor:pointer;">🔍</button>
+        <button onclick="prodSearchOFF(document.getElementById('prod-search').value)" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);border-radius:7px;padding:6px 8px;color:var(--ps-gold);font-size:10px;cursor:pointer;" title="Open Food Facts">🌐 OFF</button>
       </div>
     </div>
 
@@ -2671,6 +2672,27 @@ Bazujesz na:
 - Timing składników: węgle głównie około treningowo
 - Nutrient timing: przed treningiem (węgle+białko), po treningu (białko+węgle szybkie)
 
+===ZASADY KULINARNEJ SPÓJNOŚCI (BEZWZGLĘDNE)===
+1. KAŻDY posiłek = REALNE DANIE które smakuje razem – nie zestaw losowych produktów
+2. ZAKAZ łączenia niespójnych smakowo składników w jednym posiłku:
+   - BŁĄD: owsianka + jajka gotowane + banan → brak sensu kulinarnego
+   - BŁĄD: shake proteinowy + ryż + warzywa → nie jest to jeden posiłek
+3. WZORCE ŚNIADANIOWE (wybierz jeden):
+   - OWSIANKA: płatki owsiane + mleko/jogurt + owoce (banan/borówki) + opcjonalnie odżywka DO owsianki → JEDEN posiłek
+   - JAJECZNICA/OMLET: 3-4 jajka + warzywa (szpinak/papryka/pieczarki) + opcjonalnie chleb żytni
+   - SHAKE PROTEINOWY: odżywka WPC + mleko/woda + banan + masło orzechowe → kompletne śniadanie
+   - TWARÓG/JOGURT: jogurt grecki/skyr + owoce + granola/musli
+4. ODŻYWKA BIAŁKOWA = shake (z mlekiem/wodą/bananem) lub dodatek DO owsianki – NIGDY jako osobny składnik obok jajek
+5. NIE łącz: jajka + płatki owsiane w jednym posiłku (smakuje jak karma)
+6. Każdy posiłek ma JEDNĄ myśl: "Omlet warzywny", "Owsianka z bananem", "Shake po treningu", "Ryż z kurczakiem i brokułem"
+
+===SPRAWDZONE PRODUKTY (używaj tych)===
+BIAŁKO: pierś z kurczaka, uda kurczaka, indyk mielony, łosoś, tuńczyk w wodzie, jajka, jogurt grecki 0%, skyr, twaróg chudy, serek wiejski, odżywka WPC/WPI, mozzarella light
+WĘGLE: ryż basmati, kasza gryczana, kasza jaglana, makaron pełnoziarnisty, płatki owsiane górskie, bataty, chleb żytni razowy, wafle ryżowe, quinoa
+TŁUSZCZE: oliwa z oliwek, olej rzepakowy, awokado, masło orzechowe naturalne, orzechy włoskie, migdały
+WARZYWA: brokuł, szpinak, papryka, ogórek, pomidor, marchew, cukinia, pieczarki
+OWOCE: banan (po treningu – szybkie węgle), jabłko, borówki, truskawki, maliny
+
 Odpowiadasz WYŁĄCZNIE czystym JSON bez markdown.
 Wszystkie nazwy produktów i potraw po POLSKU.`;
 
@@ -4435,6 +4457,74 @@ function initHistPanel() {
   histRenderGoals();
 }
 // ===== END PANEL HISTORII =====
+
+// ===== OPEN FOOD FACTS INTEGRATION =====
+async function searchOpenFoodFacts(query) {
+  try {
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6&lc=pl&cc=pl`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const products = (data.products || [])
+      .filter(p => p.product_name && p.nutriments)
+      .map(p => ({
+        name: p.product_name_pl || p.product_name || p.generic_name || 'Nieznany',
+        brand: p.brands || '',
+        kcal: Math.round(p.nutriments['energy-kcal_100g'] || p.nutriments['energy_100g']/4.184 || 0),
+        protein: parseFloat((p.nutriments['proteins_100g'] || 0).toFixed(1)),
+        carbs: parseFloat((p.nutriments['carbohydrates_100g'] || 0).toFixed(1)),
+        fat: parseFloat((p.nutriments['fat_100g'] || 0).toFixed(1)),
+        fiber: parseFloat((p.nutriments['fiber_100g'] || 0).toFixed(1)),
+        sugar: parseFloat((p.nutriments['sugars_100g'] || 0).toFixed(1)),
+        barcode: p.code,
+        image: p.image_small_url || null
+      }));
+    return products;
+  } catch(e) {
+    return [];
+  }
+}
+
+async function prodSearchOFF(query) {
+  if (!query || query.length < 2) return;
+  const list = document.getElementById('prod-list');
+  list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--tx3);font-size:11px;">🔍 Szukam w Open Food Facts...</div>';
+
+  // Najpierw szukaj lokalnie
+  const localResults = [];
+  const q = query.toLowerCase();
+  Object.values(PRODUCTS_DB).flat().forEach(p => {
+    if (p.name.toLowerCase().includes(q)) localResults.push(p);
+  });
+
+  // Potem OFF
+  const offResults = await searchOpenFoodFacts(query);
+
+  const allResults = [...localResults, ...offResults.map(p => ({
+    ...p, unit:'g', swaps:[], _source:'OFF'
+  }))].slice(0,12);
+
+  if (!allResults.length) {
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx3);font-size:11px;">Brak wyników. Spróbuj po angielsku lub sprawdź pisownię.</div>';
+    return;
+  }
+
+  list.innerHTML = allResults.map(p => `
+    <div onclick="prodSelect(${JSON.stringify({...p,swaps:[]}).replace(/"/g,'&quot;')})" style="background:var(--bg3);border:1px solid ${p._source==='OFF'?'rgba(201,168,76,0.2)':'var(--border)'};border-radius:8px;padding:8px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#FAA855'" onmouseout="this.style.borderColor='${p._source==='OFF'?'rgba(201,168,76,0.2)':'var(--border)'}'" title="${p._source==='OFF'?'Open Food Facts':'Baza lokalna'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;font-weight:500;color:var(--tx);">${p.name.substring(0,32)}</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${p._source==='OFF'?'<span style="font-size:8px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:1px 5px;color:var(--ps-gold);">OFF</span>':''}
+          <div style="font-size:10px;color:#FAA855;font-family:\'DM Mono\',monospace;font-weight:600;">${p.kcal} kcal</div>
+        </div>
+      </div>
+      ${p.brand?`<div style="font-size:9px;color:var(--tx3);font-family:\'DM Mono\',monospace;">${p.brand.substring(0,25)}</div>`:''}
+      <div style="font-size:10px;color:var(--tx3);margin-top:3px;font-family:\'DM Mono\',monospace;">
+        <span style="color:var(--ac);">B:${p.protein}g</span> · <span style="color:var(--ps-gold);">W:${p.carbs}g</span> · <span style="color:var(--gr);">T:${p.fat}g</span> <span style="color:var(--tx3);">/ 100g</span>
+        ${p.fiber?`· <span style="color:var(--tx3);">błonnik:${p.fiber}g</span>`:''}
+      </div>
+    </div>`).join('');
+}
+// ===== END OPEN FOOD FACTS =====
 
 // ===== BAZA PRODUKTÓW =====
 const PRODUCTS_DB = {

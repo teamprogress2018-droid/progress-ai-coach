@@ -491,6 +491,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
     <button class="stab active" onclick="showSideTab('profil',this)">👤 Klient</button>
     <button class="stab" onclick="showSideTab('filozofia',this)">🧠 Filozofia</button>
     <button class="stab" onclick="showSideTab('wiedza',this)">📚 Wiedza</button>
+    <button class="stab" onclick="showSideTab('produkty',this)">🥩 Produkty</button>
     <button class="stab" onclick="showSideTab('akcje',this)">⚡ Akcje</button>
   </div>
 
@@ -753,6 +754,49 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans'
   </div>
 
   <!-- PANEL: AKCJE -->
+  <!-- PANEL: BAZA PRODUKTÓW -->
+  <div class="sidebar-panel" id="panel-produkty">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">🔍 Szukaj produktu</div>
+      <div style="display:flex;gap:5px;">
+        <input id="prod-search" placeholder="np. kurczak, ryż, jajka..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 9px;color:var(--tx);font-size:11px;outline:none;" oninput="prodSearch(this.value)" onkeydown="if(event.key==='Enter')prodSearch(this.value)">
+        <button onclick="prodSearch(document.getElementById('prod-search').value)" style="background:rgba(250,168,85,0.15);border:1px solid rgba(250,168,85,0.3);border-radius:7px;padding:6px 10px;color:#FAA855;font-size:12px;cursor:pointer;">🔍</button>
+      </div>
+    </div>
+
+    <!-- Kategorie -->
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;" id="prod-cats">
+      <button onclick="prodShowCat('bialko')" class="prod-cat-btn active" style="font-size:9px;background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.25);border-radius:20px;padding:3px 8px;color:var(--ac);cursor:pointer;">🥩 Białko</button>
+      <button onclick="prodShowCat('wegle')" class="prod-cat-btn" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--tx3);cursor:pointer;">🌾 Węgle</button>
+      <button onclick="prodShowCat('tluszcze')" class="prod-cat-btn" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--tx3);cursor:pointer;">🥑 Tłuszcze</button>
+      <button onclick="prodShowCat('warzywa')" class="prod-cat-btn" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--tx3);cursor:pointer;">🥦 Warzywa</button>
+      <button onclick="prodShowCat('owoce')" class="prod-cat-btn" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--tx3);cursor:pointer;">🍎 Owoce</button>
+      <button onclick="prodShowCat('nabiał')" class="prod-cat-btn" style="font-size:9px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 8px;color:var(--tx3);cursor:pointer;">🥛 Nabiał</button>
+    </div>
+
+    <!-- Lista produktów -->
+    <div id="prod-list" style="display:flex;flex-direction:column;gap:4px;max-height:calc(100vh - 320px);overflow-y:auto;"></div>
+
+    <!-- Kalkulator porcji -->
+    <div id="prod-calc" style="display:none;background:var(--bg3);border:1px solid rgba(250,168,85,0.3);border-radius:10px;padding:10px;margin-top:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:600;color:#FAA855;" id="prod-calc-name">–</div>
+        <button onclick="document.getElementById('prod-calc').style.display='none'" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input id="prod-calc-grams" type="number" value="100" min="1" max="2000" oninput="prodCalcMacro()" style="width:70px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:13px;font-weight:600;outline:none;">
+        <span style="font-size:11px;color:var(--tx3);">gramów</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;" id="prod-calc-result">
+        <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 2px;"><div style="font-size:9px;color:var(--tx3);">Kcal</div><div style="font-size:14px;font-weight:700;color:#FAA855;" id="pc-kcal">–</div></div>
+        <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 2px;"><div style="font-size:9px;color:var(--tx3);">Białko</div><div style="font-size:14px;font-weight:700;color:var(--ac);" id="pc-p">–</div></div>
+        <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 2px;"><div style="font-size:9px;color:var(--tx3);">Węgle</div><div style="font-size:14px;font-weight:700;color:var(--bl);" id="pc-c">–</div></div>
+        <div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 2px;"><div style="font-size:9px;color:var(--tx3);">Tłuszcz</div><div style="font-size:14px;font-weight:700;color:var(--gr);" id="pc-f">–</div></div>
+      </div>
+      <div id="prod-calc-swaps" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
   <div class="sidebar-panel" id="panel-akcje">
     <div class="section-title">Szybkie akcje</div>
     <div class="quick-btns">
@@ -1762,7 +1806,7 @@ document.addEventListener('DOMContentLoaded',()=>{ loadKB(); loadPhilosophy(); r
 const modeLabels={trening:'💪 Trening',dieta:'🥗 Dieta',motywacja:'🧠 Motywacja',analiza:'📊 Analiza'};
 const modePrompts={trening:'Jesteś ekspertem w treningu personalnym. Tworzysz skuteczne plany treningowe, dobierasz ćwiczenia i progresję obciążeń.',dieta:'Jesteś ekspertem w żywieniu sportowym. Tworzysz plany żywieniowe i edukujesz o odżywianiu.',motywacja:'Jesteś ekspertem w psychologii sportu i coachingu. Pomagasz radzić sobie z trudnymi sytuacjami z klientami.',analiza:'Jesteś ekspertem w analizie postępów. Oceniasz wyniki, identyfikujesz problemy i dostosowujesz programy.'};
 
-function showSideTab(tab,btn){document.querySelectorAll('.sidebar-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');btn.classList.add('active');}
+function showSideTab(tab,btn){document.querySelectorAll('.sidebar-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');btn.classList.add('active');if(tab==='produkty')initProducts();}
 
 function toggleAcc(id){const body=document.getElementById(id);const arrow=document.getElementById('arr-'+id.replace('acc-',''));body.classList.toggle('hidden');arrow.classList.toggle('closed');}
 
@@ -2985,7 +3029,163 @@ function dietAutoFillFromProfile() {
   }
   dietCalcMacro();
 }
-// ===== INTEGRACJA TRENING + DIETA =====
+// ===== BAZA PRODUKTÓW =====
+const PRODUCTS_DB = {
+  bialko: [
+    {name:'Pierś z kurczaka',kcal:110,p:23,c:0,f:1.5,unit:'g',swaps:['Indyk – podobne makro','Dorsz – mniej tłuszczu','Tofu – opcja wegańska']},
+    {name:'Indyk (pierś)',kcal:104,p:22,c:0,f:1.2,unit:'g',swaps:['Kurczak pierś','Polędwica wieprzowa']},
+    {name:'Łosoś (filet)',kcal:208,p:20,c:0,f:13,unit:'g',swaps:['Pstrąg – podobne makro','Makrela – więcej omega-3','Tuńczyk w wodzie – mniej tłuszczu']},
+    {name:'Tuńczyk w wodzie',kcal:86,p:19,c:0,f:0.6,unit:'g',swaps:['Dorsz','Kurczak pierś','Krewetki']},
+    {name:'Dorsz',kcal:82,p:18,c:0,f:0.7,unit:'g',swaps:['Tuńczyk w wodzie','Tilapia','Mintaj']},
+    {name:'Jajko całe',kcal:155,p:13,c:1,f:11,unit:'g',swaps:['Białko jajka – mniej tłuszczu','Tofu jedwabiste']},
+    {name:'Białko jajka',kcal:52,p:11,c:0.7,f:0.2,unit:'g',swaps:['Jajko całe – więcej składników','Izolat białka']},
+    {name:'Mielona wołowina 10%',kcal:176,p:20,c:0,f:10,unit:'g',swaps:['Mielony indyk 5%','Polędwica wołowa']},
+    {name:'Polędwica wołowa',kcal:158,p:26,c:0,f:5,unit:'g',swaps:['Pierś z kurczaka','Mielona wołowina 5%']},
+    {name:'Krewetki',kcal:85,p:18,c:0.9,f:0.9,unit:'g',swaps:['Dorsz','Kurczak pierś']},
+    {name:'Serek wiejski 0%',kcal:72,p:12,c:3,f:0.2,unit:'g',swaps:['Jogurt grecki 0%','Twaróg chudy']},
+    {name:'Twaróg chudy',kcal:98,p:18,c:3,f:1,unit:'g',swaps:['Serek wiejski','Jogurt grecki']},
+    {name:'Izolat białka WPI',kcal:370,p:88,c:3,f:1,unit:'g',swaps:['Koncentrat WPC – tańszy','Kazeina – wolniejszy']},
+    {name:'Koncentrat WPC 80',kcal:380,p:80,c:6,f:5,unit:'g',swaps:['Izolat WPI – czystsze','Jajko białko']},
+  ],
+  wegle: [
+    {name:'Ryż basmati (suchy)',kcal:350,p:7,c:77,f:0.6,unit:'g',swaps:['Kasza jaglana','Komosa ryżowa – więcej białka','Makaron pełnoziarnisty']},
+    {name:'Kasza gryczana (sucha)',kcal:343,p:13,c:70,f:3,unit:'g',swaps:['Ryż brązowy','Kasza jaglana','Komosa ryżowa']},
+    {name:'Płatki owsiane górskie',kcal:370,p:13,c:60,f:7,unit:'g',swaps:['Kasza jaglana','Müsli bez cukru','Quinoa']},
+    {name:'Makaron pełnoziarnisty (suchy)',kcal:348,p:13,c:65,f:2,unit:'g',swaps:['Ryż brązowy','Kasza gryczana','Makaron z ciecierzycy']},
+    {name:'Komosa ryżowa (quinoa)',kcal:368,p:14,c:64,f:6,unit:'g',swaps:['Kasza gryczana – taniej','Ryż brązowy']},
+    {name:'Bataty',kcal:86,p:1.6,c:20,f:0.1,unit:'g',swaps:['Ziemniaki','Dynia – mniej kalorii']},
+    {name:'Ziemniaki',kcal:77,p:2,c:17,f:0.1,unit:'g',swaps:['Bataty – więcej witamin','Kasza gryczana']},
+    {name:'Chleb żytni razowy',kcal:241,p:8,c:45,f:2,unit:'g',swaps:['Chleb orkiszowy','Ryżowe chrupki']},
+    {name:'Ryżowe chrupki',kcal:380,p:7,c:83,f:1,unit:'g',swaps:['Chleb żytni','Kasza gryczana']},
+    {name:'Kasza jaglana (sucha)',kcal:356,p:11,c:73,f:3,unit:'g',swaps:['Ryż basmati','Kasza gryczana']},
+  ],
+  tluszcze: [
+    {name:'Oliwa z oliwek extra virgin',kcal:884,p:0,c:0,f:100,unit:'g',swaps:['Olej kokosowy','Olej lniany – omega-3']},
+    {name:'Masło orzechowe naturalne',kcal:588,p:25,c:20,f:50,unit:'g',swaps:['Pasta migdałowa','Tahini']},
+    {name:'Awokado',kcal:160,p:2,c:9,f:15,unit:'g',swaps:['Orzechy włoskie','Masło orzechowe']},
+    {name:'Orzechy włoskie',kcal:654,p:15,c:14,f:65,unit:'g',swaps:['Migdały','Nerkowce','Orzechy laskowe']},
+    {name:'Migdały',kcal:579,p:21,c:22,f:50,unit:'g',swaps:['Orzechy włoskie','Nerkowce']},
+    {name:'Olej kokosowy',kcal:862,p:0,c:0,f:100,unit:'g',swaps:['Masło klarowane','Oliwa z oliwek']},
+    {name:'Siemię lniane',kcal:534,p:18,c:29,f:42,unit:'g',swaps:['Chia','Orzechy włoskie']},
+    {name:'Nasiona chia',kcal:486,p:17,c:42,f:31,unit:'g',swaps:['Siemię lniane','Konopie']},
+    {name:'Żółtko jajka',kcal:322,p:16,c:3,f:27,unit:'g',swaps:['Awokado','Oliwa']},
+    {name:'Łosoś wędzony',kcal:172,p:18,c:0,f:11,unit:'g',swaps:['Makrela wędzona','Sardynki']},
+  ],
+  warzywa: [
+    {name:'Brokuł',kcal:34,p:2.8,c:7,f:0.4,unit:'g',swaps:['Kalafior','Jarmuż','Brukselka']},
+    {name:'Szpinak świeży',kcal:23,p:2.9,c:3.6,f:0.4,unit:'g',swaps:['Rukola','Sałata rzymska','Jarmuż']},
+    {name:'Pomidor',kcal:18,p:0.9,c:3.9,f:0.2,unit:'g',swaps:['Papryka czerwona','Ogórek']},
+    {name:'Papryka czerwona',kcal:31,p:1,c:6,f:0.3,unit:'g',swaps:['Pomidor','Marchew']},
+    {name:'Ogórek',kcal:15,p:0.7,c:3.6,f:0.1,unit:'g',swaps:['Cukinia','Seler naciowy']},
+    {name:'Marchew',kcal:41,p:0.9,c:10,f:0.2,unit:'g',swaps:['Burak','Pietruszka korzeń']},
+    {name:'Cukinia',kcal:17,p:1.2,c:3.1,f:0.3,unit:'g',swaps:['Ogórek','Dynia']},
+    {name:'Kalafior',kcal:25,p:2,c:5,f:0.3,unit:'g',swaps:['Brokuł','Brukselka']},
+    {name:'Jarmuż',kcal:49,p:4.3,c:9,f:0.9,unit:'g',swaps:['Szpinak','Brokuł']},
+    {name:'Sałata lodowa',kcal:14,p:0.9,c:2.9,f:0.1,unit:'g',swaps:['Szpinak','Rukola']},
+    {name:'Kapusta biała',kcal:25,p:1.3,c:5.8,f:0.1,unit:'g',swaps:['Kapusta pekińska','Brokuł']},
+    {name:'Cebula',kcal:40,p:1.1,c:9.3,f:0.1,unit:'g',swaps:['Por','Szalotka']},
+    {name:'Czosnek',kcal:149,p:6.4,c:33,f:0.5,unit:'g',swaps:['Cebula','Por']},
+    {name:'Pieczarki',kcal:22,p:3.1,c:3.3,f:0.3,unit:'g',swaps:['Boczniaki','Shiitake']},
+  ],
+  owoce: [
+    {name:'Banan',kcal:89,p:1.1,c:23,f:0.3,unit:'g',swaps:['Daktyle (mniej)','Mango','Winogrona']},
+    {name:'Jabłko',kcal:52,p:0.3,c:14,f:0.2,unit:'g',swaps:['Gruszka','Brzoskwinia']},
+    {name:'Borówki',kcal:57,p:0.7,c:14,f:0.3,unit:'g',swaps:['Maliny','Truskawki','Jagody acai']},
+    {name:'Truskawki',kcal:32,p:0.7,c:7.7,f:0.3,unit:'g',swaps:['Maliny','Borówki']},
+    {name:'Maliny',kcal:52,p:1.2,c:12,f:0.7,unit:'g',swaps:['Truskawki','Borówki']},
+    {name:'Pomarańcza',kcal:47,p:0.9,c:12,f:0.1,unit:'g',swaps:['Mandarynka','Grejpfrut']},
+    {name:'Mango',kcal:60,p:0.8,c:15,f:0.4,unit:'g',swaps:['Banan','Ananas']},
+    {name:'Daktyle (suszone)',kcal:277,p:1.8,c:75,f:0.2,unit:'g',swaps:['Rodzynki','Morele suszone']},
+  ],
+  'nabiał': [
+    {name:'Jogurt grecki 0%',kcal:59,p:10,c:3.6,f:0.4,unit:'g',swaps:['Serek wiejski','Twaróg chudy','Skyr']},
+    {name:'Skyr naturalny',kcal:63,p:11,c:4,f:0.2,unit:'g',swaps:['Jogurt grecki 0%','Twaróg']},
+    {name:'Mleko 2%',kcal:50,p:3.4,c:4.8,f:2,unit:'g',swaps:['Mleko roślinne (sojowe)','Mleko 0%']},
+    {name:'Mleko sojowe',kcal:33,p:3.3,c:0.9,f:1.8,unit:'g',swaps:['Mleko migdałowe','Mleko owsiane']},
+    {name:'Ser mozzarella light',kcal:149,p:22,c:1,f:6,unit:'g',swaps:['Ser cottage','Twaróg']},
+    {name:'Ser cheddar',kcal:403,p:25,c:1.3,f:33,unit:'g',swaps:['Mozzarella light','Feta light']},
+    {name:'Kefir 0%',kcal:36,p:3.5,c:4.7,f:0.1,unit:'g',swaps:['Jogurt naturalny','Maślanka']},
+    {name:'Maślanka',kcal:40,p:3.5,c:4.8,f:0.5,unit:'g',swaps:['Kefir','Jogurt naturalny']},
+  ]
+};
+
+let currentProdCategory = 'bialko';
+let currentProdItem = null;
+
+function prodShowCat(cat) {
+  currentProdCategory = cat;
+  document.querySelectorAll('.prod-cat-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.04)';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--tx3)';
+  });
+  event.target.style.background = 'rgba(232,48,42,0.12)';
+  event.target.style.borderColor = 'rgba(232,48,42,0.25)';
+  event.target.style.color = 'var(--ac)';
+  prodRenderList(PRODUCTS_DB[cat] || []);
+}
+
+function prodRenderList(items) {
+  const list = document.getElementById('prod-list');
+  if (!items.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);font-size:11px;">Brak wyników</div>';
+    return;
+  }
+  list.innerHTML = items.map(p => `
+    <div onclick="prodSelect(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#FAA855'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;font-weight:500;color:var(--tx);">${p.name}</div>
+        <div style="font-size:10px;color:#FAA855;font-family:'DM Mono',monospace;font-weight:600;">${p.kcal} kcal</div>
+      </div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:3px;font-family:'DM Mono',monospace;">
+        <span style="color:var(--ac);">B:${p.p}g</span> · <span style="color:var(--bl);">W:${p.c}g</span> · <span style="color:var(--gr);">T:${p.f}g</span> <span style="color:var(--tx3);">/ 100g</span>
+      </div>
+    </div>`).join('');
+}
+
+function prodSelect(p) {
+  currentProdItem = p;
+  document.getElementById('prod-calc').style.display = 'block';
+  document.getElementById('prod-calc-name').textContent = p.name;
+  document.getElementById('prod-calc-grams').value = 100;
+  prodCalcMacro();
+
+  // Zamienniki
+  const swapsEl = document.getElementById('prod-calc-swaps');
+  if (p.swaps?.length) {
+    swapsEl.innerHTML = `<div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">🔄 Zamienniki:</div>
+      ${p.swaps.map(s => `<div style="font-size:10px;color:var(--tx2);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);">• ${s}</div>`).join('')}`;
+  } else {
+    swapsEl.innerHTML = '';
+  }
+}
+
+function prodCalcMacro() {
+  if (!currentProdItem) return;
+  const g = parseFloat(document.getElementById('prod-calc-grams').value) || 100;
+  const ratio = g / 100;
+  document.getElementById('pc-kcal').textContent = Math.round(currentProdItem.kcal * ratio);
+  document.getElementById('pc-p').textContent = (currentProdItem.p * ratio).toFixed(1) + 'g';
+  document.getElementById('pc-c').textContent = (currentProdItem.c * ratio).toFixed(1) + 'g';
+  document.getElementById('pc-f').textContent = (currentProdItem.f * ratio).toFixed(1) + 'g';
+}
+
+function prodSearch(query) {
+  if (!query || query.length < 2) {
+    prodRenderList(PRODUCTS_DB[currentProdCategory] || []);
+    return;
+  }
+  const q = query.toLowerCase();
+  const all = Object.values(PRODUCTS_DB).flat();
+  const results = all.filter(p => p.name.toLowerCase().includes(q));
+  prodRenderList(results);
+}
+
+// Inicjalizacja
+function initProducts() {
+  prodRenderList(PRODUCTS_DB['bialko']);
+}
+// ===== END BAZA PRODUKTÓW =====
 let carbCyclingEnabled = false;
 
 function dietSyncWithTraining() {

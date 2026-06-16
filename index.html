@@ -3738,6 +3738,7 @@ function baSaveAnalysisResult(result, name) {
 // ===== BODY ASSESSMENT - POMIARY I HISTORIA =====
 function openMeasurements() {
   openOverlay('screen-measurements');
+  setTimeout(() => measRefresh(), 100);
 }
 
 function openBodyAssessment() {
@@ -4587,6 +4588,261 @@ function tlShowSummary(){
   clearInterval(tlStopwatch);tlStopwatchRunning=false;
 }
 // ===== END TRENING LIVE JS =====
+
+// ===== MODUŁ POMIARÓW =====
+function openAddMeasurement() {
+  const modal = document.getElementById('meas-modal');
+  if (!modal) return;
+  // Ustaw dzisiejszą datę
+  const dateEl = document.getElementById('mf-date');
+  if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  modal.style.display = 'block';
+}
+
+function closeMeasModal() {
+  const modal = document.getElementById('meas-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function measGetKey() {
+  const name = document.getElementById('client-name')?.value || 'klient';
+  return 'meas_' + name.toLowerCase().replace(/\s+/g,'_');
+}
+
+function measSave() {
+  const m = {
+    date: document.getElementById('mf-date')?.value || new Date().toISOString().split('T')[0],
+    time: document.getElementById('mf-time')?.value || 'rano',
+    weight: parseFloat(document.getElementById('mf-weight')?.value) || null,
+    bmi: parseFloat(document.getElementById('mf-bmi')?.value) || null,
+    fatPct: parseFloat(document.getElementById('mf-fat-pct')?.value) || null,
+    fatKg: parseFloat(document.getElementById('mf-fat-kg')?.value) || null,
+    muscleKg: parseFloat(document.getElementById('mf-muscle-kg')?.value) || null,
+    boneKg: parseFloat(document.getElementById('mf-bone-kg')?.value) || null,
+    waterPct: parseFloat(document.getElementById('mf-water-pct')?.value) || null,
+    visceralFat: parseFloat(document.getElementById('mf-visceral')?.value) || null,
+    neck: parseFloat(document.getElementById('mf-neck')?.value) || null,
+    chest: parseFloat(document.getElementById('mf-chest')?.value) || null,
+    waist: parseFloat(document.getElementById('mf-waist')?.value) || null,
+    hips: parseFloat(document.getElementById('mf-hips')?.value) || null,
+    thighL: parseFloat(document.getElementById('mf-thigh-l')?.value) || null,
+    thighR: parseFloat(document.getElementById('mf-thigh-r')?.value) || null,
+    armL: parseFloat(document.getElementById('mf-arm-l')?.value) || null,
+    armR: parseFloat(document.getElementById('mf-arm-r')?.value) || null,
+    calf: parseFloat(document.getElementById('mf-calf')?.value) || null,
+    notes: document.getElementById('mf-notes')?.value || '',
+    photos: []
+  };
+
+  const key = measGetKey();
+  const data = JSON.parse(localStorage.getItem(key) || '[]');
+  const idx = data.findIndex(d => d.date === m.date);
+  if (idx >= 0) data[idx] = m; else data.push(m);
+  data.sort((a,b) => new Date(a.date)-new Date(b.date));
+  localStorage.setItem(key, JSON.stringify(data));
+
+  closeMeasModal();
+  measRefresh();
+
+  // Synchronizuj z modułem sylwetki
+  const baKey = 'measurements_' + (document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+  const baData = JSON.parse(localStorage.getItem(baKey)||'[]');
+  const baIdx = baData.findIndex(d => d.date === m.date);
+  const baMeas = {date:m.date, weight:m.weight?.toString()||'', waist:m.waist?.toString()||'', arm:m.armL?.toString()||'', chest:m.chest?.toString()||'', hips:m.hips?.toString()||'', thigh:m.thighL?.toString()||''};
+  if (baIdx >= 0) baData[baIdx] = baMeas; else baData.push(baMeas);
+  localStorage.setItem(baKey, JSON.stringify(baData));
+}
+
+function measLoad() {
+  return JSON.parse(localStorage.getItem(measGetKey()) || '[]');
+}
+
+function measRefresh() {
+  const data = measLoad();
+  measRenderHistory(data);
+  measUpdateCharts(data);
+  measUpdateOverview(data);
+
+  const tag = document.getElementById('meas-client-tag');
+  const name = document.getElementById('client-name')?.value;
+  if (tag && name) tag.textContent = name;
+}
+
+function measSwitchChart(tab, btn) {
+  document.querySelectorAll('.meas-chart-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.meas-chart-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('meas-chart-' + tab);
+  if (panel) panel.style.display = 'block';
+  if (btn) btn.classList.add('active');
+  const data = measLoad();
+  measUpdateCharts(data);
+  if (tab === 'overview') measUpdateOverview(data);
+}
+
+function measUpdateCharts(data) {
+  if (!data.length || typeof Chart === 'undefined') return;
+  const labels = data.map(d => d.date.slice(5));
+
+  // Wykres wagi
+  const wagaCtx = document.getElementById('chart-waga');
+  if (wagaCtx && document.getElementById('meas-chart-waga')?.style.display !== 'none') {
+    if (wagaCtx._chart) wagaCtx._chart.destroy();
+    wagaCtx._chart = new Chart(wagaCtx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: 'Waga (kg)', data: data.map(d => d.weight),
+        borderColor: '#FAA855', backgroundColor: 'rgba(250,168,85,0.1)',
+        fill: true, tension: 0.35, pointRadius: 4, spanGaps: true
+      }]},
+      options: { responsive: true, plugins: { legend: { display: false } },
+        scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } } } }
+    });
+  }
+
+  // Wykres BF%
+  const fatCtx = document.getElementById('chart-fat');
+  if (fatCtx && document.getElementById('meas-chart-waga')?.style.display !== 'none') {
+    if (fatCtx._chart) fatCtx._chart.destroy();
+    fatCtx._chart = new Chart(fatCtx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: '% BF', data: data.map(d => d.fatPct),
+        borderColor: '#E8302A', backgroundColor: 'rgba(232,48,42,0.08)',
+        fill: true, tension: 0.35, pointRadius: 4, spanGaps: true
+      }]},
+      options: { responsive: true, plugins: { legend: { display: false } },
+        scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } } } }
+    });
+  }
+
+  // Kompozycja ciała
+  const kompCtx = document.getElementById('chart-kompozycja');
+  if (kompCtx && document.getElementById('meas-chart-kompozycja')?.style.display !== 'none') {
+    if (kompCtx._chart) kompCtx._chart.destroy();
+    kompCtx._chart = new Chart(kompCtx, {
+      type: 'bar',
+      data: { labels, datasets: [
+        { label: 'Masa mięśniowa (kg)', data: data.map(d => d.muscleKg), backgroundColor: 'rgba(74,222,128,0.7)', borderRadius: 4 },
+        { label: 'Masa tłuszczowa (kg)', data: data.map(d => d.fatKg), backgroundColor: 'rgba(232,48,42,0.6)', borderRadius: 4 },
+        { label: 'Masa kostna (kg)', data: data.map(d => d.boneKg), backgroundColor: 'rgba(201,168,76,0.6)', borderRadius: 4 }
+      ]},
+      options: { responsive: true, plugins: { legend: { labels: { color: '#9a9086', font: { size: 10 } } } },
+        scales: { y: { stacked: false, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } } } }
+    });
+
+    // Stats cards kompozycja
+    const last = data[data.length-1];
+    const first = data[0];
+    const statsEl = document.getElementById('meas-stats-cards');
+    if (statsEl && last) {
+      const diff = (a, b, unit='kg') => a && b ? `<div class="mdelta" style="color:${a<b?'var(--gr)':'var(--ac)'};">${a<b?'▲':'▼'} ${Math.abs(a-b).toFixed(1)}${unit}</div>` : '';
+      statsEl.innerHTML = [
+        ['💪', 'Mięśnie', last.muscleKg, first.muscleKg, 'kg'],
+        ['🔥', 'Tłuszcz', last.fatKg, first.fatKg, 'kg'],
+        ['🦴', 'Kości', last.boneKg, first.boneKg, 'kg'],
+        ['💧', 'Woda', last.waterPct, first.waterPct, '%'],
+      ].map(([icon, label, cur, ini, unit]) => `
+        <div class="meas-stat-card">
+          <div class="meas-stat-label">${icon} ${label}</div>
+          <div class="meas-stat-val" style="color:var(--ps-gold);">${cur ?? '–'}${unit}</div>
+          ${diff(cur, ini, unit)}
+        </div>`).join('');
+    }
+  }
+
+  // Obwody
+  const obwCtx = document.getElementById('chart-obwody');
+  if (obwCtx && document.getElementById('meas-chart-obwody')?.style.display !== 'none') {
+    if (obwCtx._chart) obwCtx._chart.destroy();
+    obwCtx._chart = new Chart(obwCtx, {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: 'Talia', data: data.map(d => d.waist), borderColor: '#E8302A', tension: 0.3, pointRadius: 3, spanGaps: true },
+        { label: 'Biodra', data: data.map(d => d.hips), borderColor: '#c9a84c', tension: 0.3, pointRadius: 3, spanGaps: true },
+        { label: 'Klatka', data: data.map(d => d.chest), borderColor: '#4ade80', tension: 0.3, pointRadius: 3, spanGaps: true },
+        { label: 'Ramię L', data: data.map(d => d.armL), borderColor: '#60a5fa', tension: 0.3, pointRadius: 3, spanGaps: true },
+        { label: 'Udo L', data: data.map(d => d.thighL), borderColor: '#f59e0b', tension: 0.3, pointRadius: 3, spanGaps: true },
+      ]},
+      options: { responsive: true, plugins: { legend: { labels: { color: '#9a9086', font: { size: 10 } }, position: 'bottom' } },
+        scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9a9086' } } } }
+    });
+  }
+}
+
+function measUpdateOverview(data) {
+  if (!data.length) return;
+  const last = data[data.length-1];
+  const prev = data.length > 1 ? data[data.length-2] : null;
+  const first = data[0];
+
+  const cardsEl = document.getElementById('meas-overview-cards');
+  if (cardsEl) {
+    const delta = (cur, old, unit='', invert=false) => {
+      if (!cur || !old) return '';
+      const d = parseFloat((cur-old).toFixed(1));
+      const good = invert ? d < 0 : d > 0;
+      return d !== 0 ? `<div style="font-size:10px;color:${good?'var(--gr)':'var(--ac)'};">${d>0?'+':''}${d}${unit} vs poprzedni</div>` : '';
+    };
+    cardsEl.innerHTML = [
+      ['⚖️', 'Waga', last.weight, 'kg', false],
+      ['🔥', '% Tłuszcz', last.fatPct, '%', true],
+      ['💪', 'Mięśnie', last.muscleKg, 'kg', false],
+      ['📏', 'Talia', last.waist, 'cm', true],
+      ['📐', 'Biodra', last.hips, 'cm', true],
+      ['💪', 'Ramię L', last.armL, 'cm', false],
+    ].filter(([,,val]) => val).map(([icon, label, val, unit, invert]) => `
+      <div class="meas-stat-card">
+        <div class="meas-stat-label">${icon} ${label}</div>
+        <div class="meas-stat-val" style="color:var(--ps-gold);">${val}${unit}</div>
+        ${delta(val, prev?.[label.toLowerCase()], unit, invert)}
+        <div style="font-size:9px;color:var(--tx3);">Start: ${first[label.toLowerCase()]||'–'}${unit}</div>
+      </div>`).join('');
+  }
+}
+
+function measRenderHistory(data) {
+  const el = document.getElementById('meas-history-list');
+  if (!el) return;
+  if (!data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tx3);font-size:12px;">Brak pomiarów. Kliknij <strong>+ Dodaj pomiar</strong> aby zacząć śledzić postępy.</div>';
+    return;
+  }
+
+  el.innerHTML = [...data].reverse().map((m, i) => {
+    const prev = i < data.length-1 ? data[data.length-2-i] : null;
+    const wdiff = prev?.weight && m.weight ? (m.weight-prev.weight).toFixed(1) : null;
+    const fdiff = prev?.fatPct && m.fatPct ? (m.fatPct-prev.fatPct).toFixed(1) : null;
+    const dateObj = new Date(m.date);
+
+    return `<div class="meas-history-row">
+      <div>
+        <div class="meas-history-date">${dateObj.getDate()}</div>
+        <div class="meas-history-month">${dateObj.toLocaleDateString('pl',{month:'short'})}</div>
+        <div class="meas-history-month">${dateObj.getFullYear()}</div>
+      </div>
+      <div class="meas-history-data">
+        ${m.weight ? `<div class="meas-data-chip"><div class="mlabel">⚖️ Waga</div><div class="mval">${m.weight} kg</div>${wdiff!==null?`<div class="mdelta" style="color:${parseFloat(wdiff)<0?'var(--gr)':'var(--ac)'};">${parseFloat(wdiff)>0?'+':''}${wdiff}kg</div>`:''}</div>` : ''}
+        ${m.fatPct ? `<div class="meas-data-chip"><div class="mlabel">🔥 BF%</div><div class="mval">${m.fatPct}%</div>${fdiff!==null?`<div class="mdelta" style="color:${parseFloat(fdiff)<0?'var(--gr)':'var(--ac)'};">${parseFloat(fdiff)>0?'+':''}${fdiff}%</div>`:''}</div>` : ''}
+        ${m.muscleKg ? `<div class="meas-data-chip"><div class="mlabel">💪 Mięśnie</div><div class="mval">${m.muscleKg}kg</div></div>` : ''}
+        ${m.waist ? `<div class="meas-data-chip"><div class="mlabel">📏 Talia</div><div class="mval">${m.waist}cm</div></div>` : ''}
+        ${m.hips ? `<div class="meas-data-chip"><div class="mlabel">📐 Biodra</div><div class="mval">${m.hips}cm</div></div>` : ''}
+        ${m.chest ? `<div class="meas-data-chip"><div class="mlabel">🦺 Klatka</div><div class="mval">${m.chest}cm</div></div>` : ''}
+        ${m.armL ? `<div class="meas-data-chip"><div class="mlabel">💪 Ramię</div><div class="mval">${m.armL}cm</div></div>` : ''}
+        ${m.notes ? `<div class="meas-data-chip" style="grid-column:1/-1;"><div class="mlabel">📝 Notatka</div><div class="mval" style="font-size:11px;">${m.notes}</div></div>` : ''}
+      </div>
+      <button class="meas-del-btn" onclick="measDelete('${m.date}')" title="Usuń pomiar">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function measDelete(date) {
+  if (!confirm(`Usunąć pomiar z dnia ${date}?`)) return;
+  const key = measGetKey();
+  const data = JSON.parse(localStorage.getItem(key)||'[]').filter(d => d.date !== date);
+  localStorage.setItem(key, JSON.stringify(data));
+  measRefresh();
+}
+// ===== END POMIARY =====
 
 // ===== 1. ANALIZA WIDEO AI =====
 let videoAnalysisData = null;

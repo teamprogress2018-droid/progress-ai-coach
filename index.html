@@ -4333,61 +4333,145 @@ function anBuildChart(id,type,data,opts){
 }
 
 function anInitE1rm(){
-  const labels=anWeeks.slice(-anCurrentPeriod);
-  const datasets=Object.entries(anData.e1rm).map(([key,vals])=>({
-    label:anLabels[key],
-    data:vals.slice(-anCurrentPeriod),
-    borderColor:anColors[key],
-    backgroundColor:anColors[key]+'22',
-    borderWidth:key===anCurrentEx?2.5:1,
-    pointRadius:key===anCurrentEx?4:2,
-    borderDash:key===anCurrentEx?[]:[4,3],
-    fill:key===anCurrentEx,
-    tension:0.35
+  const realData = anGetRealData();
+  anData = realData;
+  const labels = realData.labels.slice(-anCurrentPeriod);
+  const e1rmData = realData.e1rm;
+  const exKeys = Object.keys(e1rmData);
+  const colorList = ['#E8302A','#c9a84c','#4ade80','#60a5fa'];
+
+  const datasets = exKeys.map((key,i) => ({
+    label: anLabels[key] || key.substring(0,20),
+    data: (e1rmData[key]||[]).slice(-anCurrentPeriod),
+    borderColor: colorList[i%4],
+    backgroundColor: colorList[i%4]+'22',
+    borderWidth: i===0?2.5:1.5,
+    pointRadius: i===0?4:3,
+    borderDash: i===0?[]:[4,3],
+    fill: i===0,
+    tension:0.35,
+    spanGaps:true
   }));
+
   anBuildChart('an-chart-e1rm','line',{labels,datasets},{
     legend:true,dec:0,unit:'kg',yFmt:v=>v+'kg',
-    extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:12}}}}
+    extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#9a9086',font:{size:10},boxWidth:10,padding:12}}}}
   });
+  anUpdatePR(realData);
+}
+
+function anUpdatePR(realData) {
+  const prList = document.getElementById('an-pr-list');
+  if (!prList) return;
+  const clientName = document.getElementById('client-name')?.value || 'klient';
+  const logKey = 'tl_log_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  let log = {};
+  try { log = JSON.parse(localStorage.getItem(logKey) || '{}'); } catch(e) {}
+  const exNames = Object.keys(log);
+  if (!exNames.length) return;
+
+  const prs = exNames.map(ex => {
+    const sessions = log[ex]||[];
+    let maxE1rm = 0, bestKg = 0, bestReps = 0;
+    sessions.forEach(sess => (sess.sets||[]).forEach(s => {
+      const e = s.kg*(1+s.reps/30);
+      if (e > maxE1rm) { maxE1rm=e; bestKg=s.kg; bestReps=s.reps; }
+    }));
+    const recent4 = sessions.slice(-4).flatMap(s=>s.sets||[]);
+    const older = sessions.slice(0,-4).flatMap(s=>s.sets||[]);
+    const r = Math.max(...recent4.map(s=>s.kg*(1+s.reps/30)),0);
+    const o = Math.max(...older.map(s=>s.kg*(1+s.reps/30)),0);
+    const delta = o>0 ? (r-o).toFixed(1) : null;
+    return {name:ex.substring(0,24), e1rm:maxE1rm.toFixed(1), kg:bestKg, reps:bestReps, delta};
+  }).filter(p=>parseFloat(p.e1rm)>0).sort((a,b)=>parseFloat(b.e1rm)-parseFloat(a.e1rm)).slice(0,6);
+
+  if (!prs.length) return;
+  prList.innerHTML = prs.map((pr,i) => `
+    <div class="an-pr-row">
+      <div class="an-pr-name">${pr.name}</div>
+      <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">${pr.kg}kg×${pr.reps}</div>
+      <div class="an-pr-val">${pr.e1rm} kg</div>
+      <div class="an-pr-delta" style="color:${pr.delta&&parseFloat(pr.delta)>0?'var(--gr)':'var(--ac)'};">
+        ${pr.delta?(parseFloat(pr.delta)>0?'↑+':'↓')+Math.abs(pr.delta)+'kg':(i===0?'🏆':'')}
+      </div>
+    </div>`).join('');
+
+  const metEl = document.getElementById('an-metric-e1rm');
+  if (metEl) metEl.textContent = prs[0].e1rm+' kg';
+  const dEl = document.getElementById('an-metric-e1rm-delta');
+  if (dEl && prs[0].delta) { dEl.textContent=(parseFloat(prs[0].delta)>0?'↑ +':'↓ ')+Math.abs(prs[0].delta)+' kg vs poprzedni blok'; dEl.style.color=parseFloat(prs[0].delta)>0?'var(--gr)':'var(--ac)'; }
 }
 
 function anInitTonaz(){
+  const realData = anGetRealData();
+  const labels = realData.labels;
+  const tonaz = realData.tonaz;
+  const lastT = tonaz.filter(v=>v).slice(-1)[0];
+  const prevT = tonaz.filter(v=>v).slice(-2,-1)[0];
+  const tEl = document.getElementById('an-metric-tonaz');
+  if (tEl && lastT) tEl.textContent = lastT>=1000?(lastT/1000).toFixed(1)+'k kg':lastT+' kg';
+  const tdEl = document.getElementById('an-metric-tonaz-delta');
+  if (tdEl && lastT && prevT) { const d=lastT-prevT; tdEl.textContent=(d>0?'↑ +':'↓ ')+(Math.abs(d)>=1000?(Math.abs(d)/1000).toFixed(1)+'k':Math.abs(d))+' kg vs zeszły'; tdEl.style.color=d>0?'var(--gr)':'var(--ac)'; }
   anBuildChart('an-chart-tonaz','line',
-    {labels:anWeeks,datasets:[{label:'Tonaż',data:anData.tonaz,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.1)',fill:true,tension:0.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'#378ADD'}]},
-    {dec:0,unit:'kg',yFmt:v=>v>=1000?(v/1000).toFixed(1)+'k':v,yMin:18000,yMax:25000}
+    {labels,datasets:[{label:'Tonaż tygodniowy',data:tonaz,borderColor:'var(--ps-gold)',backgroundColor:'rgba(201,168,76,0.1)',fill:true,tension:0.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'var(--ps-gold)',spanGaps:true}]},
+    {dec:0,unit:'kg',yFmt:v=>v>=1000?(v/1000).toFixed(1)+'k':v}
   );
 }
 
 function anInitRPE(){
+  const realData = anGetRealData();
+  const labels = realData.labels;
+  const rpe = realData.rpe;
+  const avg = rpe.filter(v=>v).reduce((s,v,_,a)=>s+v/a.length,0)||8.0;
+  const rpeEl = document.getElementById('an-metric-rpe');
+  if (rpeEl) rpeEl.textContent = avg.toFixed(1);
+  const rdEl = document.getElementById('an-metric-rpe-delta');
+  if (rdEl) { rdEl.textContent=avg>=8.5?'⚠️ Wysokie zmęczenie':avg>=7.5?'✓ Optymalne':'↓ Niskie'; rdEl.style.color=avg>=8.5?'var(--ac)':'var(--gr)'; }
   anBuildChart('an-chart-rpe','line',
-    {labels:anWeeks,datasets:[
-      {label:'Śr. RPE',data:anData.rpe,borderColor:'#E8302A',backgroundColor:'rgba(232,48,42,0.08)',fill:true,tension:0.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'#E8302A'},
-      {label:'Cel max',data:Array(8).fill(8.5),borderColor:'rgba(232,48,42,0.4)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}
+    {labels,datasets:[
+      {label:'Śr. RPE',data:rpe,borderColor:'#E8302A',backgroundColor:'rgba(232,48,42,0.08)',fill:true,tension:0.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'#E8302A',spanGaps:true},
+      {label:'Cel max',data:Array(labels.length).fill(8.5),borderColor:'rgba(232,48,42,0.35)',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false}
     ]},
-    {dec:1,unit:'',yMin:7,yMax:10,extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:12}}}}}
+    {dec:1,unit:'',yMin:6,yMax:10,extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#9a9086',font:{size:10},boxWidth:10,padding:12}}}}}
   );
 }
 
 function anInitVolume(){
-  const d=anData.volume;
+  const realData = anGetRealData();
+  const d = realData.volume;
+  const clientName = document.getElementById('client-name')?.value||'klient';
+  const logKey = 'tl_log_'+clientName.toLowerCase().replace(/\s+/g,'_');
+  let log={};try{log=JSON.parse(localStorage.getItem(logKey)||'{}');}catch(e){}
+  const totalSess = new Set(Object.values(log).flatMap(ex=>(ex||[]).map(s=>s.date))).size;
+  const planSess = (currentPlanData?.sessionsPerWeek||4)*8;
+  const pct = Math.min(100,Math.round(totalSess/planSess*100));
+  const pEl=document.getElementById('an-metric-plan');if(pEl)pEl.textContent=pct+'%';
+  const pdEl=document.getElementById('an-metric-plan-delta');if(pdEl)pdEl.textContent=totalSess+' sesji / '+planSess+' planowanych';
   anBuildChart('an-chart-volume','bar',
     {labels:d.labels,datasets:[
-      {label:'Aktualne',data:d.current,backgroundColor:'rgba(55,138,221,0.7)',borderRadius:4},
+      {label:'Aktualne serie',data:d.current,backgroundColor:'rgba(232,48,42,0.7)',borderRadius:4},
       {label:'MEV (min)',data:d.mev,backgroundColor:'rgba(74,222,128,0.2)',borderRadius:4},
-      {label:'MRV (max)',data:d.mrv,backgroundColor:'rgba(232,48,42,0.15)',borderRadius:4}
+      {label:'MRV (max)',data:d.mrv,backgroundColor:'rgba(201,168,76,0.15)',borderRadius:4}
     ]},
-    {dec:0,unit:'serii',extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#888',font:{size:10},boxWidth:10,padding:12}}}}}
+    {dec:0,unit:'serii',extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#9a9086',font:{size:10},boxWidth:10,padding:12}}}}}
   );
 }
 
 function anInitConsistency(){
+  const realData = anGetRealData();
+  const labels = realData.labels;
+  const consistency = realData.consistency;
+  const planPerWeek = currentPlanData?.sessionsPerWeek||4;
   anBuildChart('an-chart-consistency','bar',
-    {labels:anWeeks,datasets:[{
-      label:'Sesje',data:anData.consistency,
-      backgroundColor:anData.consistency.map(v=>v>=5?'rgba(74,222,128,0.7)':v>=4?'rgba(55,138,221,0.7)':'rgba(232,48,42,0.6)'),
-      borderRadius:4
-    }]},
-    {dec:0,unit:'sesji',yMin:0,yMax:7}
+    {labels,datasets:[
+      {label:'Sesje w tygodniu',data:consistency,
+       backgroundColor:consistency.map(v=>v===null?'rgba(255,255,255,0.05)':v>=planPerWeek?'rgba(74,222,128,0.7)':v>0?'rgba(232,48,42,0.6)':'rgba(255,255,255,0.05)'),
+       borderRadius:4,spanGaps:false},
+      {label:'Plan ('+planPerWeek+'/tydz)',data:Array(labels.length).fill(planPerWeek),
+       borderColor:'rgba(201,168,76,0.5)',borderDash:[4,3],borderWidth:1.5,type:'line',pointRadius:0,fill:false}
+    ]},
+    {dec:0,unit:'sesji',yMin:0,yMax:7,
+     extra:{plugins:{legend:{display:true,position:'top',labels:{color:'#9a9086',font:{size:10},boxWidth:10,padding:12}}}}}
   );
 }
 

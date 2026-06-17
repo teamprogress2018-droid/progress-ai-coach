@@ -7021,8 +7021,7 @@ async function callAPI(system, userMsg, maxTokens) {
   // Pre-processing: napraw typowe problemy z JSON od AI
   jsonStr = jsonStr
     .replace(/[\u0000-\u001F\u007F]/g, ' ') // usuń control chars
-    .replace(/,\s*([}\]])/g, '$1')           // trailing commas
-    .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3'); // unquoted keys
+    .replace(/,\s*([}\]])/g, '$1');          // trailing commas
 
   try { return JSON.parse(jsonStr); }
   catch(e) {

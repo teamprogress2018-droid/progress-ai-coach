@@ -2651,7 +2651,7 @@ async function generateDiet() {
   document.getElementById('diet-gen-btn').disabled = true;
 
   // CHUNKING: generuj dietę w częściach po max 3 dni, żeby uniknąć timeout 524 (Cloudflare 100s limit)
-  const CHUNK_SIZE = 3;
+  const CHUNK_SIZE = 2;
   const totalChunks = Math.ceil(dietDays / CHUNK_SIZE);
   let allDays = [];
   let planMeta = null;
@@ -2776,17 +2776,56 @@ WAŻNE:
 4. Każdy posiłek MUSI mieć pola "kcal", "protein", "carbs", "fat" jako liczby.
 5. TYLKO JSON bez komentarzy.`;
 
-      const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 8000,
-          system: baseSystemPrompt,
-          messages: [{role: 'user', content: userMsg}]
-        })
-      });
-      const data = await resp.json();
+      // Retry z exponential backoff dla timeout/przejściowych błędów serwera (524/502/500/503)
+      let resp, data, lastErr;
+      const MAX_RETRIES = 2;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0 && statusEl) {
+            statusEl.textContent = `Ponawiam część ${chunkIdx+1}/${totalChunks} (próba ${attempt+1}/${MAX_RETRIES+1})...`;
+          }
+          resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 6000,
+              system: baseSystemPrompt,
+              messages: [{role: 'user', content: userMsg}]
+            })
+          });
+
+          if (resp.status === 524 || resp.status === 502 || resp.status === 503) {
+            lastErr = new Error(`Serwer przeciążony (${resp.status}) – ponawiam...`);
+            if (attempt < MAX_RETRIES) {
+              await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
+              continue;
+            }
+            throw lastErr;
+          }
+
+          data = await resp.json();
+
+          if (data?.error?.message?.includes('524') || data?.error?.message?.includes('overloaded')) {
+            lastErr = new Error(data.error.message);
+            if (attempt < MAX_RETRIES) {
+              await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
+              continue;
+            }
+            throw lastErr;
+          }
+
+          break; // sukces, wyjdź z pętli retry
+        } catch(fetchErr) {
+          lastErr = fetchErr;
+          if (attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
+            continue;
+          }
+          throw lastErr;
+        }
+      }
+
       if (!data?.content?.length) throw new Error(data?.error?.message || `Brak odpowiedzi (część ${chunkIdx+1})`);
       let raw = (data.content || []).map(b => b.text || '').join('');
       raw = raw.replace(/```json|```/g, '').trim();

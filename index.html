@@ -2650,19 +2650,19 @@ async function generateDiet() {
   document.getElementById('diet-content').style.display = 'none';
   document.getElementById('diet-gen-btn').disabled = true;
 
-  const statuses = ['Obliczam makroskładniki...','Układam posiłki...','Dobieram produkty...','Tworzę listę zakupów...','Finalizuję plan...'];
-  let si = 0;
-  const ticker = setInterval(() => {
-    si = (si+1) % statuses.length;
-    const el = document.getElementById('diet-status');
-    if (el) el.textContent = statuses[si];
-  }, 2000);
+  // CHUNKING: generuj dietę w częściach po max 3 dni, żeby uniknąć timeout 524 (Cloudflare 100s limit)
+  const CHUNK_SIZE = 3;
+  const totalChunks = Math.ceil(dietDays / CHUNK_SIZE);
+  let allDays = [];
+  let planMeta = null;
 
-  // Pobierz wytyczne naukowe w tle
+  const statusEl = document.getElementById('diet-status');
+
+  // Pobierz wytyczne naukowe RAZ (nie per chunk)
   const ragData = await fetchNutritionRAG().catch(() => null);
   const ragContext = buildNutritionRAGContext(ragData, goal);
 
-  const systemPrompt = `Jesteś ekspertem w żywieniu sportowym i dietetyce klinicznej (certyfikat NSCA, dietetyk sportowy). Tworzysz precyzyjne, smaczne i praktyczne plany żywieniowe dla klientów trenera personalnego Piotra Urbaniaka (Progress Studio, Wrocław).
+  const baseSystemPrompt = `Jesteś ekspertem w żywieniu sportowym i dietetyce klinicznej (certyfikat NSCA, dietetyk sportowy). Tworzysz precyzyjne, smaczne i praktyczne plany żywieniowe dla klientów trenera personalnego Piotra Urbaniaka (Progress Studio, Wrocław).
 
 Bazujesz na:
 - Równaniu Mifflin-St Jeor dla BMR
@@ -2696,7 +2696,16 @@ OWOCE: banan (po treningu – szybkie węgle), jabłko, borówki, truskawki, mal
 Odpowiadasz WYŁĄCZNIE czystym JSON bez markdown.
 Wszystkie nazwy produktów i potraw po POLSKU.`;
 
-  const userMsg = `Wygeneruj ${dietDays}-dniowy plan żywieniowy.
+  try {
+    for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+      const startDay = chunkIdx * CHUNK_SIZE + 1;
+      const endDay = Math.min(dietDays, (chunkIdx+1) * CHUNK_SIZE);
+      const daysInChunk = endDay - startDay + 1;
+
+      if (statusEl) statusEl.textContent = `Generuję dni ${startDay}-${endDay} z ${dietDays}... (${chunkIdx+1}/${totalChunks})`;
+
+      const isFirstChunk = chunkIdx === 0;
+      const userMsg = `Wygeneruj plan żywieniowy dla dni ${startDay}-${endDay} (to część ${chunkIdx+1}/${totalChunks} z łącznie ${dietDays}-dniowego planu).
 
 DANE KLIENTA:
 - Waga: ${weight} kg, wiek: ${age} lat, płeć: ${gender === 'M' ? 'mężczyzna' : 'kobieta'}
@@ -2715,14 +2724,16 @@ OBLICZONE MAKRO (zastosuj dokładnie):
 - Węglowodany: ${macro.carbs}g (${(macro.carbs*4/macro.kcal*100).toFixed(0)}%)
 - Tłuszcze: ${macro.fat}g (${(macro.fat*9/macro.kcal*100).toFixed(0)}%)
 - TDEE: ${macro.tdee} kcal, deficyt/nadwyżka: ${macro.deficit > 0 ? '+' : ''}${macro.deficit} kcal
-${ragContext}${getDietTrainingContext()}
+${isFirstChunk ? ragContext + getDietTrainingContext() : ''}
 
-PROFIL KLIENTA: ${profile}
-FILOZOFIA TRENERA: ${philosophy || 'brak'}
+${isFirstChunk ? 'PROFIL KLIENTA: ' + profile : ''}
+${isFirstChunk ? 'FILOZOFIA TRENERA: ' + (philosophy || 'brak') : ''}
 
-FORMAT JSON (zwróć TYLKO ten JSON):
+WAŻNE: Dni w tej części muszą być RÓŻNORODNE od poprzednich dni planu (nie powtarzaj tych samych posiłków co w innych częściach).
+
+FORMAT JSON (zwróć TYLKO ten JSON, ${isFirstChunk ? 'WŁĄCZNIE z planTitle/supplementation/shoppingList' : 'TYLKO pole "days" - bez planTitle/supplementation/shoppingList'}):
 {
-  "planTitle": "string",
+  ${isFirstChunk ? `"planTitle": "string",
   "goal": "string",
   "dailyKcal": ${macro.kcal},
   "dailyProtein": ${macro.protein},
@@ -2730,11 +2741,11 @@ FORMAT JSON (zwróć TYLKO ten JSON):
   "dailyFat": ${macro.fat},
   "nutritionNotes": "string (kluczowe wskazówki żywieniowe, max 150 znaków)",
   "supplementation": ["string", "string"],
-  "shoppingList": ["produkt (ilość na ${dietDays} dni)", ...],
+  "shoppingList": ["produkt (ilość na ${daysInChunk} dni)", ...],` : ''}
   "days": [
     {
-      "day": 1,
-      "dayName": "Dzień 1 – Trening",
+      "day": ${startDay},
+      "dayName": "Dzień ${startDay}",
       "totalKcal": number,
       "meals": [
         {
@@ -2749,22 +2760,8 @@ FORMAT JSON (zwróć TYLKO ten JSON):
           "prepNote": "string (krótka wskazówka, max 60 znaków)",
           "prepSteps": ["string krok 1", "string krok 2", "string krok 3"],
           "alternatives": [
-            {
-              "name": "Wariant A",
-              "items": ["4 jajka sadzone", "2 kromki chleba żytniego", "1 awokado", "pomidor"],
-              "kcal": number,
-              "protein": number,
-              "carbs": number,
-              "fat": number
-            },
-            {
-              "name": "Wariant B",
-              "items": ["200g jogurtu greckiego 0%", "40g granoli", "150g truskawek", "15g miodu"],
-              "kcal": number,
-              "protein": number,
-              "carbs": number,
-              "fat": number
-            }
+            {"name": "Wariant A", "items": ["..."], "kcal": number, "protein": number, "carbs": number, "fat": number},
+            {"name": "Wariant B", "items": ["..."], "kcal": number, "protein": number, "carbs": number, "fat": number}
           ]
         }
       ]
@@ -2772,43 +2769,56 @@ FORMAT JSON (zwróć TYLKO ten JSON):
   ]
 }
 
-WAŻNE: 
-1. Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami o podobnym makro (±10% kalorii). Warianty muszą być smaczne, praktyczne i różnorodne od głównego posiłku.
-2. Każdy dzień MUSI mieć pole "totalKcal" (suma kalorii ze wszystkich posiłków).
-3. Każdy posiłek MUSI mieć pola "kcal", "protein", "carbs", "fat" jako liczby.
-4. Wygeneruj ${Math.min(dietDays, 3)} dni szczegółowo. TYLKO JSON bez komentarzy.`;
+WAŻNE:
+1. Wygeneruj DOKŁADNIE ${daysInChunk} dni (dzień ${startDay} do ${endDay}).
+2. Każdy posiłek MUSI mieć pole "alternatives" z dokładnie 2 wariantami o podobnym makro (±10% kalorii).
+3. Każdy dzień MUSI mieć pole "totalKcal".
+4. Każdy posiłek MUSI mieć pola "kcal", "protein", "carbs", "fat" jako liczby.
+5. TYLKO JSON bez komentarzy.`;
 
-  try {
-    const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 14000,
-        system: systemPrompt,
-        messages: [{role: 'user', content: userMsg}]
-      })
-    });
-    const data = await resp.json();
-    if (!data?.content?.length) throw new Error(data?.error?.message || 'Brak odpowiedzi');
-    let raw = (data.content || []).map(b => b.text || '').join('');
-    raw = raw.replace(/```json|```/g, '').trim();
-    const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
-    if (first === -1) throw new Error('Brak JSON');
-    let jsonStr = raw.substring(first, last+1);
-    let plan;
-    try { plan = JSON.parse(jsonStr); }
-    catch(e) {
-      // Naprawa
-      let rep = jsonStr.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
-      const o = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
-      const b = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
-      for(let i=0;i<Math.max(0,o);i++) rep+=']';
-      for(let i=0;i<Math.max(0,b);i++) rep+='}';
-      plan = JSON.parse(rep);
+      const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          system: baseSystemPrompt,
+          messages: [{role: 'user', content: userMsg}]
+        })
+      });
+      const data = await resp.json();
+      if (!data?.content?.length) throw new Error(data?.error?.message || `Brak odpowiedzi (część ${chunkIdx+1})`);
+      let raw = (data.content || []).map(b => b.text || '').join('');
+      raw = raw.replace(/```json|```/g, '').trim();
+      const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
+      if (first === -1) throw new Error(`Brak JSON w części ${chunkIdx+1}`);
+      let jsonStr = raw.substring(first, last+1);
+      let chunkPlan;
+      try { chunkPlan = JSON.parse(jsonStr); }
+      catch(e) {
+        let rep = jsonStr.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/,\s*([}\]])/g, '$1');
+        rep = rep.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
+        const o = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
+        const b = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
+        for(let i=0;i<Math.max(0,o);i++) rep+=']';
+        for(let i=0;i<Math.max(0,b);i++) rep+='}';
+        chunkPlan = JSON.parse(rep);
+      }
+
+      if (isFirstChunk) {
+        planMeta = chunkPlan;
+      }
+      if (chunkPlan.days?.length) {
+        allDays = allDays.concat(chunkPlan.days);
+      }
     }
-    currentDietPlan = plan;
-    dietRenderPlan(dietNormalizePlan(plan));
+
+    const finalPlan = {
+      ...planMeta,
+      days: allDays
+    };
+    currentDietPlan = finalPlan;
+    dietRenderPlan(dietNormalizePlan(finalPlan));
   } catch(err) {
     document.getElementById('diet-content').style.display = 'block';
     document.getElementById('diet-content').innerHTML = `
@@ -2816,10 +2826,10 @@ WAŻNE:
         <div style="font-size:32px;margin-bottom:12px;">❌</div>
         <div style="color:var(--ac);font-weight:600;margin-bottom:8px;">Błąd generowania planu</div>
         <div style="font-size:12px;color:var(--tx3);">${err.message}</div>
+        ${allDays.length ? `<div style="font-size:11px;color:var(--ps-gold);margin-top:8px;">Wygenerowano ${allDays.length} z ${dietDays} dni przed błędem.</div>` : ''}
         <button onclick="generateDiet()" style="margin-top:16px;background:#FAA855;border:none;border-radius:8px;padding:9px 20px;color:#1a0f00;font-size:12px;font-weight:600;cursor:pointer;">🔄 Spróbuj ponownie</button>
       </div>`;
   } finally {
-    clearInterval(ticker);
     document.getElementById('diet-loading').style.display = 'none';
     document.getElementById('diet-content').style.display = 'block';
     document.getElementById('diet-gen-btn').disabled = false;

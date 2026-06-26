@@ -236,6 +236,22 @@ button:disabled{opacity:.5;cursor:not-allowed;}
         </div>
       </div>
       <div class="fg"><label>Inne ograniczenia / uwagi zdrowotne</label><textarea id="client-limits" rows="2" placeholder="np. bóle kolan, rwas kulszowy, po operacji..."></textarea></div>
+	  <!-- Notatka farmakologiczna — domyślnie zwinięta, dyskretna -->
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">
+        <div onclick="toggleAcc('acc-pharma')" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;user-select:none;">
+          🔒 Notatka trenera <span class="acc-arrow closed" id="arr-pharma">▾</span>
+        </div>
+        <div class="acc-body hidden" id="acc-pharma" style="margin-top:6px;">
+          <div class="fg">
+            <label style="font-size:9px;">Status farmakologiczny</label>
+            <select id="client-pharma" style="font-size:11px;">
+              <option value="naturalny">Naturalny</option>
+              <option value="trt">Wspomaganie hormonalne (TRT, nadzór lekarski)</option>
+              <option value="wspomagany">Wspomaganie zaawansowane</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- SEKCJA: ANATOMIA I BIOMECHANIKA -->

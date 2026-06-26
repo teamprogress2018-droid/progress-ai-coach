@@ -2169,6 +2169,12 @@ function getClientProfile(){
   if(posture.length) p+=`\n\nWady postawy: ${posture.join(', ')}`;
   if(excl.length) p+=`\n\nBEZWZGLĘDNIE WYKLUCZONE: ${excl.join(', ')}`;
   if(limits) p+=`\nDodatkowe ograniczenia: ${limits}`;
+  const pharma=document.getElementById('client-pharma')?.value;
+  if(pharma && pharma!=='naturalny'){
+    const pharmaLabel=pharma==='trt'?'TRT (testosteron, dawki zastępcze, nadzór lekarski)':'Wspomagany (sterydy anaboliczno-androgenne)';
+    p+=`\nStatus farmakologiczny: ${pharmaLabel}`;
+    p+=`\nUWAGA: Zgłoszone wspomaganie farmakologiczne — zwiększona synteza białek i szybsza regeneracja. Zastosuj zasady z sekcji WSPOMAGANIE FARMAKOLOGICZNE.`;
+  }
 
   if(diagnosisList.length) p+=`\n\nDiagnozy medyczne: ${diagnosisList.join(', ')}`;
   if(habitsList.length) p+=`\nProblemowe nawyki żywieniowe: ${habitsList.join(', ')}`;
@@ -2528,6 +2534,22 @@ DUP (Daily Undulating Periodization): "Zmiana zakresu powt. w każdej sesji tygo
 ZASADA: Przy każdej metodzie intensyfikacji w planie — dodaj skrócone wyjaśnienie w nawiasie lub w kolumnie Uwagi. Klient nie może być zgubiony.
 
 ===FORMAT ODPOWIEDZI===
+===WSPOMAGANIE FARMAKOLOGICZNE (TYLKO JEŚLI KLIENT ZGŁASZA)===
+ZAKAZ: NIGDY nie podawaj konkretnych substancji, dawek, cykli, częstotliwości iniekcji, PCT ani interakcji lekowych. To wyłącznie kompetencja lekarza/endokrynologa. Twoja rola = TYLKO dostosowanie objętości treningowej i celu białkowego do zgłoszonego statusu.
+
+DIETA — białko:
+- Naturalny: 1.6-2.2 g/kg
+- TRT: 2.0-2.4 g/kg
+- Wspomagany: 2.4-3.2+ g/kg (wyższa zdolność syntezy białek mięśniowych)
+- Na redukcji: wspomaganie chroni masę mięśniową przy głębszym deficycie — możesz zejść z kaloriami niżej bez ryzyka utraty mięśni
+
+TRENING — objętość i częstotliwość:
+- Wspomagany: zwiększ MRV o 30-50% względem tabel dla naturalnych na tym samym stażu
+- Częstotliwość per partia może wzrosnąć (np. 3x/tydz. zamiast 2x) — szybsza regeneracja
+- Metody intensyfikacji (drop-sety, cluster, myo-reps) tolerowane częściej, przy większej objętości
+- Deload wciąż obowiązkowy, ale można rzadziej (co 8-10 tyg. zamiast 4-6)
+
+ZASADA: Pracuj wyłącznie na poziomie kategorii (naturalny/TRT/wspomagany) jako modyfikatora liczb — nigdy nie schodź do poziomu konkretnych środków.
 Odpowiadaj zwięźle, bez zbędnej teorii. Plan w formie przejrzystej tabeli:
 [SESJA A — UPPER BODY]
 Ćwiczenie | Serie | Powtórzenia | Przerwa | RPE | Uwagi techniczne

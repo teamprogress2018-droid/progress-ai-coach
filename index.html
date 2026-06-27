@@ -1816,6 +1816,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
         <button onclick="setProgression('double',this)" class="pw-btn" title="Podwójna: serie → powtórzenia → ciężar">⏫ Podwójna</button>
       </div>
       <button onclick="generatePlan()" id="plan-gen-btn" style="background:var(--ac);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🤖 Generuj plan AI</button>
+      <button onclick="savePlanToLocal()" id="plan-save-btn" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:8px;padding:7px 14px;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">💾 Zapisz plan</button>
       <button onclick="expandPlan()" id="plan-expand-btn" style="display:none;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:7px 14px;color:var(--yw);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📈 Rozszerz progresję</button>
       <button onclick="downloadPlanExcel()" id="plan-dl-btn" style="display:none;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 14px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz CSV</button>
       <button onclick="downloadPlanPDF()" id="plan-pdf-btn" style="display:none;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:7px 14px;color:var(--ps-gold);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj</button>
@@ -7220,6 +7221,7 @@ function openPlanScreen() {
   document.getElementById('plan-dl-btn').style.display = 'none';
   document.getElementById('plan-pdf-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
   openOverlay('screen-plan');
+  loadPlanFromLocal();
 }
 
 const PLAN_STATUSES = [
@@ -7464,6 +7466,7 @@ async function generatePlan() {
   const planName = plan?.planTitle || 'Plan treningowy';
   histAddEntry(`Wygenerowano: ${planName}`, 'cel');
   renderPlan(plan);
+  savePlanToLocal(true);
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
   document.getElementById('plan-pdf-btn').style.display = 'inline-flex'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
   if (planWeeks < 8) {
@@ -7481,6 +7484,74 @@ async function expandPlan() {
   planWeeks = nextWeeks;
   generatePlan();
 }
+
+// ===== ZAPIS / WCZYTYWANIE PLANU TRENINGOWEGO (localStorage, per klient) =====
+function getPlanStorageKey(name) {
+  const n = (name || document.getElementById('client-name')?.value || 'klient').trim().toLowerCase().replace(/\s+/g,'_');
+  return 'tplan_' + n;
+}
+
+function savePlanToLocal(silent) {
+  if (!currentPlanData) { if (!silent) alert('Brak planu do zapisania — najpierw wygeneruj plan!'); return; }
+  const name = document.getElementById('client-name')?.value || 'klient';
+  try {
+    localStorage.setItem(getPlanStorageKey(name), JSON.stringify({
+      plan: currentPlanData,
+      weeks: planWeeks,
+      progression: planProgression,
+      savedAt: new Date().toISOString()
+    }));
+    if (!silent) notifyPlanSaved();
+  } catch(e) {
+    if (!silent) alert('Błąd zapisu planu: ' + e.message);
+  }
+}
+
+function notifyPlanSaved() {
+  const btn = document.getElementById('plan-save-btn');
+  if (!btn) return;
+  const old = btn.innerHTML;
+  btn.innerHTML = '✅ Zapisano!';
+  setTimeout(() => { btn.innerHTML = old; }, 2200);
+}
+
+function loadPlanFromLocal() {
+  const name = document.getElementById('client-name')?.value || 'klient';
+  try {
+    const raw = localStorage.getItem(getPlanStorageKey(name));
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data?.plan?.sessions) return false;
+
+    currentPlanData = data.plan;
+    planWeeks = data.weeks || 1;
+    planProgression = data.progression || 'ai';
+
+    document.querySelectorAll('#plan-weeks-selector .pw-btn').forEach((b,i) => {
+      b.classList.toggle('pw-active', (i===0&&planWeeks===1)||(i===1&&planWeeks===4)||(i===2&&planWeeks===8));
+    });
+    const progMap = ['ai','linear','dup','wave','block','double'];
+    document.querySelectorAll('#plan-prog-selector .pw-btn').forEach((b,i) => {
+      b.classList.toggle('pw-active', progMap[i]===planProgression);
+    });
+
+    renderPlan(currentPlanData);
+    document.getElementById('plan-dl-btn').style.display = 'inline-flex';
+    document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
+    if (document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
+    if (planWeeks < 8) {
+      document.getElementById('plan-expand-btn').style.display = 'inline-flex';
+      document.getElementById('plan-expand-btn').textContent = planWeeks === 1 ? '📈 Rozszerz do 4 tyg.' : '📈 Rozszerz do 8 tyg.';
+    } else {
+      document.getElementById('plan-expand-btn').style.display = 'none';
+    }
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+// ===== END ZAPIS / WCZYTYWANIE PLANU =====
+
 
 
 

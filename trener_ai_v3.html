@@ -2756,7 +2756,8 @@ WARZYWA: brokuł, szpinak, papryka, ogórek, pomidor, marchew, cukinia, pieczark
 OWOCE: banan (po treningu – szybkie węgle), jabłko, borówki, truskawki, maliny
 
 Odpowiadasz WYŁĄCZNIE czystym JSON bez markdown.
-Wszystkie nazwy produktów i potraw po POLSKU.`;
+Wszystkie nazwy produktów i potraw po POLSKU.
+ZAKAZ BEZWZGLĘDNY: nigdy nie używaj znaku cudzysłowu (") wewnątrz wartości tekstowych (np. żeby coś zacytować lub wyróżnić). Jeśli chcesz wyróżnić słowo, użyj pojedynczego apostrofu (') albo po prostu go nie wyróżniaj — cudzysłów w wartości łamie format JSON.`;
 
   try {
     for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
@@ -2894,10 +2895,12 @@ WAŻNE:
       const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
       if (first === -1) throw new Error(`Brak JSON w części ${chunkIdx+1}`);
       let jsonStr = raw.substring(first, last+1);
+      jsonStr = jsonStr.replace(/[\u0000-\u001F\u007F]/g, ' '); // usuń control chars
+      jsonStr = repairJsonInternalQuotes(jsonStr); // napraw niezeskejpowane cudzysłowy wewnątrz wartości
       let chunkPlan;
       try { chunkPlan = JSON.parse(jsonStr); }
       catch(e) {
-        let rep = jsonStr.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/,\s*([}\]])/g, '$1');
+        let rep = jsonStr.replace(/,\s*([}\]])/g, '$1');
         rep = rep.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
         const o = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
         const b = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
@@ -4263,7 +4266,7 @@ Stwórz pełnowartościowy posiłek. JSON:
     const data = await resp.json();
     if(data.error) throw new Error(data.error.message);
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const recipe = JSON.parse(raw);
+    const recipe = JSON.parse(repairJsonInternalQuotes(raw));
 
     resultEl.innerHTML = `
       <div style="background:var(--bg3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;">
@@ -5198,7 +5201,7 @@ TYLKO JSON.`;
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const result = JSON.parse(raw);
+    const result = JSON.parse(repairJsonInternalQuotes(raw));
     baRenderResult(result, name);
   } catch(e) {
     document.getElementById('ba-analyzing').style.display = 'none';
@@ -6875,7 +6878,7 @@ async function vaAnalyze() {
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const r = JSON.parse(raw);
+    const r = JSON.parse(repairJsonInternalQuotes(raw));
     vaRenderResult(r, exercise);
   } catch(e) {
     resultEl.style.display = 'block';
@@ -7222,6 +7225,50 @@ function renderKnowledgeBase(){const list=document.getElementById('kb-list');if(
 async function addYouTube(){const url=document.getElementById('yt-url').value.trim();if(!url||url.length<20){alert('Wklej transkrypcję (minimum 20 znaków)!');return;}const status=document.getElementById('yt-status');status.style.display='block';status.textContent='⏳ Tworzę notatki...';try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:`Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:\n\n${url}`}]})});const data=await resp.json();const text=data.content?.[0]?.text||'';if(!text)throw new Error('Brak odpowiedzi');addToKnowledgeBase('YouTube: notatki',text);status.textContent='✅ Dodano do bazy wiedzy!';document.getElementById('yt-url').value='';setTimeout(()=>{status.style.display='none';},3000);}catch(e){status.textContent='❌ Błąd. Spróbuj ponownie.';}}
 
 // CHAT
+// Naprawia niezeskejpowane cudzysłowy WEWNĄTRZ wartości stringów JSON (typowy błąd AI: "opis": "to jest "ważne" słowo")
+// Działa bezpiecznie na poprawnym JSON-ie (nie zmienia go), bo prawidłowy zamykający cudzysłów
+// jest ZAWSZE bezpośrednio (po opcjonalnej białej spacji) przed: , } ] : lub końcem tekstu.
+function repairJsonInternalQuotes(str) {
+  let result = '';
+  let inString = false;
+  const n = str.length;
+  let i = 0;
+  while (i < n) {
+    const ch = str[i];
+    if (inString && ch === '\\') {
+      result += ch + (str[i+1] !== undefined ? str[i+1] : '');
+      i += 2;
+      continue;
+    }
+    if (ch === '"') {
+      if (!inString) {
+        inString = true;
+        result += ch;
+        i++;
+        continue;
+      }
+      // jesteśmy w środku stringa i trafiliśmy na cudzysłów — sprawdź czy to prawdziwy koniec
+      let j = i + 1;
+      while (j < n && /\s/.test(str[j])) j++;
+      const nextCh = str[j];
+      const isRealCloser = (j >= n) || nextCh === ',' || nextCh === '}' || nextCh === ']' || nextCh === ':';
+      if (isRealCloser) {
+        inString = false;
+        result += ch;
+        i++;
+      } else {
+        // to jest wewnętrzny, "osierocony" cudzysłów — zeskejpuj go i pozostań w stringu
+        result += '\\"';
+        i++;
+      }
+      continue;
+    }
+    result += ch;
+    i++;
+  }
+  return result;
+}
+
 async function callAPI(system, userMsg, maxTokens) {
   const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
     method: 'POST',
@@ -7239,6 +7286,7 @@ async function callAPI(system, userMsg, maxTokens) {
   jsonStr = jsonStr
     .replace(/[\u0000-\u001F\u007F]/g, ' ') // usuń control chars
     .replace(/,\s*([}\]])/g, '$1');          // trailing commas
+  jsonStr = repairJsonInternalQuotes(jsonStr); // napraw niezeskejpowane cudzysłowy wewnątrz wartości
 
   try { return JSON.parse(jsonStr); }
   catch(e) {
@@ -7425,7 +7473,7 @@ function buildPlanPrompt(weeks) {
   const wuEx = `[{"name":"Krążenia bioder","emoji":"🔄","sets":"2x","reps":"10","note":"mobilizacja"}]`;
 
   return `Elitarny AI Coach (NSCA CSCS). Wygeneruj plan ${weeks} tyg. Metoda progresji: ${progLabel}.
-TYLKO czysty JSON bez markdown.
+TYLKO czysty JSON bez markdown. ZAKAZ BEZWZGLĘDNY: nigdy nie używaj znaku cudzysłowu (") wewnątrz wartości tekstowych (pól notes, opisów itp.) — jeśli chcesz coś wyróżnić, użyj apostrofu (') lub pisz bez wyróżnienia. Cudzysłów w wartości łamie format JSON.
 
 FORMAT:
 {"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi","notes":"Uwagi techniczne / wyjaśnienie metody",${wEx}}]}]}

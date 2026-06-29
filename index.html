@@ -1364,6 +1364,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
       <div class="ba-step" id="ba-st3" onclick="baGoStep(3)">3 · Analiza AI</div>
     </div>
     <div class="ba-pane active" id="ba-pane1">
+      <div id="ba-corrective-status" style="display:none;"></div>
       <div class="ba-title">ZDJĘCIA DO ANALIZY</div>
       <div class="ba-sub">Wgraj zdjęcia klienta w dobrym oświetleniu — przód, bok i/lub tył.</div>
       <div class="ba-photo-grid">
@@ -1450,6 +1451,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--ps-gold);">SKŁAD CIAŁA & POSTĘPY</div>
     <div id="meas-client-tag" style="font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 9px;"></div>
     <button onclick="openAddMeasurement()" style="margin-left:auto;background:var(--ps-gold);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Dodaj pomiar</button>
+    <button onclick="openProgressReport()" style="background:linear-gradient(135deg,#0d0d0d,var(--ac));border:none;border-radius:8px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📄 Raport progresu</button>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
     <button class="meas-chart-btn active" onclick="measSwitchChart('waga',this)">⚖️ Waga & tłuszcz</button>
@@ -1534,9 +1536,17 @@ button:disabled{opacity:.5;cursor:not-allowed;}
         <div class="meas-fg"><label>Biceps prawy (cm)</label><input type="number" id="mf-bicep-r" placeholder="34" step="0.5"></div>
       </div>
       <div class="meas-fg" style="margin-top:8px;"><label>Notatki do pomiaru</label><textarea id="mf-notes" rows="2" placeholder="np. Po wakacjach, wrócił do treningów..."></textarea></div>
+      <div class="meas-section-label" style="margin-top:16px;">📸 ZDJĘCIE (OPCJONALNIE — DO RAPORTU PRZED/PO)</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div id="mf-photo-preview" style="width:60px;height:80px;border-radius:8px;background:var(--bg3);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--tx3);overflow:hidden;flex-shrink:0;">📷</div>
+        <div style="flex:1;">
+          <input type="file" accept="image/*" id="mf-photo" onchange="mfPhotoPreview(this)" style="font-size:11px;color:var(--tx2);width:100%;">
+          <div style="font-size:9px;color:var(--tx3);margin-top:3px;">Zdjęcie przód, w tym samym ujęciu co poprzednio — pojawi się w Raporcie progresu jako porównanie przed/po</div>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
         <button onclick="closeMeasModal()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 20px;color:var(--tx2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Anuluj</button>
-        <button onclick="saveMeasurement()" style="flex:1;background:var(--ps-gold);border:none;border-radius:8px;padding:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">💾 Zapisz pomiar</button>
+        <button onclick="measSave()" style="flex:1;background:var(--ps-gold);border:none;border-radius:8px;padding:10px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">💾 Zapisz pomiar</button>
       </div>
     </div>
   </div>
@@ -1928,6 +1938,26 @@ function getKnowledgeContext(){
 function getKBImages(){return knowledgeBase.filter(d=>d.type==='image' && d.content && d.content.startsWith('[IMAGE]'));}
 
 // Skrócony profil tylko z danymi klucznymi dla planu treningowego
+// Zwraca kontekst priorytetów korekcyjnych (z analizy zdjęć 📸 Sylwetka) do wstrzyknięcia w prompt AI
+function getCorrectivePlanContext(name) {
+  const clientName = name || document.getElementById('client-name')?.value || 'klient';
+  const key = 'ba_corrective_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || 'null');
+    const plan = saved?.plan;
+    if (!plan || !plan.length) return '';
+    let ctx = '\n\nPRIORYTETY KOREKCYJNE Z ANALIZY ZDJĘĆ (📸 Sylwetka AI):';
+    plan.forEach(c => {
+      ctx += `\n- ${c.issue || ''} (partia: ${c.muscle_group || '–'}, waga: ${c.severity || '–'})`;
+      if (c.priority_exercises?.length) {
+        ctx += ` → priorytetowo uwzględnij: ${c.priority_exercises.map(e=>e.name).join(', ')}`;
+      }
+    });
+    ctx += '\nZASADA: Wpleć powyższe ćwiczenia korekcyjne w plan jako priorytet dla wskazanych partii, nie usuwaj ich na rzecz innych ćwiczeń.';
+    return ctx;
+  } catch(e) { return ''; }
+}
+
 function getClientProfileShort() {
   const name = document.getElementById('client-name')?.value || '';
   if (!name) return '';
@@ -1996,6 +2026,7 @@ function getClientProfileShort() {
 
   const limits = document.getElementById('client-limits')?.value;
   if(limits) p += `\nOgraniczenia: ${limits.substring(0,100)}`;
+  p += getCorrectivePlanContext(name);
   p += '\n===KONIEC===';
   return p;
 }
@@ -2204,6 +2235,7 @@ function getClientProfile(){
     }
   }
 
+  p+=getCorrectivePlanContext(name);
   p+='\n===KONIEC PROFILU===';
   return p;
 }
@@ -2733,7 +2765,8 @@ WARZYWA: brokuł, szpinak, papryka, ogórek, pomidor, marchew, cukinia, pieczark
 OWOCE: banan (po treningu – szybkie węgle), jabłko, borówki, truskawki, maliny
 
 Odpowiadasz WYŁĄCZNIE czystym JSON bez markdown.
-Wszystkie nazwy produktów i potraw po POLSKU.`;
+Wszystkie nazwy produktów i potraw po POLSKU.
+ZAKAZ BEZWZGLĘDNY: nigdy nie używaj znaku cudzysłowu (") wewnątrz wartości tekstowych (np. żeby coś zacytować lub wyróżnić). Jeśli chcesz wyróżnić słowo, użyj pojedynczego apostrofu (') albo po prostu go nie wyróżniaj — cudzysłów w wartości łamie format JSON.`;
 
   try {
     for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
@@ -2871,10 +2904,12 @@ WAŻNE:
       const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');
       if (first === -1) throw new Error(`Brak JSON w części ${chunkIdx+1}`);
       let jsonStr = raw.substring(first, last+1);
+      jsonStr = jsonStr.replace(/[\u0000-\u001F\u007F]/g, ' '); // usuń control chars
+      jsonStr = repairJsonInternalQuotes(jsonStr); // napraw niezeskejpowane cudzysłowy wewnątrz wartości
       let chunkPlan;
       try { chunkPlan = JSON.parse(jsonStr); }
       catch(e) {
-        let rep = jsonStr.replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/,\s*([}\]])/g, '$1');
+        let rep = jsonStr.replace(/,\s*([}\]])/g, '$1');
         rep = rep.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
         const o = (rep.match(/\[/g)||[]).length - (rep.match(/\]/g)||[]).length;
         const b = (rep.match(/\{/g)||[]).length - (rep.match(/\}/g)||[]).length;
@@ -4240,7 +4275,7 @@ Stwórz pełnowartościowy posiłek. JSON:
     const data = await resp.json();
     if(data.error) throw new Error(data.error.message);
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const recipe = JSON.parse(raw);
+    const recipe = JSON.parse(repairJsonInternalQuotes(raw));
 
     resultEl.innerHTML = `
       <div style="background:var(--bg3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;">
@@ -5111,12 +5146,27 @@ async function baStartAnalysis() {
   });
 
   const hasPhotos = photoContent.length > 0;
-  const textPrompt = `Jesteś ekspertem oceny sylwetki i składu ciała (NSCA, certyfikowany trener).
+  const textPrompt = `Jesteś ekspertem oceny sylwetki i korekcji posturalnej (NSCA CSCS, certyfikowany trener, wiedza z kinezjologii klinicznej i fizjoterapii sportowej).
   
 Klient: ${name}, ${age} lat, ${gender}, waga: ${weight}kg, wzrost: ${height}cm
 Cel: ${baCurrentGoal}, poziom: ${level}${measurements}
 
-${hasPhotos ? 'Przeanalizuj zdjęcia i' : 'Na podstawie danych'} oceń sylwetkę i odpowiedz w języku polskim w formacie JSON:
+${hasPhotos ? 'Przeanalizuj zdjęcia i' : 'Na podstawie danych'} oceń sylwetkę.
+
+===PLAN KOREKCYJNY (KLUCZOWE ZADANIE)===
+${hasPhotos
+  ? 'Jeśli na zdjęciach widzisz WADY POSTAWY (np. zaokrąglone barki/wysunięta głowa, hiperkifoza, hiperlordoza/przodopochylenie miednicy, koślawość kolan, asymetria barków lub bioder, odstające łopatki) LUB DYSPROPORCJE MIĘŚNIOWE (np. niedorozwinięte plecy względem klatki, słabe pośladki względem ud, widoczna asymetria lewa/prawa) — dla KAŻDEGO wykrytego problemu wskaż PRIORYTETOWE ćwiczenia korekcyjne.'
+  : 'Bez zdjęć: na bazie typu budowy, celu i poziomu wskaż typowe dla takiego profilu ryzyka dysproporcji i podaj ćwiczenia profilaktyczne.'}
+
+Rekomendacje opieraj WYŁĄCZNIE na uznanych, ugruntowanych ramach naukowych z biomechaniki i fizjoterapii sportowej, np.:
+- Upper/Lower Crossed Syndrome (Vladimir Janda) — wzorce zaokrąglonych barków, przodopochylenia miednicy
+- Movement System Impairment (Shirley Sahrmann) — kompensacje ruchowe i dominacje stawowe
+- Stuart McGill — biomechanika i stabilizacja odcinka lędźwiowego kręgosłupa
+- NASM Corrective Exercise Continuum — inhibicja → rozciąganie → aktywacja → integracja
+- Zasady hipertrofii kierunkowej i objętości (Schoenfeld, Israetel) — przy korekcie dysproporcji wielkości mięśni
+NIE wymyślaj konkretnych numerów badań/cytatów PubMed — odnoś się do nazwisk i nazw uznanych koncepcji/metodyk wymienionych wyżej, bez fabrykowania szczegółowych cytowań.
+
+Odpowiedz w języku polskim w formacie JSON:
 {
   "overall_score": number (1-10),
   "body_fat_estimate": "string (np. '15-18%')",
@@ -5126,11 +5176,25 @@ ${hasPhotos ? 'Przeanalizuj zdjęcia i' : 'Na podstawie danych'} oceń sylwetkę
   "posture_notes": "string (uwagi o postawie jeśli widoczne na zdjęciach)",
   "muscle_balance": "string (ocena balansu mięśniowego)",
   "priority_muscles": ["string", "string", "string"],
+  "corrective_exercise_plan": [
+    {
+      "issue": "string — nazwa wykrytej wady postawy lub dysproporcji",
+      "issue_type": "postawa lub dysproporcja",
+      "muscle_group": "string — partia mięśniowa której dotyczy",
+      "severity": "niski lub średni lub wysoki",
+      "framework": "string — nazwa koncepcji naukowej, na której bazujesz (z listy wyżej)",
+      "explanation": "string — krótkie wyjaśnienie biomechaniczne, max 140 znaków",
+      "priority_exercises": [
+        {"name":"string","sets":"3x12","focus":"string — cel ćwiczenia, max 60 znaków"}
+      ]
+    }
+  ],
   "training_recommendations": ["string", "string", "string"],
   "diet_recommendations": ["string", "string"],
   "weekly_plan_suggestion": "string",
   "motivation_note": "string (krótka motywacja dla klienta)"
 }
+Jeśli nie wykryto żadnych wad postawy/dysproporcji, zwróć "corrective_exercise_plan": [].
 TYLKO JSON.`;
 
   const messages = hasPhotos
@@ -5141,12 +5205,12 @@ TYLKO JSON.`;
     const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6', max_tokens:2000, messages})
+      body:JSON.stringify({model:'claude-sonnet-4-6', max_tokens:2800, messages})
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const result = JSON.parse(raw);
+    const result = JSON.parse(repairJsonInternalQuotes(raw));
     baRenderResult(result, name);
   } catch(e) {
     document.getElementById('ba-analyzing').style.display = 'none';
@@ -5188,6 +5252,35 @@ function baRenderResult(r, name) {
     ${r.posture_notes ? `<div style="background:rgba(250,168,85,0.08);border-left:3px solid #FAA855;border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;color:var(--tx2);margin-bottom:8px;"><strong style="color:#FAA855;">🦴 Postawa:</strong> ${r.posture_notes}</div>` : ''}
     ${r.muscle_balance ? `<div style="background:rgba(201,168,76,0.08);border-left:3px solid var(--bl);border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;color:var(--tx2);margin-bottom:8px;"><strong style="color:var(--ps-gold);">⚖️ Balans mięśniowy:</strong> ${r.muscle_balance}</div>` : ''}
 
+    ${r.corrective_exercise_plan?.length ? `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--ac);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">🎯 Plan korekcyjny — priorytetowe ćwiczenia</div>
+      ${r.corrective_exercise_plan.map(c => {
+        const sev = (c.severity||'').toLowerCase();
+        const sevColor = sev==='wysoki' ? 'var(--ac)' : sev==='niski' ? 'var(--gr)' : '#FAA855';
+        const typeIcon = (c.issue_type||'').toLowerCase().includes('dyspro') ? '⚖️' : '🦴';
+        return `<div style="background:var(--bg3);border:1px solid var(--border);border-left:3px solid ${sevColor};border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:600;color:var(--tx);">${typeIcon} ${c.issue||''}</div>
+            <span style="font-size:9px;background:rgba(255,255,255,0.06);border:1px solid ${sevColor};border-radius:10px;padding:1px 7px;color:${sevColor};font-family:'DM Mono',monospace;white-space:nowrap;">${(c.severity||'').toUpperCase()}</span>
+          </div>
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:5px;">Partia: ${c.muscle_group||'–'}</div>
+          ${c.explanation ? `<div style="font-size:11px;color:var(--tx2);line-height:1.5;margin-bottom:6px;">${c.explanation}</div>` : ''}
+          ${(c.priority_exercises||[]).length ? `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px;">
+            ${c.priority_exercises.map(ex => `<div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:6px 9px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:11px;font-weight:500;color:var(--tx);">${ex.name||''}</span>
+                <span style="font-size:10px;color:var(--ac);font-family:'DM Mono',monospace;">${ex.sets||''}</span>
+              </div>
+              ${ex.focus?`<div style="font-size:9px;color:var(--tx3);margin-top:2px;">${ex.focus}</div>`:''}
+            </div>`).join('')}
+          </div>` : ''}
+          ${c.framework ? `<div style="font-size:9px;color:var(--ps-gold);font-style:italic;">📚 ${c.framework}</div>` : ''}
+        </div>`;
+      }).join('')}
+      <button onclick="baApplyCorrectivePlan(${JSON.stringify(r.corrective_exercise_plan).replace(/"/g,'&quot;')}, '${name.replace(/'/g,'')}')" style="width:100%;margin-top:4px;background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.25);border-radius:8px;padding:8px;color:var(--ac);font-size:11px;font-weight:600;cursor:pointer;">📋 Zastosuj w generatorze planu treningowego</button>
+    </div>` : ''}
+
     ${r.priority_muscles?.length ? `<div style="margin-bottom:8px;"><div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">🎯 Priorytety treningowe</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.priority_muscles.map(m=>`<span style="background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--ac);">${m}</span>`).join('')}</div></div>` : ''}
 
     <div style="margin-bottom:8px;">
@@ -5217,6 +5310,28 @@ function baSaveAnalysisResult(result, name) {
   btn.textContent = '✓ Zapisano!';
   setTimeout(() => btn.textContent = '💾 Zapisz raport', 2000);
 }
+
+// Zapisuje plan korekcyjny tak, żeby generator planu treningowego (i chat AI Coach)
+// automatycznie uwzględniał priorytetowe ćwiczenia z analizy zdjęć danego klienta.
+function baApplyCorrectivePlan(plan, name) {
+  const clientName = name || document.getElementById('client-name')?.value || 'klient';
+  const key = 'ba_corrective_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  try {
+    localStorage.setItem(key, JSON.stringify({ plan, date: new Date().toISOString() }));
+  } catch(e) {}
+  baShowCorrectiveStatus(clientName);
+  const btn = event.target;
+  const oldText = btn.textContent;
+  const oldBg = btn.style.background, oldBorder = btn.style.borderColor, oldColor = btn.style.color;
+  btn.textContent = '✓ Zastosowano — AI uwzględni to w kolejnym planie';
+  btn.style.background = 'rgba(74,222,128,0.15)';
+  btn.style.borderColor = 'rgba(74,222,128,0.3)';
+  btn.style.color = 'var(--gr)';
+  setTimeout(() => {
+    btn.textContent = oldText;
+    btn.style.background = oldBg; btn.style.borderColor = oldBorder; btn.style.color = oldColor;
+  }, 3500);
+}
 // ===== END BODY ASSESSMENT CORE =====
 
 // ===== BODY ASSESSMENT - POMIARY I HISTORIA =====
@@ -5240,6 +5355,32 @@ function openBodyAssessment() {
   if (age) document.getElementById('ba-age').value = age;
   if (weight) document.getElementById('ba-weight').value = weight;
   if (height) document.getElementById('ba-height').value = height;
+  baShowCorrectiveStatus(name);
+}
+
+// Pokazuje baner z liczbą aktywnych priorytetów korekcyjnych (jeśli zapisano je wcześniej dla tego klienta)
+function baShowCorrectiveStatus(name) {
+  const el = document.getElementById('ba-corrective-status');
+  if (!el) return;
+  const clientName = name || document.getElementById('client-name')?.value || 'klient';
+  const key = 'ba_corrective_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || 'null');
+    const plan = saved?.plan;
+    if (!plan || !plan.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = 'block';
+    el.innerHTML = `<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:9px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="font-size:11px;color:var(--gr);">✅ Aktywny plan korekcyjny: <strong>${plan.length}</strong> ${plan.length===1?'priorytet':'priorytetów'} — generator planu treningowego je uwzględni</div>
+      <button onclick="baClearCorrectivePlan('${clientName.replace(/'/g,'')}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--tx3);font-size:10px;cursor:pointer;white-space:nowrap;">✕ Wyczyść</button>
+    </div>`;
+  } catch(e) { el.style.display = 'none'; }
+}
+
+function baClearCorrectivePlan(name) {
+  const clientName = name || document.getElementById('client-name')?.value || 'klient';
+  const key = 'ba_corrective_' + clientName.toLowerCase().replace(/\s+/g,'_');
+  localStorage.removeItem(key);
+  baShowCorrectiveStatus(clientName);
 }
 
 function baSaveMeasurements() {
@@ -6327,6 +6468,11 @@ function openAddMeasurement() {
   // Ustaw dzisiejszą datę
   const dateEl = document.getElementById('mf-date');
   if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  mfPhotoBase64 = null;
+  const photoInput = document.getElementById('mf-photo');
+  if (photoInput) photoInput.value = '';
+  const photoPrev = document.getElementById('mf-photo-preview');
+  if (photoPrev) photoPrev.innerHTML = '📷';
   modal.style.display = 'block';
 }
 
@@ -6340,6 +6486,19 @@ function measGetKey() {
   return 'meas_' + name.toLowerCase().replace(/\s+/g,'_');
 }
 
+let mfPhotoBase64 = null;
+function mfPhotoPreview(input) {
+  const file = input.files[0];
+  if (!file) { mfPhotoBase64 = null; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    mfPhotoBase64 = e.target.result;
+    const prev = document.getElementById('mf-photo-preview');
+    if (prev) prev.innerHTML = `<img src="${mfPhotoBase64}" style="width:100%;height:100%;object-fit:cover;">`;
+  };
+  reader.readAsDataURL(file);
+}
+
 function measSave() {
   const m = {
     date: document.getElementById('mf-date')?.value || new Date().toISOString().split('T')[0],
@@ -6351,6 +6510,8 @@ function measSave() {
     muscleKg: parseFloat(document.getElementById('mf-muscle-kg')?.value) || null,
     boneKg: parseFloat(document.getElementById('mf-bone-kg')?.value) || null,
     waterPct: parseFloat(document.getElementById('mf-water-pct')?.value) || null,
+    bmr: parseFloat(document.getElementById('mf-bmr')?.value) || null,
+    metAge: parseFloat(document.getElementById('mf-met-age')?.value) || null,
     visceralFat: parseFloat(document.getElementById('mf-visceral')?.value) || null,
     neck: parseFloat(document.getElementById('mf-neck')?.value) || null,
     chest: parseFloat(document.getElementById('mf-chest')?.value) || null,
@@ -6358,17 +6519,22 @@ function measSave() {
     hips: parseFloat(document.getElementById('mf-hips')?.value) || null,
     thighL: parseFloat(document.getElementById('mf-thigh-l')?.value) || null,
     thighR: parseFloat(document.getElementById('mf-thigh-r')?.value) || null,
-    armL: parseFloat(document.getElementById('mf-arm-l')?.value) || null,
-    armR: parseFloat(document.getElementById('mf-arm-r')?.value) || null,
-    calf: parseFloat(document.getElementById('mf-calf')?.value) || null,
+    armL: parseFloat(document.getElementById('mf-bicep-l')?.value) || null,
+    armR: parseFloat(document.getElementById('mf-bicep-r')?.value) || null,
+    calfL: parseFloat(document.getElementById('mf-calf-l')?.value) || null,
+    calfR: parseFloat(document.getElementById('mf-calf-r')?.value) || null,
     notes: document.getElementById('mf-notes')?.value || '',
-    photos: []
+    photo: mfPhotoBase64 || null
   };
 
   const key = measGetKey();
   const data = JSON.parse(localStorage.getItem(key) || '[]');
   const idx = data.findIndex(d => d.date === m.date);
-  if (idx >= 0) data[idx] = m; else data.push(m);
+  if (idx >= 0) {
+    // Nie zgubmy wcześniej zapisanego zdjęcia, jeśli przy edycji nie wybrano nowego
+    if (!m.photo && data[idx].photo) m.photo = data[idx].photo;
+    data[idx] = m;
+  } else data.push(m);
   data.sort((a,b) => new Date(a.date)-new Date(b.date));
   localStorage.setItem(key, JSON.stringify(data));
 
@@ -6573,6 +6739,236 @@ function measDelete(date) {
   localStorage.setItem(key, JSON.stringify(data));
   measRefresh();
 }
+
+// Prosty, samodzielny wykres liniowy jako inline SVG (bez zależności, działa w nowym oknie/druku)
+function miniSvgLineChart(values, dateLabels, color, opts) {
+  opts = opts || {};
+  const w = opts.width || 600, h = opts.height || 130, pad = 30;
+  const idxValid = values.map((v,i)=>({v,i})).filter(p=>p.v!=null && !isNaN(p.v));
+  if (idxValid.length < 2) {
+    return `<div style="font-size:11px;color:#999;text-align:center;padding:30px 10px;">Za mało danych do wykresu (potrzeba min. 2 pomiarów)</div>`;
+  }
+  const vs = idxValid.map(p=>p.v);
+  const min = Math.min(...vs), max = Math.max(...vs);
+  const range = (max - min) || 1;
+  const n = values.length;
+  const stepX = n > 1 ? (w - pad*2) / (n-1) : 0;
+  const pts = values.map((v,i) => {
+    if (v == null || isNaN(v)) return null;
+    const x = pad + i*stepX;
+    const y = h - pad - ((v - min)/range) * (h - pad*2);
+    return {x, y, v};
+  });
+  const validPts = pts.filter(Boolean);
+  const pathD = validPts.map((p,i)=> (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  const areaD = pathD + ` L${validPts[validPts.length-1].x.toFixed(1)},${(h-pad).toFixed(1)} L${validPts[0].x.toFixed(1)},${(h-pad).toFixed(1)} Z`;
+  const gradId = 'grad' + color.replace('#','');
+  const dots = validPts.map((p, idx) => {
+    const isEdge = idx === 0 || idx === validPts.length - 1;
+    if (!isEdge) return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${color}" opacity="0.55"/>`;
+    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="${color}"/>
+      <text x="${p.x.toFixed(1)}" y="${(p.y - 11).toFixed(1)}" font-size="12" font-weight="700" fill="${color}" text-anchor="${idx===0?'start':'end'}" font-family="DM Mono, monospace">${p.v}${opts.unit||''}</text>`;
+  }).join('');
+  const firstLabel = dateLabels[idxValid[0].i] || '';
+  const lastLabel = dateLabels[idxValid[idxValid.length-1].i] || '';
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block;overflow:visible;">
+    <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${color}" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${areaD}" fill="url(#${gradId})" stroke="none"/>
+    <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5"/>
+    ${dots}
+    <text x="${pad}" y="${h-4}" font-size="9" fill="#999" font-family="DM Mono, monospace">${firstLabel}</text>
+    <text x="${w-pad}" y="${h-4}" font-size="9" fill="#999" text-anchor="end" font-family="DM Mono, monospace">${lastLabel}</text>
+  </svg>`;
+}
+
+// ===== RAPORT PROGRESU KLIENTA (PDF: pomiary + zdjęcia przed/po + progres siłowy + logo) =====
+function openProgressReport() {
+  const name = document.getElementById('client-name')?.value || 'Klient';
+  const goal = document.getElementById('client-goal')?.value || '';
+  const history = measLoad();
+
+  if (!history.length) {
+    alert('Brak zapisanych pomiarów dla tego klienta.\n\nDodaj przynajmniej 2 pomiary (przycisk "+ Dodaj pomiar"), żeby wygenerować raport progresu.');
+    return;
+  }
+  if (history.length < 2) {
+    alert('Masz tylko 1 zapisany pomiar.\n\nRaport progresu pokazuje zmianę w czasie — dodaj jeszcze przynajmniej jeden pomiar (np. po kilku tygodniach), żeby zobaczyć porównanie.');
+    return;
+  }
+
+  const first = history[0];
+  const last = history[history.length-1];
+  const weeks = Math.max(1, Math.round((new Date(last.date) - new Date(first.date)) / (7*24*3600*1000)));
+
+  // Zdjęcia przed/po
+  const withPhoto = history.filter(h => h.photo);
+  const photoBefore = withPhoto[0] || null;
+  const photoAfter = (withPhoto.length > 1) ? withPhoto[withPhoto.length-1] : null;
+  const hasPhotoPair = !!(photoBefore && photoAfter && photoBefore.date !== photoAfter.date);
+
+  // Progres siłowy z dziennika treningowego (Trening Live)
+  const logKey = 'tl_log_' + name.toLowerCase().replace(/\s+/g,'_');
+  let log = {};
+  try { log = JSON.parse(localStorage.getItem(logKey) || '{}'); } catch(e) {}
+  const e1rmOf = sets => Math.max(0, ...(sets||[]).map(s => (s.kg||0) * (1 + (s.reps||0)/30)));
+  const strength = Object.entries(log).map(([ex, sessions]) => {
+    if (!sessions || !sessions.length) return null;
+    const sorted = [...sessions].sort((a,b)=> new Date(a.date) - new Date(b.date));
+    const firstE1rm = e1rmOf(sorted[0].sets);
+    const lastE1rm = e1rmOf(sorted[sorted.length-1].sets);
+    if (!firstE1rm || !lastE1rm || sorted.length < 2) return null;
+    return { name: ex, first: firstE1rm, last: lastE1rm, delta: +(lastE1rm-firstE1rm).toFixed(1), sessions: sorted.length };
+  }).filter(Boolean).sort((a,b)=> b.delta - a.delta).slice(0, 6);
+
+  const dLabels = history.map(h => { const d=new Date(h.date); return d.getDate()+'.'+(d.getMonth()+1); });
+  const weights = history.map(h => h.weight);
+  const fats = history.map(h => h.fatPct);
+
+  const d2 = (a,b) => (a!=null && b!=null) ? +(a-b).toFixed(1) : null;
+  const dWeight = d2(last.weight, first.weight);
+  const dFat = d2(last.fatPct, first.fatPct);
+  const dMuscle = d2(last.muscleKg, first.muscleKg);
+  const dWaist = d2(last.waist, first.waist);
+  const dHips = d2(last.hips, first.hips);
+  const dArm = d2(last.armL, first.armL);
+  const dThigh = d2(last.thighL, first.thighL);
+
+  const weightGoalUp = goal.includes('masa');
+  const dirColor = (delta, betterIfDown) => {
+    if (delta == null || delta === 0) return '#888';
+    const better = betterIfDown ? delta < 0 : delta > 0;
+    return better ? '#1D9E75' : '#c0392b';
+  };
+  const arrow = (delta) => delta == null ? '' : (delta > 0 ? '▲' : delta < 0 ? '▼' : '—');
+
+  const metricCard = (icon, label, val, unit, delta, betterIfDown) => {
+    if (val == null) return '';
+    const col = dirColor(delta, betterIfDown);
+    return `<div style="background:#f8f9fa;border:1px solid #e8e8e8;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${icon} ${label}</div>
+      <div style="font-size:22px;font-weight:700;color:#1a1a1a;">${val}${unit}</div>
+      ${delta != null ? `<div style="font-size:11px;font-weight:600;color:${col};margin-top:2px;">${arrow(delta)} ${delta>0?'+':''}${delta}${unit}</div>` : '<div style="font-size:10px;color:#aaa;">brak por.</div>'}
+    </div>`;
+  };
+
+  const circRow = (label, f, l, delta) => {
+    if (f == null && l == null) return '';
+    return `<tr><td style="padding:6px 10px;color:#444;">${label}</td>
+      <td style="padding:6px 10px;text-align:center;color:#888;">${f ?? '–'} cm</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:600;color:#1a1a1a;">${l ?? '–'} cm</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:600;color:${delta==null?'#888':(delta<0?'#1D9E75':'#c0392b')};">${delta==null?'–':(delta>0?'+':'')+delta+' cm'}</td></tr>`;
+  };
+
+  const w = window.open('', '_blank');
+  let h = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Raport Progresu – ${name}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',Arial,sans-serif;color:#1a1a1a;background:#fff;font-size:12px;line-height:1.5;}
+  .page{max-width:820px;margin:0 auto;padding:24px;}
+  .header{background:linear-gradient(135deg,#0d0d0d 0%,#e8302a 100%);color:white;padding:26px 28px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+  .header-logo{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:4px;}
+  .header-logo span{color:#c9a84c;}
+  .header-sub{font-size:11px;opacity:.85;margin-top:2px;letter-spacing:1px;text-transform:uppercase;}
+  .header-meta{text-align:right;}
+  .header-client{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#c9a84c;}
+  .header-period{font-size:11px;opacity:.9;margin-top:4px;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#e8302a;border-bottom:2px solid #c9a84c;padding-bottom:6px;margin:22px 0 12px;}
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px;}
+  .photo-box{border-radius:10px;overflow:hidden;border:1px solid #e8e8e8;background:#f8f9fa;}
+  .photo-box img{width:100%;height:340px;object-fit:cover;display:block;}
+  .photo-label{background:#0d0d0d;color:white;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;padding:7px;}
+  .photo-label.after{background:#e8302a;}
+  .chart-card{background:#f8f9fa;border:1px solid #e8e8e8;border-radius:10px;padding:14px;margin-bottom:10px;}
+  .chart-title{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;font-family:'DM Mono',monospace;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{background:#f0f0f0;padding:6px 10px;text-align:center;font-weight:600;color:#444;border-bottom:2px solid #ddd;font-size:9px;text-transform:uppercase;}
+  th:first-child{text-align:left;}
+  tr:nth-child(even){background:#fafafa;}
+  .note-box{background:#fdf2f1;border-left:3px solid #e8302a;border-radius:0 8px 8px 0;padding:10px 12px;font-size:11px;color:#555;margin-bottom:10px;line-height:1.6;}
+  .footer{margin-top:26px;padding-top:12px;border-top:2px solid #e8302a;font-size:9px;color:#999;display:flex;align-items:center;justify-content:space-between;}
+  .footer-logo{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:#e8302a;}
+  .footer-logo span{color:#c9a84c;}
+  .print-btn{background:linear-gradient(135deg,#0d0d0d,#e8302a);color:white;border:none;border-radius:8px;padding:10px 30px;font-size:13px;font-weight:700;cursor:pointer;display:block;margin:22px auto;font-family:'DM Sans',sans-serif;}
+  @media print{.print-btn{display:none!important;}body{padding:0;}.page{padding:14px;}}
+</style></head><body><div class="page">
+
+  <div class="header">
+    <div>
+      <div class="header-logo">PROGRESS<span> STUDIO</span></div>
+      <div class="header-sub">Raport Progresu Klienta · AI Coach v2.0</div>
+    </div>
+    <div class="header-meta">
+      <div class="header-client">${name.toUpperCase()}</div>
+      <div class="header-period">${weeks} ${weeks===1?'tydzień':'tygodni'} współpracy</div>
+      <div class="header-period">${first.date} → ${last.date}</div>
+    </div>
+  </div>
+
+  <div class="section-title">📊 Podsumowanie zmian</div>
+  <div class="metric-grid">
+    ${metricCard('⚖️','Waga', last.weight, ' kg', dWeight, !weightGoalUp)}
+    ${metricCard('🔥','Tkanka tłuszczowa', last.fatPct, '%', dFat, true)}
+    ${metricCard('💪','Masa mięśniowa', last.muscleKg, ' kg', dMuscle, false)}
+    ${metricCard('📏','Talia', last.waist, ' cm', dWaist, true)}
+  </div>
+
+  <div class="section-title">📸 Zdjęcia — porównanie</div>
+  ${hasPhotoPair ? `
+  <div class="photo-grid">
+    <div class="photo-box"><img src="${photoBefore.photo}"><div class="photo-label">PRZED · ${photoBefore.date}</div></div>
+    <div class="photo-box"><img src="${photoAfter.photo}"><div class="photo-label after">TERAZ · ${photoAfter.date}</div></div>
+  </div>` : `<div class="note-box">📷 Brak pary zdjęć do porównania. Dodaj zdjęcie podczas zapisywania pomiaru (pole "Zdjęcie" w oknie "+ Dodaj pomiar") — przy minimum 2 pomiarach ze zdjęciem raport automatycznie pokaże porównanie przed/po.</div>`}
+
+  <div class="section-title">📈 Trendy</div>
+  <div class="chart-card">
+    <div class="chart-title">⚖️ WAGA CIAŁA (KG) — ${first.date} → ${last.date}</div>
+    ${miniSvgLineChart(weights, dLabels, '#e8302a', {unit:'kg'})}
+  </div>
+  ${fats.some(f=>f!=null) ? `<div class="chart-card">
+    <div class="chart-title">🔥 % TKANKI TŁUSZCZOWEJ — ${first.date} → ${last.date}</div>
+    ${miniSvgLineChart(fats, dLabels, '#c9a84c', {unit:'%'})}
+  </div>` : ''}
+
+  <div class="section-title">📐 Obwody ciała — pierwszy vs ostatni pomiar</div>
+  <table>
+    <tr><th>Obwód</th><th>Pierwszy (${first.date})</th><th>Ostatni (${last.date})</th><th>Zmiana</th></tr>
+    ${circRow('Talia', first.waist, last.waist, dWaist)}
+    ${circRow('Biodra', first.hips, last.hips, dHips)}
+    ${circRow('Ramię (biceps)', first.armL, last.armL, dArm)}
+    ${circRow('Udo', first.thighL, last.thighL, dThigh)}
+    ${circRow('Klatka piersiowa', first.chest, last.chest, d2(last.chest, first.chest))}
+  </table>
+
+  ${strength.length ? `
+  <div class="section-title">🏋️ Progres siłowy (e1RM)</div>
+  <table>
+    <tr><th>Ćwiczenie</th><th>Pierwsza sesja</th><th>Ostatnia sesja</th><th>Zmiana</th></tr>
+    ${strength.map(s => `<tr>
+      <td style="padding:6px 10px;color:#444;">${s.name}</td>
+      <td style="padding:6px 10px;text-align:center;color:#888;">${s.first.toFixed(1)} kg</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:600;color:#1a1a1a;">${s.last.toFixed(1)} kg</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:600;color:${s.delta>=0?'#1D9E75':'#c0392b'};">${s.delta>0?'+':''}${s.delta} kg</td>
+    </tr>`).join('')}
+  </table>` : `<div class="note-box">🏋️ Brak wystarczających danych treningowych (min. 2 sesje na ćwiczenie w module Trening Live) do pokazania progresu siłowego.</div>`}
+
+  <button class="print-btn" onclick="window.print()">🖨 Drukuj / Zapisz PDF</button>
+  <div class="footer">
+    <div class="footer-logo">PROGRESS<span> STUDIO</span></div>
+    <div>Raport wygenerowany ${new Date().toLocaleDateString('pl',{day:'2-digit',month:'long',year:'numeric'})}</div>
+    <div>Progress Studio Treningu Personalnego · Wrocław</div>
+  </div>
+
+</div></body></html>`;
+
+  w.document.write(h);
+  w.document.close();
+}
+// ===== END RAPORT PROGRESU =====
 // ===== END POMIARY =====
 
 // ===== 1. ANALIZA WIDEO AI =====
@@ -6746,7 +7142,7 @@ async function vaAnalyze() {
     const data = await resp.json();
     if (data.error) throw new Error(data.error.message);
     let raw = (data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const r = JSON.parse(raw);
+    const r = JSON.parse(repairJsonInternalQuotes(raw));
     vaRenderResult(r, exercise);
   } catch(e) {
     resultEl.style.display = 'block';
@@ -7093,6 +7489,50 @@ function renderKnowledgeBase(){const list=document.getElementById('kb-list');if(
 async function addYouTube(){const url=document.getElementById('yt-url').value.trim();if(!url||url.length<20){alert('Wklej transkrypcję (minimum 20 znaków)!');return;}const status=document.getElementById('yt-status');status.style.display='block';status.textContent='⏳ Tworzę notatki...';try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:`Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:\n\n${url}`}]})});const data=await resp.json();const text=data.content?.[0]?.text||'';if(!text)throw new Error('Brak odpowiedzi');addToKnowledgeBase('YouTube: notatki',text);status.textContent='✅ Dodano do bazy wiedzy!';document.getElementById('yt-url').value='';setTimeout(()=>{status.style.display='none';},3000);}catch(e){status.textContent='❌ Błąd. Spróbuj ponownie.';}}
 
 // CHAT
+// Naprawia niezeskejpowane cudzysłowy WEWNĄTRZ wartości stringów JSON (typowy błąd AI: "opis": "to jest "ważne" słowo")
+// Działa bezpiecznie na poprawnym JSON-ie (nie zmienia go), bo prawidłowy zamykający cudzysłów
+// jest ZAWSZE bezpośrednio (po opcjonalnej białej spacji) przed: , } ] : lub końcem tekstu.
+function repairJsonInternalQuotes(str) {
+  let result = '';
+  let inString = false;
+  const n = str.length;
+  let i = 0;
+  while (i < n) {
+    const ch = str[i];
+    if (inString && ch === '\\') {
+      result += ch + (str[i+1] !== undefined ? str[i+1] : '');
+      i += 2;
+      continue;
+    }
+    if (ch === '"') {
+      if (!inString) {
+        inString = true;
+        result += ch;
+        i++;
+        continue;
+      }
+      // jesteśmy w środku stringa i trafiliśmy na cudzysłów — sprawdź czy to prawdziwy koniec
+      let j = i + 1;
+      while (j < n && /\s/.test(str[j])) j++;
+      const nextCh = str[j];
+      const isRealCloser = (j >= n) || nextCh === ',' || nextCh === '}' || nextCh === ']' || nextCh === ':';
+      if (isRealCloser) {
+        inString = false;
+        result += ch;
+        i++;
+      } else {
+        // to jest wewnętrzny, "osierocony" cudzysłów — zeskejpuj go i pozostań w stringu
+        result += '\\"';
+        i++;
+      }
+      continue;
+    }
+    result += ch;
+    i++;
+  }
+  return result;
+}
+
 async function callAPI(system, userMsg, maxTokens) {
   const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
     method: 'POST',
@@ -7110,6 +7550,7 @@ async function callAPI(system, userMsg, maxTokens) {
   jsonStr = jsonStr
     .replace(/[\u0000-\u001F\u007F]/g, ' ') // usuń control chars
     .replace(/,\s*([}\]])/g, '$1');          // trailing commas
+  jsonStr = repairJsonInternalQuotes(jsonStr); // napraw niezeskejpowane cudzysłowy wewnątrz wartości
 
   try { return JSON.parse(jsonStr); }
   catch(e) {
@@ -7296,7 +7737,7 @@ function buildPlanPrompt(weeks) {
   const wuEx = `[{"name":"Krążenia bioder","emoji":"🔄","sets":"2x","reps":"10","note":"mobilizacja"}]`;
 
   return `Elitarny AI Coach (NSCA CSCS). Wygeneruj plan ${weeks} tyg. Metoda progresji: ${progLabel}.
-TYLKO czysty JSON bez markdown.
+TYLKO czysty JSON bez markdown. ZAKAZ BEZWZGLĘDNY: nigdy nie używaj znaku cudzysłowu (") wewnątrz wartości tekstowych (pól notes, opisów itp.) — jeśli chcesz coś wyróżnić, użyj apostrofu (') lub pisz bez wyróżnienia. Cudzysłów w wartości łamie format JSON.
 
 FORMAT:
 {"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi","notes":"Uwagi techniczne / wyjaśnienie metody",${wEx}}]}]}
@@ -8003,15 +8444,15 @@ function exportPlanPDF(plan) {
   const name = document.getElementById('client-name')?.value || 'Klient';
   const w = window.open('', '_blank');
 
-  const phaseColors = {'Adaptacja':'#4ade80','Hipertrofia I':'#c9a84c','Hipertrofia II':'#818cf8','Siła':'#f59e0b','Deload':'#94a3b8','Szczyt':'#f43f5e'};
+  const phaseColors = {'Adaptacja':'#9a9086','Hipertrofia I':'#e8302a','Hipertrofia II':'#a61f1a','Siła':'#1a1a1a','Deload':'#9a9086','Szczyt':'#ff4d47'};
 
   let h = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Plan treningowy – ${name}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'DM Sans',Arial,sans-serif;color:#1a1a2e;background:#fff;font-size:11px;line-height:1.4;}
+  body{font-family:'DM Sans',Arial,sans-serif;color:#1a1a1a;background:#fff;font-size:11px;line-height:1.4;}
   .page{max-width:820px;margin:0 auto;padding:24px;}
-  .header{background:linear-gradient(135deg,#e8302a,#c41f19);color:white;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+  .header{background:linear-gradient(135deg,#0d0d0d 0%,#e8302a 100%);color:white;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
   .header-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;}
   .header-sub{font-size:11px;opacity:.8;margin-top:4px;}
   .header-meta{text-align:right;font-size:11px;opacity:.9;}
@@ -8021,17 +8462,18 @@ function exportPlanPDF(plan) {
   .info-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
   .info-val{font-size:16px;font-weight:700;color:#e8302a;}
   .session{margin-bottom:16px;break-inside:avoid;}
-  .session-header{background:#1a1a2e;color:white;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:space-between;}
+  .session-header{background:#0d0d0d;color:white;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:space-between;}
   .session-name{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;}
   .session-badge{font-size:9px;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:20px;}
   table{width:100%;border-collapse:collapse;font-size:10px;}
   th{background:#f0f0f0;padding:5px 8px;text-align:left;font-weight:600;color:#444;border-bottom:2px solid #ddd;font-size:9px;text-transform:uppercase;}
   td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top;}
   tr:nth-child(even){background:#fafafa;}
-  .ex-name{font-weight:600;color:#1a1a2e;}
+  .ex-name{font-weight:600;color:#1a1a1a;}
   .ex-notes{font-size:9px;color:#888;margin-top:2px;}
   .phase-badge{display:inline-block;font-size:8px;padding:1px 6px;border-radius:10px;font-weight:600;}
-  .warmup-row td{background:#fff8ee;color:#d4841a;}
+  .warmup-row td{background:#f4f4f4;color:#3a3a3a;}
+  .warmup-row td:first-child{color:#a61f1a;font-weight:600;}
   .footer{margin-top:24px;padding-top:12px;border-top:1px solid #eee;font-size:9px;color:#aaa;text-align:center;}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   .note-box{background:#f8f9fa;border-left:3px solid #e8302a;border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:8px;font-size:10px;color:#444;line-height:1.6;}

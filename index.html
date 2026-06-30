@@ -8035,6 +8035,43 @@ function getPhaseColor(phase) {
   return 'var(--bl)';
 }
 
+// ===== BAZA ĆWICZEŃ — IKONY PARTII + LINK DO INSTRUKTAŻU WIDEO =====
+// Generuje zawsze działający link wyszukiwania YouTube (zamiast sztywnych ID filmów, które mogą zniknąć/być błędne)
+// oraz dobiera ikonę partii mięśniowej na podstawie słów kluczowych w polskiej nazwie ćwiczenia.
+const EXERCISE_MUSCLE_ICONS = [
+  { keys: ['przysiad','squat','wykrok','bułgarski','hack','leg press','wyprost nóg','prostowanie nóg','uginanie nóg'], icon: '🦵', label: 'Nogi' },
+  { keys: ['hip thrust','pośladk','glute','odwodzenie','pull-through','most biodrowy'], icon: '🍑', label: 'Pośladki' },
+  { keys: ['martwy ciąg','rdl','romanian','dzień ciąg','good morning'], icon: '🦵', label: 'Nogi/Pośladki' },
+  { keys: ['wyciskanie','bench','pec','rozpiętk','dip','dipy','klatka'], icon: '🫁', label: 'Klatka' },
+  { keys: ['podciąg','wiosłow','row','pull','ściąganie','pullover','plecy'], icon: '🔙', label: 'Plecy' },
+  { keys: ['ohp','wyciskanie żołnierskie','military','wznosy bok','wznos','arnold','barki','face pull','deltoid'], icon: '🏋️', label: 'Barki' },
+  { keys: ['biceps','uginanie ramion','curl','modlitewnik','hammer'], icon: '💪', label: 'Biceps' },
+  { keys: ['triceps','prostowanie ramion','pushdown','francusk'], icon: '💪', label: 'Triceps' },
+  { keys: ['plank','dead bug','core','brzuch','crunch','rollout','pallof','woodchop','russian twist'], icon: '⭕', label: 'Core' },
+  { keys: ['łydk','calf'], icon: '🦵', label: 'Łydki' },
+  { keys: ['rower','bike','marsz','interwał','tabata','emom','hiit','cardio','liss','stairmaster','orbitrek'], icon: '🔥', label: 'Cardio' },
+];
+
+function exerciseMuscleIcon(name) {
+  const n = (name || '').toLowerCase();
+  const found = EXERCISE_MUSCLE_ICONS.find(g => g.keys.some(k => n.includes(k)));
+  return found || { icon: '🏋️', label: 'Trening' };
+}
+
+// Bezpieczny, zawsze działający link — wyszukiwanie YouTube wg nazwy ćwiczenia po polsku.
+// (Świadomie NIE używamy sztywnych ID konkretnych filmów — mogłyby zostać usunięte i dawać martwy/błędny link.)
+function exerciseVideoLink(name) {
+  const query = encodeURIComponent(`${name} technika wykonania ćwiczenia`);
+  return `https://www.youtube.com/results?search_query=${query}`;
+}
+
+function exerciseThumbHtml(name, size) {
+  const m = exerciseMuscleIcon(name);
+  const s = size || 40;
+  return `<div title="${m.label}" style="width:${s}px;height:${s}px;border-radius:8px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:${Math.round(s*0.5)}px;flex-shrink:0;">${m.icon}</div>`;
+}
+// ===== END BAZA ĆWICZEŃ =====
+
 function renderPlan(plan) {
   const phases = plan.phases || {};
   const weekKeys = Object.keys(phases);
@@ -8145,10 +8182,12 @@ function renderPlan(plan) {
           <!-- Exercise header -->
           <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);">
             <div style="width:26px;height:26px;border-radius:50%;background:${sessionCol};color:#000;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">${ei+1}</div>
+            ${exerciseThumbHtml(ex.name, 36)}
             <div style="flex:1;">
               <div style="font-size:13px;font-weight:600;color:var(--tx);">${ex.name||''}</div>
               ${(ex.notes||ex.note||ex.uwagi||ex.description||'') ? `<div style="font-size:11px;color:var(--tx2);margin-top:3px;line-height:1.5;background:rgba(255,255,255,0.03);border-radius:5px;padding:4px 8px;border-left:2px solid ${sessionCol};">💡 ${ex.notes||ex.note||ex.uwagi||ex.description}</div>` : ''}
             </div>
+            <a href="${exerciseVideoLink(ex.name)}" target="_blank" rel="noopener" title="Szukaj instruktażu na YouTube" style="text-decoration:none;font-size:10px;color:#ff4d4d;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:4px 8px;display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;">▶ Wideo</a>
             ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;flex-shrink:0;">RPE ${rpe}</div>`:''}
           </div>
           <!-- Params row -->

@@ -628,6 +628,11 @@ button:disabled{opacity:.5;cursor:not-allowed;}
       <div class="phil-desc">Jaką filozofię żywieniową stosujesz?</div>
       <textarea class="phil-textarea" id="phil-nutrition" placeholder="np. Uczę elastyczności żywieniowej, bazuję na deficycie/nadwyżce..."></textarea>
     </div>
+    <div class="philosophy-box">
+      <div class="phil-title">🎥 Kanały wideo (instruktaże ćwiczeń)</div>
+      <div class="phil-desc">Domyślnie preferowani: <strong>Szymon Moszny, Paweł Głuchowski, Alicja Janowicz</strong>. Możesz to zmienić — wpisz imię/nazwisko twórcy (np. "Jan Kowalski") lub dokładny uchwyt kanału (np. @JanKowalski), oddzielone przecinkiem. Przycisk "▶ Wideo" przy każdym ćwiczeniu w planie będzie szukał z naciskiem na tych twórców. Wyczyść pole i kliknij Zapisz, żeby szukać w całym YouTube bez preferencji.</div>
+      <input type="text" id="phil-yt-channels" placeholder="Szymon Moszny, Paweł Głuchowski, Alicja Janowicz" style="width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--tx);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;">
+    </div>
     <button class="save-btn" onclick="savePhilosophy()">💾 Zapisz filozofię <span class="saved-badge" id="saved-badge">✓ Zapisano!</span></button>
   </div>
 
@@ -1872,6 +1877,7 @@ async function savePhilosophy() {
     exercises:   document.getElementById('phil-exercises')?.value || '',
     psychology:  document.getElementById('phil-psychology')?.value || '',
     nutrition:   document.getElementById('phil-nutrition')?.value || '',
+    ytChannels:  document.getElementById('phil-yt-channels')?.value || '',
   };
   // Save to Firebase
   try {
@@ -1884,6 +1890,7 @@ async function savePhilosophy() {
         exercises:   {stringValue: data.exercises},
         psychology:  {stringValue: data.psychology},
         nutrition:   {stringValue: data.nutrition},
+        ytChannels:  {stringValue: data.ytChannels},
         savedAt:     {stringValue: new Date().toISOString()}
       }})
     });
@@ -1893,6 +1900,11 @@ async function savePhilosophy() {
     localStorage.setItem('pb_philosophy', JSON.stringify(data));
     console.warn('Philosophy saved to localStorage (Firebase failed)');
   }
+  // Kanały wideo trzymamy też osobno w localStorage, żeby działały natychmiast nawet bez połączenia z Firebase
+  try {
+    localStorage.setItem('pb_yt_channels', data.ytChannels);
+    localStorage.setItem('pb_yt_channels_touched', '1'); // oznacz, że trener świadomie zapisał to pole (nawet jeśli puste)
+  } catch(e) {}
   badge.classList.add('show');
   setTimeout(() => badge.classList.remove('show'), 2000);
 }
@@ -1908,6 +1920,7 @@ async function loadPhilosophy() {
     if (f.exercises?.stringValue)   document.getElementById('phil-exercises').value   = f.exercises.stringValue;
     if (f.psychology?.stringValue)  document.getElementById('phil-psychology').value  = f.psychology.stringValue;
     if (f.nutrition?.stringValue)   document.getElementById('phil-nutrition').value   = f.nutrition.stringValue;
+    if ('ytChannels' in f) { document.getElementById('phil-yt-channels').value = f.ytChannels.stringValue || ''; try { localStorage.setItem('pb_yt_channels', f.ytChannels.stringValue || ''); localStorage.setItem('pb_yt_channels_touched', '1'); } catch(e) {} }
     console.log('Philosophy loaded from Firebase');
   } catch(e) {
     // Fallback localStorage
@@ -1919,10 +1932,19 @@ async function loadPhilosophy() {
         if (data.exercises)   document.getElementById('phil-exercises').value   = data.exercises;
         if (data.psychology)  document.getElementById('phil-psychology').value  = data.psychology;
         if (data.nutrition)   document.getElementById('phil-nutrition').value   = data.nutrition;
+        if (data.ytChannels)  document.getElementById('phil-yt-channels').value = data.ytChannels;
         console.log('Philosophy loaded from localStorage');
       }
     } catch(e2) {}
   }
+  // Ostateczny fallback — jeśli pole nadal puste, spróbuj samego klucza kanałów z localStorage
+  try {
+    const ytEl = document.getElementById('phil-yt-channels');
+    if (ytEl && !ytEl.value) {
+      const ytSaved = localStorage.getItem('pb_yt_channels');
+      if (ytSaved) ytEl.value = ytSaved;
+    }
+  } catch(e) {}
 }
 
 function getPhilosophy(){const m=document.getElementById('phil-methodology').value,e=document.getElementById('phil-exercises').value,p=document.getElementById('phil-psychology').value,n=document.getElementById('phil-nutrition').value;if(!m&&!e&&!p&&!n)return '';let ph='\n\n===FILOZOFIA TRENERA===';if(m)ph+=`\n\nGłówna metodologia:\n${m}`;if(e)ph+=`\n\nZasady doboru ćwiczeń:\n${e}`;if(p)ph+=`\n\nPodejście psychologiczne:\n${p}`;if(n)ph+=`\n\nFilozofia żywieniowa:\n${n}`;ph+='\n===KONIEC FILOZOFII===';return ph;}
@@ -8058,9 +8080,46 @@ function exerciseMuscleIcon(name) {
   return found || { icon: '🏋️', label: 'Trening' };
 }
 
-// Bezpieczny, zawsze działający link — wyszukiwanie YouTube wg nazwy ćwiczenia po polsku.
-// (Świadomie NIE używamy sztywnych ID konkretnych filmów — mogłyby zostać usunięte i dawać martwy/błędny link.)
+// Zwraca listę uchwytów kanałów wpisanych przez trenera w panelu Filozofia (np. ["@WojciechTrening","@ProgressStudioPL"])
+const DEFAULT_TRUSTED_CREATORS = 'Szymon Moszny, Paweł Głuchowski, Alicja Janowicz';
+
+function getTrainerYtChannels() {
+  let raw;
+  try {
+    const touched = localStorage.getItem('pb_yt_channels_touched') === '1';
+    const fieldEl = document.getElementById('phil-yt-channels');
+    const fieldVal = fieldEl?.value;
+    if (fieldVal) {
+      raw = fieldVal; // pole ma jakąś treść (świeżo wpisaną lub wczytaną) — użyj jej
+    } else if (touched) {
+      raw = localStorage.getItem('pb_yt_channels') || ''; // świadomie zapisane wcześniej jako puste — szanuj to
+    } else {
+      raw = DEFAULT_TRUSTED_CREATORS; // nigdy nie zapisywane — użyj domyślnych zaufanych twórców
+    }
+  } catch(e) { raw = DEFAULT_TRUSTED_CREATORS; }
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Bezpieczny, zawsze działający link do instruktażu ćwiczenia.
+// Wpisy zaczynające się od @ i bez spacji traktujemy jako dokładny uchwyt kanału YouTube (twarde zawężenie wyników).
+// Zwykłe imiona/nazwiska (bez @, ze spacją) traktujemy jako preferencję — dopisujemy je do zapytania,
+// żeby wyniki faworyzowały tych twórców, bez ryzyka zgadywania błędnego @uchwytu.
 function exerciseVideoLink(name) {
+  const entries = getTrainerYtChannels();
+  const handles = entries.filter(e => e.startsWith('@') && !e.includes(' '));
+  const creatorNames = entries.filter(e => !handles.includes(e));
+
+  if (handles.length) {
+    const siteFilter = handles.map(h => `site:youtube.com/${h}`).join(' OR ');
+    const namesBias = creatorNames.length ? ' ' + creatorNames.map(n => `"${n}"`).join(' OR ') : '';
+    const query = encodeURIComponent(`(${siteFilter})${namesBias} ${name} technika wykonania`);
+    return `https://www.google.com/search?q=${query}`;
+  }
+  if (creatorNames.length) {
+    const namesBias = creatorNames.map(n => `"${n}"`).join(' OR ');
+    const query = encodeURIComponent(`site:youtube.com (${namesBias}) ${name} technika wykonania`);
+    return `https://www.google.com/search?q=${query}`;
+  }
   const query = encodeURIComponent(`${name} technika wykonania ćwiczenia`);
   return `https://www.youtube.com/results?search_query=${query}`;
 }
@@ -8187,7 +8246,7 @@ function renderPlan(plan) {
               <div style="font-size:13px;font-weight:600;color:var(--tx);">${ex.name||''}</div>
               ${(ex.notes||ex.note||ex.uwagi||ex.description||'') ? `<div style="font-size:11px;color:var(--tx2);margin-top:3px;line-height:1.5;background:rgba(255,255,255,0.03);border-radius:5px;padding:4px 8px;border-left:2px solid ${sessionCol};">💡 ${ex.notes||ex.note||ex.uwagi||ex.description}</div>` : ''}
             </div>
-            <a href="${exerciseVideoLink(ex.name)}" target="_blank" rel="noopener" title="Szukaj instruktażu na YouTube" style="text-decoration:none;font-size:10px;color:#ff4d4d;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:4px 8px;display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;">▶ Wideo</a>
+            <a href="${exerciseVideoLink(ex.name)}" target="_blank" rel="noopener" title="${getTrainerYtChannels().length ? 'Szukaj na Twoich kanałach YouTube' : 'Szukaj instruktażu na YouTube'}" style="text-decoration:none;font-size:10px;color:#ff4d4d;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:4px 8px;display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;">▶ ${getTrainerYtChannels().length ? 'Wideo (Twój kanał)' : 'Wideo'}</a>
             ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;flex-shrink:0;">RPE ${rpe}</div>`:''}
           </div>
           <!-- Params row -->

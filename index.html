@@ -1837,6 +1837,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
       <button onclick="downloadPlanExcel()" id="plan-dl-btn" style="display:none;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 14px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz CSV</button>
       <button onclick="downloadPlanPDF()" id="plan-pdf-btn" style="display:none;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:7px 14px;color:var(--ps-gold);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨 Drukuj (papier)</button>
       <button onclick="downloadPlanPDFDark()" id="plan-pdf-dark-btn" style="display:none;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:8px;padding:7px 14px;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">⬇️ Pobierz PDF (telefon/komputer)</button>
+      <button onclick="downloadPlanHTML()" id="plan-html-btn" style="display:none;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:7px 14px;color:var(--gr);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;" title="Plik HTML — wideo przy ćwiczeniach są klikalne (w PDF nie są)">🔗 Wyślij z klikalnym wideo (HTML)</button>
       <button onclick="exportFullReport()" id="plan-report-btn" style="display:none;background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:7px 14px;color:#E8302A;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">📄 Pełny raport</button>
     </div>
   </div>
@@ -7714,7 +7715,7 @@ function openPlanScreen() {
   document.getElementById('plan-client-tag').textContent = '👤 ' + name;
   document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--tx3);"><div style="font-size:48px;margin-bottom:16px;">📋</div><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:8px;">GOTOWY DO WYGENEROWANIA PLANU</div><div style="font-size:12px;line-height:1.7;max-width:400px;margin:0 auto;">Uzupełnij profil klienta, a następnie kliknij <strong style="color:var(--ac)">Generuj plan AI</strong>.</div></div>`;
   document.getElementById('plan-dl-btn').style.display = 'none';
-  document.getElementById('plan-pdf-btn').style.display = 'none'; document.getElementById('plan-pdf-dark-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none'; document.getElementById('plan-pdf-dark-btn').style.display = 'none'; document.getElementById('plan-html-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
   openOverlay('screen-plan');
   loadPlanFromLocal();
 }
@@ -7895,7 +7896,7 @@ async function generatePlan() {
   document.getElementById('plan-loading').style.display = 'block';
   document.getElementById('plan-content').innerHTML = '';
   document.getElementById('plan-dl-btn').style.display = 'none';
-  document.getElementById('plan-pdf-btn').style.display = 'none'; document.getElementById('plan-pdf-dark-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
+  document.getElementById('plan-pdf-btn').style.display = 'none'; document.getElementById('plan-pdf-dark-btn').style.display = 'none'; document.getElementById('plan-html-btn').style.display = 'none'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'none';
   document.getElementById('plan-expand-btn').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = true;
 
@@ -7963,7 +7964,7 @@ async function generatePlan() {
   renderPlan(plan);
   savePlanToLocal(true);
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
-  document.getElementById('plan-pdf-btn').style.display = 'inline-flex'; document.getElementById('plan-pdf-dark-btn').style.display = 'inline-flex'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
+  document.getElementById('plan-pdf-btn').style.display = 'inline-flex'; document.getElementById('plan-pdf-dark-btn').style.display = 'inline-flex'; document.getElementById('plan-html-btn').style.display = 'inline-flex'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
   if (planWeeks < 8) {
     document.getElementById('plan-expand-btn').style.display = 'inline-flex';
     document.getElementById('plan-expand-btn').textContent = planWeeks === 1 ? '📈 Rozszerz do 4 tyg.' : '📈 Rozszerz do 8 tyg.';
@@ -8034,6 +8035,7 @@ function loadPlanFromLocal() {
     document.getElementById('plan-dl-btn').style.display = 'inline-flex';
     document.getElementById('plan-pdf-btn').style.display = 'inline-flex';
     document.getElementById('plan-pdf-dark-btn').style.display = 'inline-flex';
+    document.getElementById('plan-html-btn').style.display = 'inline-flex';
     if (document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
     if (planWeeks < 8) {
       document.getElementById('plan-expand-btn').style.display = 'inline-flex';
@@ -8104,6 +8106,62 @@ function getTrainerYtChannels() {
 // Wpisy zaczynające się od @ i bez spacji traktujemy jako dokładny uchwyt kanału YouTube (twarde zawężenie wyników).
 // Zwykłe imiona/nazwiska (bez @, ze spacją) traktujemy jako preferencję — dopisujemy je do zapytania,
 // żeby wyniki faworyzowały tych twórców, bez ryzyka zgadywania błędnego @uchwytu.
+// ===== KURATOROWANA BAZA BEZPOŚREDNICH LINKÓW DO FILMÓW (per nazwa ćwiczenia) =====
+// Trener wkleja raz prawdziwy link do filmu (przyciskiem 📌) — od tej pory to ćwiczenie wszędzie
+// w aplikacji prowadzi BEZPOŚREDNIO do tego filmu, zamiast do wyników wyszukiwania.
+function normalizeExName(name) {
+  return (name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function getVideoDb() {
+  try { return JSON.parse(localStorage.getItem('exercise_video_db') || '{}'); } catch(e) { return {}; }
+}
+
+function getCuratedVideoLink(name) {
+  const db = getVideoDb();
+  return db[normalizeExName(name)] || null;
+}
+
+function saveCuratedVideoLink(name, url) {
+  const db = getVideoDb();
+  const key = normalizeExName(name);
+  if (url) db[key] = url; else delete db[key];
+  try { localStorage.setItem('exercise_video_db', JSON.stringify(db)); } catch(e) {}
+}
+
+// Wywoływane przyciskiem 📌 przy ćwiczeniu — pyta o link, zapisuje go i aktualizuje przycisk na żywo (bez przeładowania planu)
+function pinExerciseVideo(cellBase, name) {
+  const current = getCuratedVideoLink(name) || '';
+  const url = prompt(`Wklej link do KONKRETNEGO filmu dla "${name}" (np. ze YouTube po znalezieniu właściwego nagrania).\n\nZostaw puste i kliknij OK, żeby usunąć przypisany link i wrócić do wyszukiwania.`, current);
+  if (url === null) return; // anulowano
+  const trimmed = url.trim();
+  if (trimmed && !/^https?:\/\//i.test(trimmed)) { alert('Link musi zaczynać się od http:// lub https://'); return; }
+  saveCuratedVideoLink(name, trimmed);
+  const a = document.getElementById('vidbtn_' + cellBase);
+  const pin = document.getElementById('vidpin_' + cellBase);
+  if (a) {
+    a.href = trimmed ? trimmed : exerciseVideoLink(name);
+    a.title = trimmed ? 'Bezpośredni link do filmu' : (getTrainerYtChannels().length ? 'Szukaj na Twoich kanałach YouTube' : 'Szukaj instruktażu na YouTube');
+    a.style.background = trimmed ? '#e8302a' : 'rgba(255,0,0,0.1)';
+    a.style.color = trimmed ? '#fff' : '#ff4d4d';
+    a.innerHTML = trimmed ? '▶ Wideo (film)' : ('▶ ' + (getTrainerYtChannels().length ? 'Wideo (Twój kanał)' : 'Wideo'));
+  }
+  if (pin) pin.textContent = trimmed ? '✎' : '📌';
+}
+
+function exerciseVideoButtonHtml(name, cellBase) {
+  const curated = getCuratedVideoLink(name);
+  const link = curated || exerciseVideoLink(name);
+  const label = curated ? '▶ Wideo (film)' : ('▶ ' + (getTrainerYtChannels().length ? 'Wideo (Twój kanał)' : 'Wideo'));
+  const bg = curated ? '#e8302a' : 'rgba(255,0,0,0.1)';
+  const color = curated ? '#fff' : '#ff4d4d';
+  const title = curated ? 'Bezpośredni link do filmu' : (getTrainerYtChannels().length ? 'Szukaj na Twoich kanałach YouTube' : 'Szukaj instruktażu na YouTube');
+  const safeName = JSON.stringify(name).replace(/"/g, '&quot;');
+  return `<a id="vidbtn_${cellBase}" href="${link}" target="_blank" rel="noopener" title="${title}" style="text-decoration:none;font-size:10px;color:${color};background:${bg};border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:4px 8px;display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;">${label}</a>
+    <button id="vidpin_${cellBase}" onclick='pinExerciseVideo("${cellBase}", ${safeName})' title="Przypisz konkretny film do tego ćwiczenia" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;width:24px;height:24px;font-size:11px;color:var(--tx2);cursor:pointer;flex-shrink:0;">${curated ? '✎' : '📌'}</button>`;
+}
+// ===== END BAZA LINKÓW =====
+
 function exerciseVideoLink(name) {
   const entries = getTrainerYtChannels();
   const handles = entries.filter(e => e.startsWith('@') && !e.includes(' '));
@@ -8246,7 +8304,7 @@ function renderPlan(plan) {
               <div style="font-size:13px;font-weight:600;color:var(--tx);">${ex.name||''}</div>
               ${(ex.notes||ex.note||ex.uwagi||ex.description||'') ? `<div style="font-size:11px;color:var(--tx2);margin-top:3px;line-height:1.5;background:rgba(255,255,255,0.03);border-radius:5px;padding:4px 8px;border-left:2px solid ${sessionCol};">💡 ${ex.notes||ex.note||ex.uwagi||ex.description}</div>` : ''}
             </div>
-            <a href="${exerciseVideoLink(ex.name)}" target="_blank" rel="noopener" title="${getTrainerYtChannels().length ? 'Szukaj na Twoich kanałach YouTube' : 'Szukaj instruktażu na YouTube'}" style="text-decoration:none;font-size:10px;color:#ff4d4d;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:4px 8px;display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;">▶ ${getTrainerYtChannels().length ? 'Wideo (Twój kanał)' : 'Wideo'}</a>
+            ${exerciseVideoButtonHtml(ex.name, cellBase)}
             ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border-radius:5px;padding:2px 8px;font-family:'DM Mono',monospace;flex-shrink:0;">RPE ${rpe}</div>`:''}
           </div>
           <!-- Params row -->
@@ -8845,6 +8903,95 @@ function exportPlanPDFDark(plan) {
   });
 }
 // ===== END WARIANT CIEMNY =====
+
+// ===== EKSPORT HTML — KLIKALNE LINKI DO FILMÓW (w PDF linki nie działają, bo PDF to zrzut ekranu) =====
+function downloadPlanHTML() {
+  if (!currentPlanData) { alert('Najpierw wygeneruj plan treningowy!'); return; }
+  const plan = currentPlanData;
+  const name = document.getElementById('client-name')?.value || 'Klient';
+
+  let h = `<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan treningowy – ${name}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',Arial,sans-serif;color:#f0ece6;background:#0d0d0d;font-size:14px;line-height:1.45;padding:16px;}
+  .page{max-width:680px;margin:0 auto;}
+  .top-card{background:#f5f0eb;color:#0d0d0d;border-radius:12px;padding:16px 20px;margin-bottom:16px;}
+  .top-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1.5px;}
+  .top-sub{font-size:11px;color:#555;margin-top:3px;}
+  .badge-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
+  .badge{background:#1a1a1a;border:1px solid rgba(232,48,42,0.3);border-radius:10px;padding:10px;text-align:center;}
+  .badge-label{font-size:9px;color:#9a9086;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+  .badge-val{font-size:16px;font-weight:700;color:#fff;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1.5px;color:#fff;margin:18px 0 10px;}
+  .note-box{background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.3);border-left:3px solid #e8302a;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#ddd;line-height:1.6;}
+  .note-box strong{color:#ff8a85;}
+  .session{margin-bottom:18px;border-radius:12px;overflow:hidden;border:1px solid #262626;}
+  .session-header{background:#f5f0eb;color:#0d0d0d;padding:11px 16px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;}
+  .ex-card{background:#161616;border-bottom:1px solid #262626;padding:12px 16px;}
+  .ex-card:last-child{border-bottom:none;}
+  .ex-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .ex-icon{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .ex-name{font-weight:700;font-size:14px;flex:1;}
+  .ex-params{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#bbb;font-family:'DM Mono',monospace;margin-bottom:8px;}
+  .ex-param{background:#1f1f1f;border-radius:6px;padding:3px 9px;}
+  .video-btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;font-weight:600;border-radius:8px;padding:8px 14px;}
+  .video-btn.direct{background:#e8302a;color:#fff;}
+  .video-btn.search{background:rgba(255,0,0,0.1);color:#ff4d4d;border:1px solid rgba(255,0,0,0.3);}
+  .footer{margin-top:22px;padding-top:12px;border-top:1px solid #262626;font-size:9px;color:#555;text-align:center;}
+</style></head><body><div class="page">`;
+
+  h += `<div class="top-card">
+    <div class="top-title">PROGRESS AI V2.0 — ${name}</div>
+    <div class="top-sub">${plan.planTitle || 'Plan treningowy'} · ${new Date().toLocaleDateString('pl')} · kliknij ▶ przy ćwiczeniu, żeby obejrzeć technikę</div>
+  </div>`;
+
+  h += `<div class="badge-grid">
+    <div class="badge"><div class="badge-label">Sesje/tydzień</div><div class="badge-val">${plan.sessionsPerWeek||'–'}</div></div>
+    <div class="badge"><div class="badge-label">Split</div><div class="badge-val" style="font-size:12px;">${(plan.split||'–').substring(0,22)}</div></div>
+  </div>`;
+
+  if (plan.progressionNotes) h += `<div class="note-box"><strong>📈 Progresja:</strong> ${plan.progressionNotes}</div>`;
+  if (plan.warmupProtocol) h += `<div class="note-box"><strong>🔥 Rozgrzewka:</strong> ${plan.warmupProtocol}</div>`;
+
+  h += `<div class="section-title">🏋️ ĆWICZENIA Z INSTRUKTAŻEM WIDEO</div>`;
+  const weekKeysH = plan.phases ? Object.keys(plan.phases) : ['w1'];
+  const firstWeek = weekKeysH[0];
+
+  (plan.sessions || []).forEach(session => {
+    h += `<div class="session"><div class="session-header">${(session.sessionName || 'Sesja').toUpperCase()}</div>`;
+    (session.exercises || []).forEach(ex => {
+      const m = exerciseMuscleIcon(ex.name);
+      const curated = getCuratedVideoLink(ex.name);
+      const link = curated || exerciseVideoLink(ex.name);
+      const btnClass = curated ? 'direct' : 'search';
+      const btnLabel = curated ? '▶ Obejrzyj technikę' : '▶ Szukaj na YouTube';
+      const wd = ex[firstWeek] || {};
+      h += `<div class="ex-card">
+        <div class="ex-head">
+          <div class="ex-icon">${m.icon}</div>
+          <div class="ex-name">${ex.name||''}</div>
+        </div>
+        ${wd.s ? `<div class="ex-params"><span class="ex-param">${wd.s}×${wd.r||'?'}</span><span class="ex-param">RPE ${wd.rpe||'?'}</span><span class="ex-param">⏱ ${wd.rest||'–'}</span></div>` : ''}
+        <a class="video-btn ${btnClass}" href="${link}" target="_blank" rel="noopener">${btnLabel}</a>
+      </div>`;
+    });
+    h += `</div>`;
+  });
+
+  h += `<div class="footer">PROGRESS AI v2.0 · Progress Studio, Wrocław · ${new Date().toLocaleDateString('pl')} · Otwórz w przeglądarce telefonu lub komputera</div>`;
+  h += `</div></body></html>`;
+
+  const blob = new Blob([h], {type: 'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Plan_${name.replace(/\s+/g,'_')}_wideo.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+// ===== END EKSPORT HTML =====
 
 function exportFullReport() {
   const hasPlan = !!currentPlanData?.sessions?.length;

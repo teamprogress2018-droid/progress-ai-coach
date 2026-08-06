@@ -149,6 +149,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
       </div>
       <div id="saved-profiles-list" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;"></div>
       <div id="saved-profiles-empty" style="font-size:10px;color:var(--tx3);text-align:center;padding:4px 0;">Brak zapisanych profili</div>
+      <button onclick="openFiteboImport()" style="width:100%;margin-top:7px;background:rgba(255,255,255,0.04);border:1px dashed var(--border);border-radius:6px;padding:7px 6px;color:var(--tx2);font-size:10px;font-weight:600;cursor:pointer;">📥 Import klientów z Fitebo</button>
     </div>
     <div class="acc-header" onclick="toggleAcc('acc-podstawowy')">
       <span>👤 Profil podstawowy</span><span class="acc-arrow" id="arr-podstawowy">▾</span>
@@ -8404,6 +8405,193 @@ ${plan.warmupProtocol||''}
   a.download = `Plan_${name.replace(/\s+/g,'_')}_${weekKeys.length}tyg.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- MODAL: IMPORT Z FITEBO -->
+<div id="fitebo-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:900;background:rgba(0,0,0,0.88);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:92%;max-width:520px;max-height:88vh;overflow-y:auto;padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--tx1);">📥 IMPORT KLIENTÓW Z FITEBO</div>
+      <button onclick="closeFiteboImport()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--tx2);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--tx2);line-height:1.6;margin:10px 0 14px;">
+      Wklej poniżej dane skopiowane z Fitebo (kartę klienta, tabelę pomiarów, historię treningów) albo wgraj plik CSV/TXT wyeksportowany z aplikacji. AI rozpozna klienta/klientów i dopasuje dane do tej apki. Możesz wkleić dane jednego klienta albo kilku naraz.
+    </div>
+    <label style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--tx2);cursor:pointer;margin-bottom:10px;">
+      📎 Wgraj plik (CSV/TXT)
+      <input type="file" accept=".csv,.txt" style="display:none;" onchange="fiteboFileLoad(this)">
+    </label>
+    <textarea id="fitebo-paste" rows="9" placeholder="Wklej tu dane z Fitebo (np. imię, wiek, waga, wzrost, cel, historia pomiarów, log treningowy)..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--tx1);font-size:12px;line-height:1.5;resize:vertical;outline:none;font-family:'DM Sans',sans-serif;"></textarea>
+    <button id="fitebo-analyze-btn" onclick="fiteboAnalyze()" style="width:100%;margin-top:10px;padding:11px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🔍 Analizuj (AI)</button>
+    <div id="fitebo-result" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<script>
+function openFiteboImport(){
+  const m=document.getElementById('fitebo-modal');
+  if(m) m.style.display='flex';
+}
+function closeFiteboImport(){
+  const m=document.getElementById('fitebo-modal');
+  if(m) m.style.display='none';
+}
+function fiteboFileLoad(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const ta=document.getElementById('fitebo-paste');
+    if(ta) ta.value=e.target.result;
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+let fiteboParsedClients=[];
+
+async function fiteboAnalyze(){
+  const raw=document.getElementById('fitebo-paste')?.value?.trim();
+  const resultEl=document.getElementById('fitebo-result');
+  const btn=document.getElementById('fitebo-analyze-btn');
+  if(!raw||raw.length<20){
+    if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Wklej lub wgraj dane najpierw.</div>';
+    return;
+  }
+  if(btn){btn.disabled=true;btn.textContent='⏳ Analizuję...';}
+  if(resultEl) resultEl.innerHTML='<div style="color:var(--tx2);font-size:12px;">AI analizuje dane, przy większych plikach może to potrwać kilkanaście sekund...</div>';
+
+  const system=`Jesteś asystentem migracji danych dla aplikacji trenera personalnego. Otrzymujesz surowy tekst skopiowany lub wyeksportowany z innej aplikacji (Fitebo) i musisz wyciągnąć z niego ustrukturyzowane dane klientów. Zwróć WYŁĄCZNIE poprawny JSON, bez markdown, bez komentarzy, w dokładnie tym formacie:
+{"clients":[
+  {
+    "name":"Imię Nazwisko",
+    "age":liczba_lub_null,
+    "gender":"mężczyzna"|"kobieta"|null,
+    "weight":liczba_kg_lub_null,
+    "height":liczba_cm_lub_null,
+    "goal":"redukcja tkanki tłuszczowej"|"budowa masy mięśniowej"|"poprawa kondycji i wytrzymałości"|"rehabilitacja i powrót do sprawności"|"ogólna poprawa zdrowia"|"przygotowanie do zawodów"|null,
+    "notes":"dodatkowe uwagi tekstowe o kliencie, albo null",
+    "measurements":[{"date":"YYYY-MM-DD","weight":liczba_lub_null,"waist":liczba_lub_null,"hips":liczba_lub_null,"chest":liczba_lub_null,"armL":liczba_lub_null,"armR":liczba_lub_null,"thighL":liczba_lub_null,"thighR":liczba_lub_null}],
+    "trainingLog":[{"exercise":"Nazwa ćwiczenia","date":"YYYY-MM-DD","kg":liczba_lub_null,"reps":liczba_lub_null,"rpe":liczba_lub_null}],
+    "timeline":[{"date":"YYYY-MM-DD","text":"krótki opis wydarzenia","type":"trening"|"pomiar"|"cel"|"sukces"|"notatka"}]
+  }
+]}
+Zasady:
+- Jeśli w danych jest wielu klientów, zwróć każdego jako osobny obiekt w tablicy "clients".
+- Jeśli jakiejś informacji brak, użyj null albo pustej tablicy [] - NIE zmyślaj danych, których nie ma w tekście.
+- Daty zawsze w formacie YYYY-MM-DD. Jeśli nie da się ustalić dokładnej daty dla wpisu, pomiń ten wpis.
+- Pole "goal" musi być JEDNĄ z podanych wartości albo null - nie wymyślaj innych wartości.
+- "trainingLog": jeden wpis na jeden zestaw/serię jeśli da się to rozróżnić w danych źródłowych, w przeciwnym razie jeden wpis zbiorczy na ćwiczenie na dzień.`;
+
+  try{
+    const result=await callAPI(system, raw.substring(0,15000), 8000);
+    if(!result||!Array.isArray(result.clients)||!result.clients.length){
+      if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Nie udało się rozpoznać żadnego klienta w tych danych. Spróbuj wkleić inny fragment albo dodać nagłówki/kontekst (np. "Imię: ...", "Waga: ...").</div>';
+      return;
+    }
+    fiteboParsedClients=result.clients;
+    renderFiteboPreview();
+  }catch(e){
+    if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Błąd: '+e.message+'</div>';
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='🔍 Analizuj (AI)';}
+  }
+}
+
+function renderFiteboPreview(){
+  const resultEl=document.getElementById('fitebo-result');
+  if(!resultEl) return;
+  let h='<div style="font-size:11px;color:var(--gr);margin-bottom:8px;">✅ Znaleziono '+fiteboParsedClients.length+' klient(ów). Odznacz tych, których NIE chcesz importować:</div>';
+  fiteboParsedClients.forEach((c,i)=>{
+    const measCount=(c.measurements||[]).length;
+    const logCount=(c.trainingLog||[]).length;
+    const tlCount=(c.timeline||[]).length;
+    h+='<label style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;">'
+      +'<input type="checkbox" id="fitebo-chk-'+i+'" checked style="margin-top:2px;">'
+      +'<div><div style="font-weight:600;font-size:12px;color:var(--tx1);">'+(c.name||'(bez imienia)')+'</div>'
+      +'<div style="font-size:10px;color:var(--tx2);margin-top:2px;">'+measCount+' pomiarów · '+logCount+' wpisów treningowych · '+tlCount+' wpisów historii</div></div>'
+      +'</label>';
+  });
+  h+='<button onclick="fiteboImportSelected()" id="fitebo-import-btn" style="width:100%;margin-top:8px;padding:10px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📥 Importuj zaznaczone</button>';
+  resultEl.innerHTML=h;
+}
+
+function fiteboSlug(name){
+  return (name||'klient').toLowerCase().trim().replace(/\s+/g,'_');
+}
+
+function fiteboImportSelected(){
+  const btn=document.getElementById('fitebo-import-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Importuję...';}
+  let imported=0, skipped=0;
+
+  fiteboParsedClients.forEach((c,i)=>{
+    const chk=document.getElementById('fitebo-chk-'+i);
+    if(!chk||!chk.checked){skipped++;return;}
+    if(!c.name)return;
+    const slug=fiteboSlug(c.name);
+
+    // 1) Profil klienta -> saved_profiles (te same pola co formularz KLIENT)
+    const data={
+      'client-name':c.name,
+      'client-age-num':c.age!=null?String(c.age):'',
+      'client-gender':c.gender||'',
+      'client-weight':c.weight!=null?String(c.weight):'',
+      'client-height':c.height!=null?String(c.height):'',
+      'client-goal':c.goal||'',
+      '_saved':new Date().toLocaleDateString('pl'),
+      '_imported_from':'Fitebo'
+    };
+    const profiles=JSON.parse(localStorage.getItem('saved_profiles')||'[]');
+    const existingIdx=profiles.findIndex(p=>p.data?.['client-name']===c.name);
+    if(existingIdx>=0){profiles[existingIdx]={key:profiles[existingIdx].key,name:c.name,data};}
+    else{profiles.push({key:'client_'+Date.now()+'_'+i,name:c.name,data});}
+    localStorage.setItem('saved_profiles',JSON.stringify(profiles));
+
+    // 2) Pomiary -> measurements_<slug> i meas_<slug> (dwa klucze, apka uzywa obu)
+    if((c.measurements||[]).length){
+      const measArr=c.measurements.filter(m=>m.date).map(m=>({
+        date:m.date,time:'rano',
+        weight:m.weight??null,bmi:null,fatPct:null,fatKg:null,muscleKg:null,boneKg:null,waterPct:null,visceralFat:null,
+        neck:null,chest:m.chest??null,waist:m.waist??null,hips:m.hips??null,
+        thighL:m.thighL??null,thighR:m.thighR??null,armL:m.armL??null,armR:m.armR??null,calf:null,
+        notes:'Zaimportowano z Fitebo',photos:[]
+      })).sort((a,b)=>new Date(a.date)-new Date(b.date));
+      localStorage.setItem('measurements_'+slug,JSON.stringify(measArr));
+      localStorage.setItem('meas_'+slug,JSON.stringify(measArr));
+    }
+
+    // 3) Log treningowy -> tl_log_<slug> : { nazwaCwiczenia: [ {date, sets:[{kg,reps,rpe}]} ] }
+    if((c.trainingLog||[]).length){
+      const log={};
+      c.trainingLog.forEach(row=>{
+        if(!row.exercise||!row.date)return;
+        if(!log[row.exercise])log[row.exercise]=[];
+        let entry=log[row.exercise].find(e=>e.date===row.date);
+        if(!entry){entry={date:row.date,sets:[]};log[row.exercise].push(entry);}
+        entry.sets.push({kg:row.kg??0,reps:row.reps??0,rpe:row.rpe??0});
+      });
+      Object.keys(log).forEach(ex=>log[ex].sort((a,b)=>new Date(a.date)-new Date(b.date)));
+      localStorage.setItem('tl_log_'+slug,JSON.stringify(log));
+    }
+
+    // 4) Oś czasu -> hist_<slug>_timeline
+    if((c.timeline||[]).length||c.notes){
+      const entries=(c.timeline||[]).filter(t=>t.date).map((t,idx)=>({
+        id:Date.now()+idx,text:t.text||'Import z Fitebo',type:t.type||'notatka',
+        date:new Date(t.date).toISOString()
+      }));
+      if(c.notes) entries.unshift({id:Date.now()+999,text:'Notatka z Fitebo: '+c.notes,type:'notatka',date:new Date().toISOString()});
+      entries.sort((a,b)=>new Date(b.date)-new Date(a.date));
+      localStorage.setItem('hist_'+slug+'_timeline',JSON.stringify(entries.slice(0,100)));
+    }
+
+    imported++;
+  });
+
+  renderSavedProfiles();
+  const resultEl=document.getElementById('fitebo-result');
+  if(resultEl) resultEl.innerHTML='<div style="color:var(--gr);font-size:13px;font-weight:600;">✅ Zaimportowano '+imported+' klient(ów)'+(skipped?(', pominięto '+skipped):'')+'. Znajdziesz ich na liście zapisanych profili u góry panelu KLIENT.</div>';
 }
 </script>
 </body>

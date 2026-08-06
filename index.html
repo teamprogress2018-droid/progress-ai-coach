@@ -7094,11 +7094,14 @@ function renderKnowledgeBase(){const list=document.getElementById('kb-list');if(
 async function addYouTube(){const url=document.getElementById('yt-url').value.trim();if(!url||url.length<20){alert('Wklej transkrypcję (minimum 20 znaków)!');return;}const status=document.getElementById('yt-status');status.style.display='block';status.textContent='⏳ Tworzę notatki...';try{const resp=await fetch('https://anthropic-proxy.teamprogress2018.workers.dev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:`Przeanalizuj poniższą transkrypcję/napisy z YouTube i stwórz profesjonalne notatki trenera:\n\n${url}`}]})});const data=await resp.json();const text=data.content?.[0]?.text||'';if(!text)throw new Error('Brak odpowiedzi');addToKnowledgeBase('YouTube: notatki',text);status.textContent='✅ Dodano do bazy wiedzy!';document.getElementById('yt-url').value='';setTimeout(()=>{status.style.display='none';},3000);}catch(e){status.textContent='❌ Błąd. Spróbuj ponownie.';}}
 
 // CHAT
-async function callAPI(system, userMsg, maxTokens) {
+async function callAPI(system, userMsg, maxTokens, images) {
+  const content = (images && images.length)
+    ? [...images.map(img => ({type:'image', source:{type:'base64', media_type:img.mediaType, data:img.base64}})), {type:'text', text:userMsg}]
+    : userMsg;
   const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:maxTokens, system:system, messages:[{role:'user',content:userMsg}]})
+    body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:maxTokens, system:system, messages:[{role:'user',content:content}]})
   });
   const data = await resp.json();
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
@@ -8418,11 +8421,16 @@ ${plan.warmupProtocol||''}
     <div style="font-size:11px;color:var(--tx2);line-height:1.6;margin:10px 0 14px;">
       Wklej poniżej dane skopiowane z Fitebo (kartę klienta, tabelę pomiarów, historię treningów) albo wgraj plik CSV/TXT wyeksportowany z aplikacji. AI rozpozna klienta/klientów i dopasuje dane do tej apki. Możesz wkleić dane jednego klienta albo kilku naraz.
     </div>
-    <label style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--tx2);cursor:pointer;margin-bottom:10px;">
+    <label style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--tx2);cursor:pointer;margin-bottom:8px;margin-right:6px;">
       📎 Wgraj plik (CSV/TXT)
       <input type="file" accept=".csv,.txt" style="display:none;" onchange="fiteboFileLoad(this)">
     </label>
-    <textarea id="fitebo-paste" rows="9" placeholder="Wklej tu dane z Fitebo (np. imię, wiek, waga, wzrost, cel, historia pomiarów, log treningowy)..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--tx1);font-size:12px;line-height:1.5;resize:vertical;outline:none;font-family:'DM Sans',sans-serif;"></textarea>
+    <label style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--tx2);cursor:pointer;margin-bottom:10px;">
+      📷 Wgraj zrzuty ekranu (możesz kilka naraz)
+      <input type="file" accept="image/*" multiple style="display:none;" onchange="fiteboImagesLoad(this)">
+    </label>
+    <div id="fitebo-img-previews" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+    <textarea id="fitebo-paste" rows="9" placeholder="Wklej tu dane z Fitebo (np. imię, wiek, waga, wzrost, cel, historia pomiarów, log treningowy)... Możesz też zostawić puste i wgrać same zrzuty ekranu powyżej." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--tx1);font-size:12px;line-height:1.5;resize:vertical;outline:none;font-family:'DM Sans',sans-serif;"></textarea>
     <button id="fitebo-analyze-btn" onclick="fiteboAnalyze()" style="width:100%;margin-top:10px;padding:11px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🔍 Analizuj (AI)</button>
     <div id="fitebo-result" style="margin-top:14px;"></div>
   </div>
@@ -8449,19 +8457,55 @@ function fiteboFileLoad(input){
 }
 
 let fiteboParsedClients=[];
+let fiteboImages=[];
+
+function fiteboImagesLoad(input){
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  if(fiteboImages.length+files.length>8){
+    alert('Maksymalnie 8 zrzutów na jedną analizę. Zrób import w kilku turach, jeśli masz więcej.');
+  }
+  files.slice(0, Math.max(0,8-fiteboImages.length)).forEach(file=>{
+    if(file.size>5000000){alert(file.name+': plik za duży (max 5MB), pomijam.');return;}
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const dataUrl=e.target.result;
+      fiteboImages.push({name:file.name, dataUrl, mediaType:dataUrl.split(';')[0].split(':')[1], base64:dataUrl.split(',')[1]});
+      renderFiteboImagePreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function fiteboRemoveImage(idx){
+  fiteboImages.splice(idx,1);
+  renderFiteboImagePreviews();
+}
+
+function renderFiteboImagePreviews(){
+  const wrap=document.getElementById('fitebo-img-previews');
+  if(!wrap)return;
+  wrap.innerHTML=fiteboImages.map((img,i)=>
+    '<div style="position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">'
+    +'<img src="'+img.dataUrl+'" style="width:100%;height:100%;object-fit:cover;">'
+    +'<button onclick="fiteboRemoveImage('+i+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;cursor:pointer;">✕</button>'
+    +'</div>'
+  ).join('');
+}
 
 async function fiteboAnalyze(){
-  const raw=document.getElementById('fitebo-paste')?.value?.trim();
+  const raw=document.getElementById('fitebo-paste')?.value?.trim()||'';
   const resultEl=document.getElementById('fitebo-result');
   const btn=document.getElementById('fitebo-analyze-btn');
-  if(!raw||raw.length<20){
-    if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Wklej lub wgraj dane najpierw.</div>';
+  if(!raw && !fiteboImages.length){
+    if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Wklej dane, wgraj plik albo wgraj przynajmniej jeden zrzut ekranu.</div>';
     return;
   }
   if(btn){btn.disabled=true;btn.textContent='⏳ Analizuję...';}
-  if(resultEl) resultEl.innerHTML='<div style="color:var(--tx2);font-size:12px;">AI analizuje dane, przy większych plikach może to potrwać kilkanaście sekund...</div>';
+  if(resultEl) resultEl.innerHTML='<div style="color:var(--tx2);font-size:12px;">AI analizuje dane'+(fiteboImages.length?' i '+fiteboImages.length+' zrzut(y) ekranu':'')+', to może potrwać kilkanaście-kilkadziesiąt sekund...</div>';
 
-  const system=`Jesteś asystentem migracji danych dla aplikacji trenera personalnego. Otrzymujesz surowy tekst skopiowany lub wyeksportowany z innej aplikacji (Fitebo) i musisz wyciągnąć z niego ustrukturyzowane dane klientów. Zwróć WYŁĄCZNIE poprawny JSON, bez markdown, bez komentarzy, w dokładnie tym formacie:
+  const system=`Jesteś asystentem migracji danych dla aplikacji trenera personalnego. Otrzymujesz surowy tekst i/lub zrzuty ekranu skopiowane lub wyeksportowane z innej aplikacji (Fitebo) i musisz wyciągnąć z nich ustrukturyzowane dane klientów. Jeśli dostajesz zrzuty ekranu, przeczytaj z nich wszystkie widoczne dane liczbowe i tekstowe (tabele pomiarów, listy ćwiczeń, ciężary, powtórzenia, daty). Zwróć WYŁĄCZNIE poprawny JSON, bez markdown, bez komentarzy, w dokładnie tym formacie:
 {"clients":[
   {
     "name":"Imię Nazwisko",
@@ -8484,9 +8528,10 @@ Zasady:
 - "trainingLog": jeden wpis na jeden zestaw/serię jeśli da się to rozróżnić w danych źródłowych, w przeciwnym razie jeden wpis zbiorczy na ćwiczenie na dzień.`;
 
   try{
-    const result=await callAPI(system, raw.substring(0,15000), 8000);
+    const userText = raw ? raw.substring(0,15000) : 'Przeanalizuj załączone zrzuty ekranu z aplikacji Fitebo i wyciągnij z nich dane klienta/klientów zgodnie z formatem podanym w instrukcji systemowej.';
+    const result=await callAPI(system, userText, 8000, fiteboImages);
     if(!result||!Array.isArray(result.clients)||!result.clients.length){
-      if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Nie udało się rozpoznać żadnego klienta w tych danych. Spróbuj wkleić inny fragment albo dodać nagłówki/kontekst (np. "Imię: ...", "Waga: ...").</div>';
+      if(resultEl) resultEl.innerHTML='<div style="color:var(--ac);font-size:12px;">Nie udało się rozpoznać żadnego klienta w tych danych. Spróbuj wkleić inny fragment / wgrać wyraźniejszy zrzut ekranu, albo dodać nagłówki/kontekst (np. "Imię: ...", "Waga: ...").</div>';
       return;
     }
     fiteboParsedClients=result.clients;
@@ -8590,6 +8635,8 @@ function fiteboImportSelected(){
   });
 
   renderSavedProfiles();
+  fiteboImages=[];
+  renderFiteboImagePreviews();
   const resultEl=document.getElementById('fitebo-result');
   if(resultEl) resultEl.innerHTML='<div style="color:var(--gr);font-size:13px;font-weight:600;">✅ Zaimportowano '+imported+' klient(ów)'+(skipped?(', pominięto '+skipped):'')+'. Znajdziesz ich na liście zapisanych profili u góry panelu KLIENT.</div>';
 }

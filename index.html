@@ -4516,13 +4516,24 @@ function histRenderTimeline(targetId) {
   // Połącz wpisy ręczne z automatycznymi
   const allEntries = [...entries];
 
-  // Dodaj treningi z logu (tylko te bez ręcznych wpisów)
+  // Dodaj treningi z logu (tylko te bez ręcznych wpisów) - z PEŁNYM rozkładem ćwiczeń
   const manualDates = new Set(entries.map(e => e.date?.split('T')[0]));
   trainDates.forEach(date => {
     if (!manualDates.has(date)) {
-      const exCount = Object.keys(log).filter(ex => log[ex].some(e => e.date === date)).length;
-      const sets = Object.values(log).reduce((sum, exLog) => sum + (exLog.find(e=>e.date===date)?.sets?.length||0), 0);
-      allEntries.push({id:'auto_'+date, text:`Trening – ${exCount} ćwiczeń, ${sets} serii`, type:'auto_trening', date:date+'T12:00:00'});
+      const exercisesForDay = Object.keys(log)
+        .filter(ex => (log[ex]||[]).some(e => e.date === date))
+        .map(ex => {
+          const dayEntry = log[ex].find(e => e.date === date);
+          return { name: ex, sets: dayEntry?.sets || [] };
+        });
+      const totalSets = exercisesForDay.reduce((s,e) => s + e.sets.length, 0);
+      allEntries.push({
+        id: 'auto_'+date,
+        type: 'auto_trening',
+        date: date+'T12:00:00',
+        exercises: exercisesForDay,
+        text: `${exercisesForDay.length} ćwiczeń • ${totalSets} serii`
+      });
     }
   });
 
@@ -4553,19 +4564,183 @@ function histRenderTimeline(targetId) {
     groups[day].push(e);
   });
 
+  const labels = { trening:'TRENING', dieta:'DIETA', pomiar:'POMIAR', notatka:'NOTATKA', cel:'PLAN', sukces:'SUKCES', auto_trening:'TRENING', auto_pomiar:'POMIAR' };
+  const borderColors = { trening:'#E8302A', dieta:'#E8302A', pomiar:'var(--bl)', notatka:'var(--yw)', cel:'var(--bl)', sukces:'#FFD700', auto_trening:'#E8302A', auto_pomiar:'var(--bl)' };
+
   el.innerHTML = Object.entries(groups).slice(0,30).map(([day, dayEntries]) => {
     const dateObj = new Date(day);
     const dateStr = dateObj.toLocaleDateString('pl', {weekday:'short', day:'numeric', month:'short'});
-    return `<div style="margin-bottom:12px;">
-      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:6px;">${dateStr}</div>
-      ${dayEntries.map(e => `
-        <div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;">
-          <div style="width:20px;height:20px;border-radius:50%;background:${colors[e.type]||'var(--tx3)'}22;border:1px solid ${colors[e.type]||'var(--tx3)'}44;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;">${icons[e.type]||'📝'}</div>
-          <div style="flex:1;font-size:11px;color:var(--tx2);line-height:1.4;">${e.text}</div>
-          ${!e.id.toString().startsWith('auto_') && !e.id.toString().startsWith('meas_') ? `<button onclick="histDeleteEntry(${e.id})" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:10px;opacity:.5;padding:0 2px;">✕</button>` : ''}
-        </div>`).join('')}
+    return `<div style="margin-bottom:14px;">
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:8px;">${dateStr}</div>
+      ${dayEntries.map(e => {
+        const bc = borderColors[e.type] || 'var(--tx3)';
+        const lbl = labels[e.type] || 'WPIS';
+        const isAuto = e.id.toString().startsWith('auto_') || e.id.toString().startsWith('meas_');
+
+        // KARTA TRENINGU - pelny rozklad cwiczen jak w propozycji
+        if (e.type === 'auto_trening') {
+          return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${bc};border-radius:6px;padding:10px 14px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="background:rgba(232,48,42,0.15);color:${bc};border:1px solid rgba(232,48,42,0.3);font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;font-family:'DM Mono',monospace;">${lbl}</span>
+                <span style="font-size:10px;color:var(--tx3);">${e.text}</span>
+              </div>
+              <button onclick="histOpenEditTraining('${day}')" title="Edytuj trening" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:12px;padding:2px 4px;">✏️</button>
+            </div>
+            <div>
+              ${e.exercises.map(ex => {
+                const n = ex.sets.length;
+                const kgs = ex.sets.map(s=>Number(s.kg)||0).filter(v=>v>0);
+                const reps = ex.sets.map(s=>Number(s.reps)||0).filter(v=>v>0);
+                const avgKg = kgs.length ? Math.round(kgs.reduce((a,b)=>a+b,0)/kgs.length) : null;
+                const avgReps = reps.length ? Math.round(reps.reduce((a,b)=>a+b,0)/reps.length) : null;
+                const varyKg = kgs.length && new Set(kgs).size>1;
+                const varyReps = reps.length && new Set(reps).size>1;
+                return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.06);">
+                  <div style="color:var(--tx1);font-size:12px;font-weight:500;flex:1;min-width:0;">${ex.name}</div>
+                  <div style="display:flex;gap:5px;flex-shrink:0;">
+                    <span style="background:var(--bg3);color:var(--tx2);font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);"><b style="color:var(--tx1);">${n}</b> ${n===1?'seria':'serie'}</span>
+                    ${avgKg!==null ? `<span style="background:rgba(255,255,255,0.04);color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid #444;"><b>${varyKg?'~':''}${avgKg}</b> kg</span>` : `<span style="color:var(--tx3);font-size:10px;font-style:italic;padding:2px 4px;">b.d. kg</span>`}
+                    ${avgReps!==null ? `<span style="background:var(--bg3);color:var(--tx2);font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);"><b style="color:var(--tx1);">${varyReps?'~':''}${avgReps}</b> powt.</span>` : `<span style="color:var(--tx3);font-size:10px;font-style:italic;padding:2px 4px;">b.d. powt.</span>`}
+                  </div>
+                </div>`;
+              }).join('') || `<div style="font-size:11px;color:var(--tx3);padding:6px 0;">Brak zapisanych ćwiczeń tego dnia.</div>`}
+            </div>
+          </div>`;
+        }
+
+        // ZWYKLY WPIS (notatka/cel/sukces/pomiar) - kompaktowa karta
+        return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${bc};border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;">
+          <span style="background:${bc}22;color:${bc};border:1px solid ${bc}44;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;font-family:'DM Mono',monospace;flex-shrink:0;margin-top:1px;">${lbl}</span>
+          <div id="hist-text-${e.id}" style="flex:1;font-size:11px;color:var(--tx2);line-height:1.5;">${e.text}</div>
+          ${!isAuto ? `
+            <button onclick="histEditEntryStart(${e.id})" title="Edytuj" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:11px;opacity:.6;padding:0 2px;flex-shrink:0;">✏️</button>
+            <button onclick="histDeleteEntry(${e.id})" title="Usuń" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:11px;opacity:.6;padding:0 2px;flex-shrink:0;">✕</button>
+          ` : ''}
+        </div>`;
+      }).join('')}
     </div>`;
   }).join('');
+}
+
+function histEditEntryStart(id) {
+  const wrap = document.getElementById('hist-text-'+id);
+  if (!wrap) return;
+  const current = wrap.textContent;
+  wrap.innerHTML = `<div style="display:flex;gap:6px;">
+    <input id="hist-edit-inp-${id}" value="${current.replace(/"/g,'&quot;')}" style="flex:1;background:var(--bg3);border:1px solid var(--ac);border-radius:5px;padding:4px 7px;color:var(--tx1);font-size:11px;outline:none;">
+    <button onclick="histEditEntrySave(${id})" style="background:var(--ac);border:none;border-radius:5px;padding:4px 9px;color:#fff;font-size:10px;cursor:pointer;">Zapisz</button>
+  </div>`;
+  document.getElementById('hist-edit-inp-'+id)?.focus();
+}
+
+function histEditEntrySave(id) {
+  const inp = document.getElementById('hist-edit-inp-'+id);
+  if (!inp) return;
+  const newText = inp.value.trim();
+  if (!newText) return;
+  const entries = JSON.parse(localStorage.getItem(histGetKey('timeline')) || '[]');
+  const entry = entries.find(e => e.id === id);
+  if (entry) { entry.text = newText; localStorage.setItem(histGetKey('timeline'), JSON.stringify(entries)); }
+  histRenderTimeline();
+}
+
+// ============================================================
+// EDYCJA TRENINGU Z DANEGO DNIA (kg/powt./serie per ćwiczenie)
+// ============================================================
+function histOpenEditTraining(date) {
+  const logKey = 'tl_log_' + (document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+  const log = JSON.parse(localStorage.getItem(logKey) || '{}');
+  const exercisesForDay = Object.keys(log).filter(ex => (log[ex]||[]).some(e => e.date === date));
+
+  let modal = document.getElementById('hist-edit-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'hist-edit-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:950;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    document.body.appendChild(modal);
+  }
+
+  const dateStr = new Date(date).toLocaleDateString('pl', {weekday:'long', day:'numeric', month:'long'});
+  modal.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:92%;max-width:480px;max-height:86vh;overflow-y:auto;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;color:var(--tx1);">✏️ EDYTUJ TRENING</div>
+      <button onclick="document.getElementById('hist-edit-modal').remove()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--tx2);border-radius:8px;padding:5px 11px;cursor:pointer;font-size:12px;">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:14px;text-transform:capitalize;">${dateStr}</div>
+    <div id="hist-edit-ex-list">
+      ${exercisesForDay.map(ex => histEditExerciseRowHtml(ex, log[ex].find(e=>e.date===date)?.sets||[])).join('')}
+    </div>
+    <button onclick="document.getElementById('hist-edit-modal').remove();document.getElementById('hist-edit-modal-confirm-del')?.remove();histDeleteTrainingDay('${date}')" style="width:100%;margin-top:6px;padding:9px;background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.25);border-radius:8px;color:var(--ac);font-size:11px;font-weight:600;cursor:pointer;">🗑 Usuń cały trening z tego dnia</button>
+    <button onclick="histSaveTrainingDay('${date}')" style="width:100%;margin-top:8px;padding:11px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">💾 Zapisz zmiany</button>
+  </div>`;
+}
+
+function histEditExerciseRowHtml(name, sets) {
+  const safeName = name.replace(/"/g,'&quot;');
+  return `<div class="hist-edit-ex" data-name="${safeName}" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+    <div style="font-size:12px;font-weight:600;color:var(--tx1);margin-bottom:8px;">${name}</div>
+    <div class="hist-edit-sets">
+      ${sets.map((s,i) => histEditSetRowHtml(s.kg||0, s.reps||0, s.rpe||0)).join('')}
+    </div>
+    <div style="display:flex;gap:6px;margin-top:4px;">
+      <button onclick="histEditAddSet(this)" style="flex:1;background:rgba(255,255,255,0.04);border:1px dashed var(--border);border-radius:6px;padding:5px;color:var(--tx2);font-size:10px;cursor:pointer;">+ Dodaj serię</button>
+      <button onclick="this.closest('.hist-edit-ex').remove()" style="background:rgba(232,48,42,0.06);border:1px solid rgba(232,48,42,0.2);border-radius:6px;padding:5px 10px;color:var(--ac);font-size:10px;cursor:pointer;">🗑 Usuń ćwiczenie</button>
+    </div>
+  </div>`;
+}
+
+function histEditSetRowHtml(kg, reps, rpe) {
+  return `<div class="hist-edit-set" style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">
+    <input type="number" value="${kg}" placeholder="kg" style="width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 6px;color:var(--tx1);font-size:11px;outline:none;text-align:center;" data-field="kg">
+    <span style="font-size:10px;color:var(--tx3);">kg ×</span>
+    <input type="number" value="${reps}" placeholder="powt." style="width:56px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 6px;color:var(--tx1);font-size:11px;outline:none;text-align:center;" data-field="reps">
+    <span style="font-size:10px;color:var(--tx3);">powt.</span>
+    <input type="number" value="${rpe}" placeholder="RPE" style="width:48px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:5px 6px;color:var(--tx1);font-size:11px;outline:none;text-align:center;" data-field="rpe">
+    <span style="font-size:10px;color:var(--tx3);">RPE</span>
+    <button onclick="this.closest('.hist-edit-set').remove()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:12px;margin-left:auto;">✕</button>
+  </div>`;
+}
+
+function histEditAddSet(btn) {
+  const container = btn.closest('.hist-edit-ex').querySelector('.hist-edit-sets');
+  container.insertAdjacentHTML('beforeend', histEditSetRowHtml(0,0,0));
+}
+
+function histSaveTrainingDay(date) {
+  const logKey = 'tl_log_' + (document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+  const log = JSON.parse(localStorage.getItem(logKey) || '{}');
+
+  // Usuń stare wpisy dla tego dnia ze wszystkich ćwiczeń
+  Object.keys(log).forEach(ex => { log[ex] = (log[ex]||[]).filter(e => e.date !== date); });
+
+  // Wstaw na nowo na podstawie edytowanego formularza
+  document.querySelectorAll('#hist-edit-ex-list .hist-edit-ex').forEach(exEl => {
+    const name = exEl.getAttribute('data-name');
+    const sets = Array.from(exEl.querySelectorAll('.hist-edit-set')).map(row => ({
+      kg: Number(row.querySelector('[data-field="kg"]')?.value)||0,
+      reps: Number(row.querySelector('[data-field="reps"]')?.value)||0,
+      rpe: Number(row.querySelector('[data-field="rpe"]')?.value)||0
+    }));
+    if (!sets.length) return;
+    if (!log[name]) log[name] = [];
+    log[name].push({ date, sets });
+  });
+
+  // Wyczyść puste ćwiczenia (bez żadnych sesji)
+  Object.keys(log).forEach(ex => { if (!log[ex].length) delete log[ex]; });
+
+  localStorage.setItem(logKey, JSON.stringify(log));
+  document.getElementById('hist-edit-modal')?.remove();
+  histRenderTimeline();
+}
+
+function histDeleteTrainingDay(date) {
+  const logKey = 'tl_log_' + (document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+  const log = JSON.parse(localStorage.getItem(logKey) || '{}');
+  Object.keys(log).forEach(ex => { log[ex] = (log[ex]||[]).filter(e => e.date !== date); if (!log[ex].length) delete log[ex]; });
+  localStorage.setItem(logKey, JSON.stringify(log));
+  histRenderTimeline();
 }
 
 function histCalcStreak() {

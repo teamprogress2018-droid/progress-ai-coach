@@ -116,6 +116,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
   <div class="topbar-spacer"></div>
   <div class="status-dot"></div>
   <div class="status-label">ONLINE</div>
+  <button class="topbar-btn" style="background:rgba(232,48,42,0.14);border-color:rgba(232,48,42,0.35);color:#E8302A;" onclick="openClientList()">👥 Klienci</button>
   <button class="topbar-btn" onclick="openMeasurements()">📏 Pomiary</button>
   <button class="topbar-btn red" onclick="openBodyAssessment()">📸 Sylwetka</button>
   <button class="topbar-btn" style="background:rgba(74,222,128,0.12);border-color:rgba(74,222,128,0.3);color:var(--gr);" onclick="openPlanScreen()">📋 Plan 8 tyg.</button>
@@ -1796,6 +1797,41 @@ button:disabled{opacity:.5;cursor:not-allowed;}
   </div>
 </div>
 <!-- ═══ END DIETA ═══ -->
+
+<div id="screen-klienci" class="overlay-screen">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--tx1);">👥 BAZA KLIENTÓW</div>
+    <button onclick="closeOverlay()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;">← Wróć do chatu</button>
+  </div>
+
+  <!-- WIDOK: LISTA -->
+  <div id="kl-list-view" style="padding:16px 20px;max-width:900px;">
+    <input type="text" id="kl-search" oninput="renderClientListScreen()" placeholder="🔍 Szukaj klienta po imieniu..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--tx1);font-size:13px;outline:none;margin-bottom:16px;font-family:'DM Sans',sans-serif;">
+    <div id="kl-list-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;"></div>
+    <div id="kl-list-empty" style="display:none;text-align:center;padding:50px 20px;color:var(--tx3);">
+      <div style="font-size:32px;margin-bottom:10px;">🗂️</div>
+      <div style="font-size:13px;">Brak zapisanych klientów.</div>
+      <div style="font-size:11px;margin-top:6px;">Wypełnij profil w zakładce KLIENT i kliknij „💾 Zapisz", albo zaimportuj z Fitebo.</div>
+    </div>
+  </div>
+
+  <!-- WIDOK: SZCZEGÓŁY KLIENTA -->
+  <div id="kl-detail-view" style="display:none;padding:16px 20px;max-width:700px;">
+    <button onclick="klBackToList()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;margin-bottom:14px;">← Do listy klientów</button>
+
+    <div id="kl-detail-header" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;"></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+      <button onclick="klQuickAction('form')" style="flex:1;min-width:130px;padding:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--tx1);font-size:11px;font-weight:600;cursor:pointer;">✏️ Otwórz w formularzu</button>
+      <button onclick="klQuickAction('plan')" style="flex:1;min-width:130px;padding:10px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);border-radius:8px;color:var(--gr);font-size:11px;font-weight:600;cursor:pointer;">📋 Generuj plan</button>
+      <button onclick="klQuickAction('meas')" style="flex:1;min-width:130px;padding:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--tx1);font-size:11px;font-weight:600;cursor:pointer;">📏 Pomiary</button>
+      <button onclick="klQuickAction('delete')" style="padding:10px 14px;background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.2);border-radius:8px;color:var(--ac);font-size:11px;font-weight:600;cursor:pointer;">🗑</button>
+    </div>
+
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--tx1);margin-bottom:10px;">📋 OŚ CZASU I HISTORIA</div>
+    <div id="kl-detail-timeline" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;"></div>
+  </div>
+</div>
 
 <div id="screen-plan" class="overlay-screen">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
@@ -4459,8 +4495,8 @@ function histDeleteEntry(id) {
   histRenderTimeline();
 }
 
-function histRenderTimeline() {
-  const el = document.getElementById('hist-timeline');
+function histRenderTimeline(targetId) {
+  const el = document.getElementById(targetId || 'hist-timeline');
   if (!el) return;
   const entries = JSON.parse(localStorage.getItem(histGetKey('timeline')) || '[]');
 
@@ -5437,6 +5473,115 @@ function renderSavedProfiles() {
       <div><div style="font-size:11px;font-weight:600;color:var(--tx);">${p.name}</div><div style="font-size:9px;color:var(--tx3);">${p.data?._saved||'–'}</div></div>
       <button onclick="deleteClientProfile('${p.key}',event)" style="background:transparent;border:none;color:var(--ac);cursor:pointer;font-size:14px;padding:2px 4px;">✕</button>
     </div>`).join('');
+}
+
+// ============================================================
+// LISTA KLIENTÓW - pełny widok: karta klienta + oś czasu/historia
+// ============================================================
+let klCurrentKey = null;
+
+function klSlug(name) { return (name||'klient').toLowerCase().trim().replace(/\s+/g,'_'); }
+
+function openClientList() {
+  document.querySelectorAll('.overlay-screen').forEach(s => s.style.display = 'none');
+  document.getElementById('screen-klienci').style.display = 'block';
+  document.getElementById('kl-list-view').style.display = 'block';
+  document.getElementById('kl-detail-view').style.display = 'none';
+  renderClientListScreen();
+}
+
+function renderClientListScreen() {
+  const grid = document.getElementById('kl-list-grid');
+  const emptyEl = document.getElementById('kl-list-empty');
+  if (!grid) return;
+  const q = (document.getElementById('kl-search')?.value || '').toLowerCase().trim();
+  const profiles = JSON.parse(localStorage.getItem('saved_profiles') || '[]')
+    .filter(p => !q || (p.name||'').toLowerCase().includes(q));
+  if (!profiles.length) {
+    grid.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  grid.innerHTML = profiles.map(p => {
+    const d = p.data || {};
+    const slug = klSlug(p.name);
+    const measCount = (JSON.parse(localStorage.getItem('measurements_'+slug) || '[]')).length;
+    const log = JSON.parse(localStorage.getItem('tl_log_'+slug) || '{}');
+    const trainCount = Object.values(log).reduce((s,arr) => s + (arr?.length||0), 0);
+    const goalShort = (d['client-goal']||'').split(' ').slice(0,4).join(' ');
+    return `<div onclick="klOpenDetail('${p.key}')" style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ac);font-size:14px;flex-shrink:0;">${(p.name||'?').charAt(0).toUpperCase()}</div>
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+          <div style="font-size:10px;color:var(--tx3);">${d['_saved']||'–'}</div>
+        </div>
+      </div>
+      ${goalShort ? `<div style="font-size:10px;color:var(--tx2);margin-bottom:8px;">🎯 ${goalShort}</div>` : ''}
+      <div style="display:flex;gap:10px;font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">
+        <span>📏 ${measCount} pomiar${measCount===1?'':'y'}</span>
+        <span>🏋️ ${trainCount} wpis${trainCount===1?'':'ów'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function klOpenDetail(key) {
+  const profiles = JSON.parse(localStorage.getItem('saved_profiles') || '[]');
+  const profile = profiles.find(p => p.key === key);
+  if (!profile) return;
+  klCurrentKey = key;
+  setFullClientData(profile.data);
+
+  document.getElementById('kl-list-view').style.display = 'none';
+  document.getElementById('kl-detail-view').style.display = 'block';
+
+  const d = profile.data || {};
+  const rows = [
+    ['Wiek', d['client-age-num'] ? d['client-age-num']+' lat' : null],
+    ['Płeć', d['client-gender'] || null],
+    ['Waga', d['client-weight'] ? d['client-weight']+' kg' : null],
+    ['Wzrost', d['client-height'] ? d['client-height']+' cm' : null],
+    ['Cel', d['client-goal'] || null],
+  ].filter(r => r[1]);
+
+  const header = document.getElementById('kl-detail-header');
+  if (header) header.innerHTML = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ac);font-size:18px;flex-shrink:0;">${(profile.name||'?').charAt(0).toUpperCase()}</div>
+      <div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.5px;color:var(--tx1);">${profile.name}</div><div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;">Ostatnia aktualizacja: ${d['_saved']||'–'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
+      ${rows.map(r => `<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;"><div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;">${r[0]}</div><div style="font-size:13px;font-weight:600;color:var(--tx1);margin-top:2px;">${r[1]}</div></div>`).join('')}
+    </div>`;
+
+  histRenderTimeline('kl-detail-timeline');
+}
+
+function klBackToList() {
+  document.getElementById('kl-detail-view').style.display = 'none';
+  document.getElementById('kl-list-view').style.display = 'block';
+  renderClientListScreen();
+}
+
+function klQuickAction(action) {
+  if (action === 'form') {
+    closeOverlay();
+    showSideTab('profil', document.querySelector('.stab'));
+  } else if (action === 'plan') {
+    closeOverlay();
+    openPlanScreen();
+  } else if (action === 'meas') {
+    openMeasurements();
+  } else if (action === 'delete') {
+    const profiles = JSON.parse(localStorage.getItem('saved_profiles') || '[]');
+    const profile = profiles.find(p => p.key === klCurrentKey);
+    if (!profile) return;
+    if (!confirm(`Na pewno usunąć klienta "${profile.name}" z listy profili? (zapisane pomiary i historia treningów zostaną w pamięci przeglądarki, ale znikną z tej listy)`)) return;
+    localStorage.setItem('saved_profiles', JSON.stringify(profiles.filter(p => p.key !== klCurrentKey)));
+    renderSavedProfiles();
+    klBackToList();
+  }
 }
 
 function exportClientProfile() {

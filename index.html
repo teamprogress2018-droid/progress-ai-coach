@@ -220,6 +220,24 @@ button:disabled{opacity:.5;cursor:not-allowed;}
           <option value="bardzo zaawansowany (5+ lat regularnego treningu)">💎 Ekspert (5+ lat)</option>
         </select>
       </div>
+      <div class="fg"><label>Wcześniejsze sporty / aktywność (przed obecnym treningiem)</label>
+        <select id="client-sport-history">
+          <option value="">— Brak / pierwszy kontakt z aktywnością fizyczną —</option>
+          <option value="crossfit / functional fitness">🏋️ CrossFit / functional fitness</option>
+          <option value="sporty wytrzymałościowe (bieganie, kolarstwo, pływanie, triathlon)">🏃 Sporty wytrzymałościowe (bieganie/kolarstwo/pływanie)</option>
+          <option value="sporty siłowe (podnoszenie ciężarów, powerlifting, strongman)">💪 Sporty siłowe (inna dyscyplina niż obecna)</option>
+          <option value="sporty drużynowe (piłka nożna, koszykówka, siatkówka, rugby)">⚽ Sporty drużynowe (piłka nożna/koszykówka/siatkówka)</option>
+          <option value="sporty walki (boks, MMA, judo, zapasy, brazylijskie jiu-jitsu)">🥋 Sporty walki</option>
+          <option value="gimnastyka / akrobatyka / cheerleading / taniec">🤸 Gimnastyka / akrobatyka / taniec</option>
+          <option value="sporty precyzyjne/rakietowe (tenis, squash, golf, badminton)">🎾 Sporty rakietowe / precyzyjne</option>
+          <option value="pływanie wyczynowe">🏊 Pływanie wyczynowe</option>
+          <option value="wspinaczka sportowa / boulderowanie">🧗 Wspinaczka sportowa</option>
+          <option value="inne (opisz w uwagach)">✏️ Inne (opisz w polu obok)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Poziom w tym sporcie / szczegóły (opcjonalnie)</label>
+        <input type="text" id="client-sport-history-detail" placeholder="np. amatorsko 3 lata, przerwa 2 lata temu / zawodniczo do 18 r.ż. / rekreacyjnie co tydzień..."></div>
+      </div>
       <div class="fg"><label>Wady postawy</label>
         <div class="check-group">
           <label class="chk"><input type="checkbox" id="post-lordoza"> Hiperlordoza lędźwiowa</label>
@@ -2046,6 +2064,8 @@ function getClientProfile(){
   const goal=document.getElementById('client-goal').value;
   const priority=document.getElementById('client-priority').value;
   const level=document.getElementById('client-level').value;
+  const sportHistory=document.getElementById('client-sport-history')?.value||'';
+  const sportHistoryDetail=document.getElementById('client-sport-history-detail')?.value||'';
   const limits=document.getElementById('client-limits').value;
   const equipment=document.getElementById('client-equipment').value;
   const days=document.getElementById('client-days').value;
@@ -2148,6 +2168,92 @@ function getClientProfile(){
   if(asymmetry) {
     lifeRecommendations.push(`Asymetria: ${asymmetry} → ćwiczenia jednostronne (lunges, hantlowe wiosłowanie) aby korygować różnicę siły`);
   }
+
+  // Wcześniejszy sport / predyspozycje przeniesione z innej aktywności
+  if(sportHistory) {
+    const SPORT_TRANSFER={
+      'crossfit / functional fitness':{
+        note:'Wcześniejszy CrossFit',
+        implications:[
+          'Bardzo dobra baza kondycyjna i tolerancja wysiłku metabolicznego → można śmielej wprowadzać wyższe RPE i krótsze przerwy niż u typowego debiutanta',
+          'Zwykle już zna wzorce ruchowe wielostawowe (przysiad, martwy ciąg, OHP, oczyszczenie) → mniej czasu na naukę techniki, więcej na progresję obciążenia',
+          'UWAGA: technika bywa "funkcjonalna, nie estetyczna" — sprawdź i skoryguj technikę pod kątem hipertrofii/bezpieczeństwa stawów, nie tylko szybkości wykonania',
+          'Częste przeciążenia barków/dolnego odcinka pleców z CrossFitu → zapytaj o historię kontuzji, rozważ dodatkową rozgrzewkę barków i core'
+        ]
+      },
+      'sporty wytrzymałościowe (bieganie, kolarstwo, pływanie, triathlon)':{
+        note:'Wcześniejsze sporty wytrzymałościowe',
+        implications:[
+          'Świetna baza tlenowa i wydolność krążeniowo-oddechowa → dobrze zniesie wyższą częstotliwość treningową i krótszą regenerację między sesjami',
+          'Zwykle NISKA masa mięśniowa i siła maksymalna w stosunku do wydolności → priorytet: budowa siły bazowej i masy, nie kolejne cardio',
+          'Ryzyko: nawyk "wykręcania" dużej objętości niskiej intensywności → edukuj o różnicy między treningiem siłowym (niższe objętości, wyższa jakość) a wytrzymałościowym',
+          'Zwykle dobra dyscyplina treningowa i tolerancja na regularność — dobry kandydat do bardziej wymagających planów wielotygodniowych'
+        ]
+      },
+      'sporty siłowe (podnoszenie ciężarów, powerlifting, strongman)':{
+        note:'Wcześniejsze sporty siłowe (inna dyscyplina)',
+        implications:[
+          'Prawdopodobnie dobra technika w ruchach bazowych i wysoka tolerancja na obciążenie zewnętrzne → można zacząć bliżej środka zakresu obciążeń, nie od zera',
+          'Sprawdź czy nawyki z poprzedniej dyscypliny (np. inny styl przysiadu w oly-lifting vs. powerlifting) nie kolidują z nowym celem treningowym'
+        ]
+      },
+      'sporty drużynowe (piłka nożna, koszykówka, siatkówka, rugby)':{
+        note:'Wcześniejsze sporty drużynowe',
+        implications:[
+          'Dobra ogólna atletyczność, koordynacja i zdolności eksplozywne (sprint, skok) → można wcześniej wprowadzać elementy mocy/pliometrii jeśli cel na to pozwala',
+          'Częste asymetrie z dominującej strony ciała (kopanie/rzucanie jedną stroną) → sprawdź balans siłowy lewa/prawa, rozważ pracę jednostronną',
+          'Ryzyko starych kontuzji stawu skokowego/kolana z kontaktowych sportów → zapytaj o historię urazów przed doborem ćwiczeń nóg'
+        ]
+      },
+      'sporty walki (boks, MMA, judo, zapasy, brazylijskie jiu-jitsu)':{
+        note:'Wcześniejsze sporty walki',
+        implications:[
+          'Bardzo dobra siła chwytu, core i świadomość ciała → można śmielej wprowadzać ćwiczenia wymagające stabilizacji (unilateralne, niestabilne podłoże)',
+          'Często podwyższone obciążenie stawów barkowych i kręgosłupa szyjnego (zapasy/judo) lub przeciążenia rąk (boks) — dopytaj o przewlekłe dolegliwości',
+          'Dobra tolerancja bólu/dyskomfortu treningowego — łatwiej wprowadzić trening blisko upadku mięśniowego bez obaw o rezygnację'
+        ]
+      },
+      'gimnastyka / akrobatyka / cheerleading / taniec':{
+        note:'Wcześniejsza gimnastyka/akrobatyka/taniec',
+        implications:[
+          'Wyjątkowo dobra mobilność, kontrola ciała i propriocepcja → można wprowadzać zaawansowane warianty ćwiczeń (jednostronne, na niestabilnym podłożu) szybciej niż zwykle',
+          'Często NISKA siła maksymalna mimo dobrej sprawności → priorytet: budowa siły z zewnętrznym obciążeniem, nie tylko masą własnego ciała',
+          'Zwykle bardzo dobra dyscyplina i tolerancja bólu mięśniowego (DOMS) z racji charakteru poprzedniego treningu'
+        ]
+      },
+      'sporty precyzyjne/rakietowe (tenis, squash, golf, badminton)':{
+        note:'Wcześniejsze sporty precyzyjne/rakietowe',
+        implications:[
+          'Silna asymetria dominującej strony (ramię/bark grający) → koniecznie sprawdź i zbalansuj siłę lewa/prawa, priorytet pracy jednostronnej',
+          'Częste przeciążenia stawu barkowego i łokcia (tenis łokieć) po stronie dominującej — dopytaj o dolegliwości przed doborem ćwiczeń górnej części ciała'
+        ]
+      },
+      'pływanie wyczynowe':{
+        note:'Wcześniejsze pływanie wyczynowe',
+        implications:[
+          'Bardzo dobra mobilność i siła obręczy barkowej, silna wydolność oddechowa → dobra baza pod trening górnej części ciała i cardio',
+          'Typowo słabszy dolny odcinek ciała (nogi/pośladki) w stosunku do górnej części → rozważ większy priorytet na nogi/pośladki, żeby zbalansować sylwetkę',
+          'Częste przeciążenia stożka rotatorów barku (pływanie) — sprawdź historię bólu barku przed doborem ciężkich ćwiczeń nad głową'
+        ]
+      },
+      'wspinaczka sportowa / boulderowanie':{
+        note:'Wcześniejsza wspinaczka sportowa',
+        implications:[
+          'Bardzo dobra siła chwytu, przedramion i pleców (mięsień najszerszy) → można zacząć od wyższej bazy obciążenia w ćwiczeniach ciągnących',
+          'Zwykle słabszy trening nóg i klatki piersiowej w porównaniu do pleców → warto celowo zbalansować proporcje w planie',
+          'Ryzyko przeciążeń palców/łokci (wspinaczkowy łokieć) — dopytaj o dolegliwości przed intensywną pracą chwytu'
+        ]
+      }
+    };
+    const transfer = SPORT_TRANSFER[sportHistory];
+    if(transfer){
+      lifeRisks.push(transfer.note.toUpperCase()+(sportHistoryDetail?' ('+sportHistoryDetail+')':''));
+      transfer.implications.forEach(imp=>lifeRecommendations.push(imp));
+    } else if(sportHistory==='inne (opisz w uwagach)' && sportHistoryDetail){
+      lifeRecommendations.push(`Wcześniejsza aktywność klienta (opis własny): "${sportHistoryDetail}" — uwzględnij wynikające z tego predyspozycje i ograniczenia przy doborze ćwiczeń i startowej intensywności.`);
+    }
+  }
+
   const psychoData = (() => {
     try {
       const key = 'psycho_' + name.toLowerCase().replace(/\s+/g,'_');

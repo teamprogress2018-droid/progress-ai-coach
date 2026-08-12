@@ -7418,12 +7418,24 @@ async function callAPI(system, userMsg, maxTokens, images) {
   const content = (images && images.length)
     ? [...images.map(img => ({type:'image', source:{type:'base64', media_type:img.mediaType, data:img.base64}})), {type:'text', text:userMsg}]
     : userMsg;
-  const resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:maxTokens, system:system, messages:[{role:'user',content:content}]})
-  });
-  const data = await resp.json();
+  const fetchBody = JSON.stringify({model:'claude-sonnet-4-6', max_tokens:maxTokens, system:system, messages:[{role:'user',content:content}]});
+  let resp, data;
+  const RETRYABLE = [400,429,500,502,503,524];
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    resp = await fetch('https://anthropic-proxy.teamprogress2018.workers.dev', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: fetchBody
+    });
+    data = await resp.json();
+    if (resp.ok) break;
+    console.error(`callAPI błąd serwera (próba ${attempt+1}/3):`, resp.status, JSON.stringify(data));
+    if (attempt < 2 && RETRYABLE.includes(resp.status)) {
+      await new Promise(r => setTimeout(r, 1500 * Math.pow(2, attempt)));
+      continue;
+    }
+    break;
+  }
   const raw = (data?.content||[]).map(b=>b.text||'').join('');
   console.log('API raw length:', raw.length, 'preview:', raw.substring(0,80));
   const first = raw.indexOf('{'); const last = raw.lastIndexOf('}');

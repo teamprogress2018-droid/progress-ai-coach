@@ -7721,8 +7721,8 @@ function getPhaseColor(phase) {
 }
 
 
-function buildPlanPrompt(weeks) {
-  const weekNames = ['w1','w2','w3','w4','w5','w6','w7','w8'].slice(0, weeks);
+function buildPlanPrompt(weeks, chunkKeys) {
+  const weekNames = chunkKeys || ['w1','w2','w3','w4','w5','w6','w7','w8'].slice(0, weeks);
   const phases = {
     1: {'w1':'Tydzień 1'},
     4: {'w1':'Adaptacja','w2':'Hipertrofia I','w3':'Hipertrofia II','w4':'Deload'},
@@ -7846,6 +7846,36 @@ ZASADY:
 - Uwzględnij wykluczone ruchy z profilu`;
 }
 
+function buildContinuationPrompt(chunkKeys) {
+  const progInstruction = getProgressionInstruction(planWeeks);
+  const wEx = chunkKeys.map(wk => `"${wk}":{"s":3,"r":"10","rest":"90s","rpe":"7","kg":"65%"}`).join(',');
+  return `Jesteś elitarnym AI Coachem (NSCA CSCS) kontynuującym już ustalony plan treningowy. Otrzymasz listę istniejących sesji i ćwiczeń — zwróć TYLKO dane progresji dla podanych tygodni, w TEJ SAMEJ kolejności sesji i ćwiczeń co podano, BEZ zmiany nazw, BEZ dodawania lub usuwania ćwiczeń. TYLKO czysty JSON, bez markdown, bez komentarzy.
+
+PROGRESJA: ${progInstruction}
+
+ZASADY OBJĘTOŚCI: nie zmieniaj liczby serii drastycznie tydzień do tygodnia (max ±1 seria), chyba że to tydzień Deload (wtedy -30 do -50% objętości) lub Szczyt (możliwy wzrost intensywności kosztem objętości). Zachowaj sensowną, ciągłą progresję ciężaru/RPE zgodną z metodą progresji.
+
+FORMAT (zwróć DOKŁADNIE tyle samo sesji i ćwiczeń, w tej samej kolejności, tylko z polami "name" i tygodniami):
+{"sessions":[{"sessionName":"(dokładnie ta sama nazwa sesji co podano)","exercises":[{"name":"(dokładnie ta sama nazwa ćwiczenia co podano)",${wEx}}]}]}`;
+}
+
+function mergeChunkIntoPlan(basePlan, chunkPlan, chunkKeys) {
+  if (!chunkPlan || !chunkPlan.sessions) return;
+  chunkPlan.sessions.forEach((chunkSession, si) => {
+    const baseSession = basePlan.sessions[si];
+    if (!baseSession) return;
+    (chunkSession.exercises || []).forEach((chunkEx, ei) => {
+      let baseEx = null;
+      if (chunkEx.name) {
+        baseEx = baseSession.exercises.find(e => e.name && e.name.trim().toLowerCase() === chunkEx.name.trim().toLowerCase());
+      }
+      if (!baseEx) baseEx = baseSession.exercises[ei];
+      if (!baseEx) return;
+      chunkKeys.forEach(wk => { if (chunkEx[wk]) baseEx[wk] = chunkEx[wk]; });
+    });
+  });
+}
+
 
 async function generatePlan() {
   const profile = getClientProfile();
@@ -7859,68 +7889,103 @@ async function generatePlan() {
   document.getElementById('plan-expand-btn').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = true;
 
-  let sIdx = 0;
+  const allWeekKeys = ['w1','w2','w3','w4','w5','w6','w7','w8'].slice(0, planWeeks);
+  const CHUNK_SIZE = 2;
+  const weekChunks = [];
+  for (let i = 0; i < allWeekKeys.length; i += CHUNK_SIZE) weekChunks.push(allWeekKeys.slice(i, i + CHUNK_SIZE));
+
   const statusEl = document.getElementById('plan-status');
+  let sIdx = 0;
   const ticker = setInterval(() => {
-    sIdx = (sIdx+1) % PLAN_STATUSES.length;
+    sIdx = (sIdx + 1) % PLAN_STATUSES.length;
     if (statusEl) statusEl.textContent = PLAN_STATUSES[sIdx];
   }, 2000);
 
-  const tokenBudget = planWeeks === 1 ? 8000 : planWeeks === 4 ? 16000 : 24000;
-
-  let plan = null;
-  let errMsg = '';
+  const kbCtx = getKnowledgeContext();
+  const shortProfile = getClientProfileShort();
+  let ragGuide = '';
   try {
-    const sysPrompt = buildPlanPrompt(planWeeks);
-    const kbCtx = getKnowledgeContext();
-    // Skrócony profil dla planu (bez danych daily psycho i SFR)
-    const shortProfile = getClientProfileShort();
-    // RAG wytyczne naukowe
-    let ragGuide = '';
-    try {
-      const ragSaved = localStorage.getItem('rag_science_bundle');
-      if (ragSaved) {
-        const bundle = JSON.parse(ragSaved);
-        const d = bundle.data || {};
-        const parts = [];
-        if (d.hypertrophy_volume && d.hypertrophy_volume.mav_per_muscle) {
-          const mav = d.hypertrophy_volume.mav_per_muscle;
-          const mev = d.hypertrophy_volume.mev_per_muscle || {};
-          parts.push('MEV->MAV serie/tyg: klatka ' + (mev.chest||10) + '->' + (mav.chest||16) + ', plecy ' + (mev.back||14) + '->' + (mav.back||18) + ', barki ' + (mev.shoulders||12) + '->' + (mav.shoulders||16) + ', nogi ' + (mev.quads||12) + '->' + (mav.quads||18));
-        }
-        if (d.rest_periods) parts.push('Przerwy: wielostawy ' + (d.rest_periods.compound_hypertrophy_rest||'90-120s') + ', izolacje ' + (d.rest_periods.isolation_rest||'60-90s'));
-        if (d.rpe_rir) parts.push('RPE: hipertrofia ' + (d.rpe_rir.hypertrophy_rpe||'7-8') + ', sila ' + (d.rpe_rir.strength_rpe||'8-9'));
-        if (d.deload) parts.push('Deload: co ' + (d.deload.deload_frequency_intermediate||'4-6 tyg') + ', -' + (d.deload.volume_reduction_pct||'40-50%') + ' objetosci');
-        if (d.fat_loss_muscle) parts.push('Redukcja: deficyt ' + (d.fat_loss_muscle.weekly_deficit_pct||'0.5-1% BW') + '/tydz, bialko ' + (d.fat_loss_muscle.protein_per_kg||'2.2-2.8g') + '/kg');
-        if (parts.length) ragGuide = '\n\n===WYTYCZNE NAUKOWE (Israetel/Schoenfeld/Helms)===\n' + parts.join('\n') + '\n===KONIEC===';
+    const ragSaved = localStorage.getItem('rag_science_bundle');
+    if (ragSaved) {
+      const bundle = JSON.parse(ragSaved);
+      const d = bundle.data || {};
+      const parts = [];
+      if (d.hypertrophy_volume && d.hypertrophy_volume.mav_per_muscle) {
+        const mav = d.hypertrophy_volume.mav_per_muscle;
+        const mev = d.hypertrophy_volume.mev_per_muscle || {};
+        parts.push('MEV->MAV serie/tyg: klatka ' + (mev.chest||10) + '->' + (mav.chest||16) + ', plecy ' + (mev.back||14) + '->' + (mav.back||18) + ', barki ' + (mev.shoulders||12) + '->' + (mav.shoulders||16) + ', nogi ' + (mev.quads||12) + '->' + (mav.quads||18));
       }
-    } catch(re) {}
-    plan = await callAPI(
-      sysPrompt,
-      'Wygeneruj plan. TYLKO JSON.\n\n' + shortProfile + '\n' + philosophy + (kbCtx ? '\n\n' + kbCtx : '') + ragGuide,
-      tokenBudget
-    );
-  } catch(err) { console.error('generatePlan error:', err); plan = null; errMsg = err.message || 'Nieznany blad'; }
+      if (d.rest_periods) parts.push('Przerwy: wielostawy ' + (d.rest_periods.compound_hypertrophy_rest||'90-120s') + ', izolacje ' + (d.rest_periods.isolation_rest||'60-90s'));
+      if (d.rpe_rir) parts.push('RPE: hipertrofia ' + (d.rpe_rir.hypertrophy_rpe||'7-8') + ', sila ' + (d.rpe_rir.strength_rpe||'8-9'));
+      if (d.deload) parts.push('Deload: co ' + (d.deload.deload_frequency_intermediate||'4-6 tyg') + ', -' + (d.deload.volume_reduction_pct||'40-50%') + ' objetosci');
+      if (d.fat_loss_muscle) parts.push('Redukcja: deficyt ' + (d.fat_loss_muscle.weekly_deficit_pct||'0.5-1% BW') + '/tydz, bialko ' + (d.fat_loss_muscle.protein_per_kg||'2.2-2.8g') + '/kg');
+      if (parts.length) ragGuide = '\n\n===WYTYCZNE NAUKOWE (Israetel/Schoenfeld/Helms)===\n' + parts.join('\n') + '\n===KONIEC===';
+    }
+  } catch(re) {}
+
+  let mergedPlan = null;
+  let lastError = null;
+  let completedChunks = 0;
+
+  for (let ci = 0; ci < weekChunks.length; ci++) {
+    const chunkKeys = weekChunks[ci];
+    const isFirst = ci === 0;
+    if (statusEl) statusEl.textContent = `Generuję tygodnie ${chunkKeys.join(', ')} (część ${ci+1}/${weekChunks.length})...`;
+
+    try {
+      const sysPrompt = isFirst ? buildPlanPrompt(planWeeks, chunkKeys) : buildContinuationPrompt(chunkKeys);
+      let userMsg;
+      if (isFirst) {
+        userMsg = 'Wygeneruj plan. TYLKO JSON.\n\n' + shortProfile + '\n' + philosophy + (kbCtx ? '\n\n' + kbCtx : '') + ragGuide;
+      } else {
+        const exerciseSummary = mergedPlan.sessions.map(s => `${s.sessionName}: ` + s.exercises.map(e => e.name).join(' | ')).join('\n');
+        userMsg = `Kontynuuj TEN SAM plan dla tygodni: ${chunkKeys.join(', ')}.\n\nIstniejące sesje i ćwiczenia (zachowaj dokładnie, bez zmian):\n${exerciseSummary}\n\n${shortProfile}`;
+      }
+      const tokenBudget = isFirst ? 9000 : 6000;
+      const chunkPlan = await callAPI(sysPrompt, userMsg, tokenBudget);
+      if (!chunkPlan || !chunkPlan.sessions) throw new Error(`Pusta odpowiedź dla tygodni ${chunkKeys.join(', ')}`);
+
+      if (isFirst) mergedPlan = chunkPlan;
+      else mergeChunkIntoPlan(mergedPlan, chunkPlan, chunkKeys);
+      completedChunks = ci + 1;
+    } catch (err) {
+      console.error(`generatePlan błąd (tygodnie ${chunkKeys.join(', ')}):`, err);
+      lastError = err;
+      break;
+    }
+  }
 
   clearInterval(ticker);
   document.getElementById('plan-loading').style.display = 'none';
   document.getElementById('plan-gen-btn').disabled = false;
 
-  if (!plan || !plan.sessions) {
+  if (!mergedPlan || !mergedPlan.sessions) {
     document.getElementById('plan-content').innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
       <div style="font-size:36px;margin-bottom:12px">❌</div>
       <div style="color:var(--ac);font-weight:600;margin-bottom:8px">Błąd generowania planu</div>
-      <div style="font-size:12px;margin-bottom:16px;">Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.</div>
+      <div style="font-size:12px;margin-bottom:16px;">${lastError?.message || 'Sprawdź konsolę przeglądarki (F12) i spróbuj ponownie.'}</div>
       <button onclick="generatePlan()" style="background:var(--ac);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;">🔄 Spróbuj ponownie</button>
     </div>`;
     return;
   }
 
-  currentPlanData = plan;
-  // Dodaj wpis do historii
-  const planName = plan?.planTitle || 'Plan treningowy';
+  let partialWarningHtml = '';
+  if (completedChunks < weekChunks.length) {
+    const completedWeekKeys = weekChunks.slice(0, completedChunks).flat();
+    const trimmedPhases = {};
+    completedWeekKeys.forEach(wk => { if (mergedPlan.phases && mergedPlan.phases[wk]) trimmedPhases[wk] = mergedPlan.phases[wk]; });
+    mergedPlan.phases = trimmedPhases;
+    partialWarningHtml = `<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--yw);">
+      ⚠️ Udało się wygenerować tygodnie 1–${completedWeekKeys.length}. Reszta nie powiodła się z powodu przeciążenia serwera (błąd 524). Kliknij "Generuj plan AI" jeszcze raz, żeby spróbować dogenerować całość.
+    </div>`;
+  }
+
+  currentPlanData = mergedPlan;
+  const planName = mergedPlan?.planTitle || 'Plan treningowy';
   histAddEntry(`Wygenerowano: ${planName}`, 'cel');
-  renderPlan(plan);
+  renderPlan(mergedPlan);
+  if (partialWarningHtml) document.getElementById('plan-content').insertAdjacentHTML('afterbegin', partialWarningHtml);
+
   document.getElementById('plan-dl-btn').style.display = 'inline-flex';
   document.getElementById('plan-pdf-btn').style.display = 'inline-flex'; if(document.getElementById('plan-report-btn')) document.getElementById('plan-report-btn').style.display = 'inline-flex';
   if (planWeeks < 8) {

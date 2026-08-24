@@ -1941,17 +1941,41 @@ async function savePhilosophy() {
   setTimeout(() => badge.classList.remove('show'), 2000);
 }
 
+const DEFAULT_PHILOSOPHY_METHODOLOGY = `Kluczowy filar planowania: rozbicie objętości tygodniowej na co najmniej 2 jednostki treningowe w tygodniu dla każdej partii mięśniowej.
+
+DLACZEGO 2 RAZY W TYGODNIU TO OPTYMALNA CZĘSTOTLIWOŚĆ:
+
+1. Synteza białek mięśniowych (MPS): Po ciężkim bodźcu treningowym podwyższony poziom syntezy białek utrzymuje się zazwyczaj przez ok. 24-48-72 godziny. Trenując partię tylko raz w tygodniu (Bro-Split), stymulujesz anabolizm przez 2-3 dni, a przez kolejne 4 dni mięsień pozostaje w spoczynku. Trening 2x/tydzień utrzymuje podwyższony MPS przez większość tygodnia.
+
+2. Jakość serii (Effort Quality): 12-16 serii na partię na jednym treningu prowadzi do zmęczenia obwodowego i "junk volume". Optymalny limit to ok. 4-8 serii roboczych wysokiej jakości na sesję. Rozbicie na dwa treningi (np. 2x6 serii) pozwala utrzymać wyższy ciężar i większą dynamikę w każdej serii.
+
+3. Napięcie mechaniczne jako główny bodziec: mniej serii, ale z większą intensywnością i świeżością na dwóch osobnych sesjach = skuteczniejszy bodziec mechaniczny.
+
+JAK UKŁADAĆ TO W PRAKTYCE:
+- Odstęp czasowy: bodziec co 3-4 dni (ok. 72h między jednostkami na tę samą partię) — pełna regeneracja CNS i mikrouszkodzeń.
+- Rotacja ćwiczeń i profili oporu: trening danej partii 2x/tydzień = stymulacja z różnych kątów i długości mięśnia.
+  Sesja A: ćwiczenia dające mocne napięcie w pozycji rozciągnięcia (lengthened position).
+  Sesja B: ćwiczenia o wyrównanym profilu oporu lub inne głowy/snopy mięśniowe (np. skos dodatni vs płaski przy klatce).
+
+SUGEROWANE PODZIAŁY TRENINGOWE:
+1. Push / Pull / Legs (PPL): rotacja 6-dniowa lub bloki 3-4 dniowe (PPL / wolne / PPL).
+2. Upper / Lower: 4 dni w tygodniu (Góra A, Dół A, wolne, Góra B, Dół B, wolne, wolne).
+3. FBW / Hybrid Split: dla zaawansowanych — mniejsze partie (boczny akton, łydki) nawet 2-3x/tydzień mniejszą objętością.
+
+WNIOSEK: Częstotliwość 2x/tydzień maksymalizuje wykorzystanie okien syntezy białek, utrzymuje wysoką jakość pracy w każdej serii i zapobiega kumulacji nieefektywnej objętości na jednej sesji. KAŻDY generowany plan MUSI trenować każdą główną partię mięśniową co najmniej 2 razy w tygodniu.`;
+
 async function loadPhilosophy() {
+  let loaded = false;
   try {
     const url = `${FIREBASE_API}/philosophy/trainer_piotr?key=${FIREBASE_KEY}`;
     const r = await fetch(url);
     if (!r.ok) throw new Error('Not found');
     const d = await r.json();
     const f = d.fields || {};
-    if (f.methodology?.stringValue) document.getElementById('phil-methodology').value = f.methodology.stringValue;
-    if (f.exercises?.stringValue)   document.getElementById('phil-exercises').value   = f.exercises.stringValue;
-    if (f.psychology?.stringValue)  document.getElementById('phil-psychology').value  = f.psychology.stringValue;
-    if (f.nutrition?.stringValue)   document.getElementById('phil-nutrition').value   = f.nutrition.stringValue;
+    if (f.methodology?.stringValue) { document.getElementById('phil-methodology').value = f.methodology.stringValue; loaded = true; }
+    if (f.exercises?.stringValue)   { document.getElementById('phil-exercises').value   = f.exercises.stringValue; loaded = true; }
+    if (f.psychology?.stringValue)  { document.getElementById('phil-psychology').value  = f.psychology.stringValue; loaded = true; }
+    if (f.nutrition?.stringValue)   { document.getElementById('phil-nutrition').value   = f.nutrition.stringValue; loaded = true; }
     console.log('Philosophy loaded from Firebase');
   } catch(e) {
     // Fallback localStorage
@@ -1959,13 +1983,22 @@ async function loadPhilosophy() {
       const s = localStorage.getItem('pb_philosophy');
       if (s) {
         const data = JSON.parse(s);
-        if (data.methodology) document.getElementById('phil-methodology').value = data.methodology;
-        if (data.exercises)   document.getElementById('phil-exercises').value   = data.exercises;
-        if (data.psychology)  document.getElementById('phil-psychology').value  = data.psychology;
-        if (data.nutrition)   document.getElementById('phil-nutrition').value   = data.nutrition;
+        if (data.methodology) { document.getElementById('phil-methodology').value = data.methodology; loaded = true; }
+        if (data.exercises)   { document.getElementById('phil-exercises').value   = data.exercises; loaded = true; }
+        if (data.psychology)  { document.getElementById('phil-psychology').value  = data.psychology; loaded = true; }
+        if (data.nutrition)   { document.getElementById('phil-nutrition').value   = data.nutrition; loaded = true; }
         console.log('Philosophy loaded from localStorage');
       }
     } catch(e2) {}
+  }
+  // Jeśli nigdzie nie znaleziono zapisanej filozofii — wczytaj domyślną metodologię wbudowaną w kod
+  // (działa na każdym urządzeniu/przeglądarce, niezależnie od localStorage/Firebase)
+  if (!loaded) {
+    const methodEl = document.getElementById('phil-methodology');
+    if (methodEl && !methodEl.value) {
+      methodEl.value = DEFAULT_PHILOSOPHY_METHODOLOGY;
+      console.log('Philosophy: wczytano domyślną metodologię wbudowaną w kod aplikacji');
+    }
   }
 }
 

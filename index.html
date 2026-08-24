@@ -7742,6 +7742,9 @@ function buildPlanPrompt(weeks, chunkKeys) {
   return `Elitarny AI Coach (NSCA CSCS). Wygeneruj plan ${weeks} tyg. Metoda progresji: ${progLabel}.
 TYLKO czysty JSON bez markdown.
 
+⚠️ NADRZĘDNA HIERARCHIA ZASAD — PRZECZYTAJ PRZED WYGENEROWANIEM PLANU:
+Jeśli w wiadomości użytkownika (sekcja "FILOZOFIA TRENERA") trener opisał WŁASNĄ metodologię — konkretny podział sesji (np. własny wariant Push/Pull/Upper), kolejność ćwiczeń, priorytety partii, sposób łączenia grup mięśniowych — ta metodologia ZAWSZE ma pierwszeństwo przed ogólnymi zasadami podziału i architektury sesji opisanymi niżej w tym prompcie. Zbuduj sesje DOKŁADNIE według struktury opisanej przez trenera (nazwy dni, kolejność partii, priorytety). Ogólne zasady niżej (objętość MEV/MAV, biomechanika, cardio, core) stosuj jako UZUPEŁNIENIE w ramach tej struktury — nie jako jej zamiennik. Pole "split" w profilu klienta (jeśli inne niż "AI wybierze") traktuj jako drugorzędną wskazówkę — filozofia trenera nadpisuje je w razie konfliktu.
+
 FORMAT:
 {"planTitle":"","split":"","sessionsPerWeek":3,"philosophy":"","progressionNotes":"","warmupProtocol":"","cooldownProtocol":"","progressionType":"${planProgression}","phases":${JSON.stringify(ph)},"sessions":[{"sessionName":"Trening A","warmupExercises":${wuEx},"exercises":[{"name":"Wyciskanie sztangi","notes":"Uwagi techniczne / wyjaśnienie metody",${wEx}}]}]}
 

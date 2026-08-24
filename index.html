@@ -145,7 +145,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
       <div style="font-size:9px;color:var(--gr);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">💾 Zapisane profile klientów</div>
       <div style="display:flex;gap:5px;margin-bottom:7px;">
-        <button onclick="saveClientProfile()" style="flex:1;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:5px 6px;color:var(--gr);font-size:10px;font-weight:600;cursor:pointer;">💾 Zapisz</button>
+        <button onclick="saveClientProfile(this)" style="flex:1;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:5px 6px;color:var(--gr);font-size:10px;font-weight:600;cursor:pointer;">💾 Zapisz</button>
         <button onclick="exportClientProfile()" style="flex:1;background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.2);border-radius:6px;padding:5px 6px;color:var(--ac);font-size:10px;font-weight:600;cursor:pointer;">📤 Eksport</button>
         <button onclick="clearClientProfile()" style="flex:1;background:rgba(232,48,42,0.08);border:1px solid rgba(232,48,42,0.2);border-radius:6px;padding:5px 6px;color:var(--ac);font-size:10px;font-weight:600;cursor:pointer;">🗑 Wyczyść</button>
       </div>
@@ -5684,8 +5684,13 @@ function tlSetPreset(v){clearInterval(tlTimer);tlRunning=false;tlSeconds=parseIn
 // ===== ZAPIS PROFILU KLIENTA =====
 function getFullClientData() {
   const ids = ['client-name','client-age-num','client-gender','client-weight','client-height',
-    'client-bodyfat','client-goal','client-priority','client-days','client-time',
-    'client-equipment','client-stress','client-sleep','client-shift','client-injuries'];
+    'client-bf','client-goal','client-priority','client-level','client-sport-history','client-sport-history-detail',
+    'client-limits','client-pharma','client-femur','client-wingspan','client-ankle','client-pelvis','client-asymmetry',
+    'client-job','client-sleep','client-stress','client-shifts','client-equipment','client-days','client-duration',
+    'client-split','client-notes',
+    'post-lordoza','post-kifoza','post-kolana','post-barki',
+    'excl-spine','excl-overhead','excl-squat','excl-deadlift','excl-impact',
+    'met-dropset','met-super','met-rir','met-hiit','met-circuit'];
   const data = {};
   ids.forEach(id => {
     const el = document.getElementById(id);
@@ -5705,7 +5710,7 @@ function setFullClientData(data) {
   });
 }
 
-function saveClientProfile() {
+function saveClientProfile(btn) {
   const name = document.getElementById('client-name')?.value?.trim();
   if (!name) { alert('Wpisz najpierw imię klienta!'); return; }
   const data = getFullClientData();
@@ -5719,10 +5724,11 @@ function saveClientProfile() {
   }
   localStorage.setItem('saved_profiles', JSON.stringify(profiles));
   renderSavedProfiles();
-  const btn = event.target;
-  const orig = btn.textContent;
-  btn.textContent = '✓ Zapisano!';
-  setTimeout(() => btn.textContent = orig, 2000);
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Zapisano!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
 }
 
 function loadClientProfile(key) {

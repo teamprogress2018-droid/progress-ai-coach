@@ -7557,6 +7557,36 @@ async function callAPI(system, userMsg, maxTokens, images) {
   let jsonStr = last > first ? raw.substring(first, last+1) : raw.substring(first);
 
   // Pre-processing: napraw typowe problemy z JSON od AI
+  // Naprawia "zabłąkane" cudzysłowy w środku wartości tekstowych (np. notes:"7" uchwyt")
+  // — jeśli po cudzysłowie NIE następuje separator JSON (, : } ]), to znaczy że to
+  // cudzysłów wewnątrz treści, a nie koniec stringa — escapujemy go zamiast przerywać string.
+  function fixEmbeddedQuotes(str) {
+    let out = '';
+    let inString = false;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (!inString) {
+        out += ch;
+        if (ch === '"') inString = true;
+        continue;
+      }
+      // jesteśmy wewnątrz stringa
+      if (ch === '\\') { out += ch + (str[i+1]||''); i++; continue; }
+      if (ch === '"') {
+        let j = i + 1;
+        while (j < str.length && /\s/.test(str[j])) j++;
+        const next = str[j];
+        const isRealEnd = next === undefined || [',',':','}',']'].includes(next);
+        if (isRealEnd) { out += ch; inString = false; }
+        else { out += '\\"'; } // zabłąkany cudzysłów — escapuj i kontynuuj string
+        continue;
+      }
+      out += ch;
+    }
+    return out;
+  }
+
+  jsonStr = fixEmbeddedQuotes(jsonStr);
   jsonStr = jsonStr
     .replace(/[\u0000-\u001F\u007F]/g, ' ') // usuń control chars
     .replace(/,\s*([}\]])/g, '$1');          // trailing commas
@@ -7855,7 +7885,12 @@ ZASADY:
 - KOLEJNOŚĆ ĆWICZEŃ: nigdy dwie te same partie po sobie. Przeplataj partie (klatka → barki → klatka → triceps, NIE: klatka → klatka → klatka)
 - Wielostawy pierwsze, izolacje na końcu, core jako ostatnie 2 ćwiczenia
 - Każdy tydzień INNE parametry${weeks>=4?'\n- Ostatni tydzień: Deload':''}${weeks>=8?'\n- W8: Szczyt (max ciężar)':''}
-- Uwzględnij wykluczone ruchy z profilu`;
+- Uwzględnij wykluczone ruchy z profilu
+
+⚠️ KRYTYCZNE DLA POPRAWNOŚCI JSON (nieprzestrzeganie tego psuje cały plik):
+- NIGDY nie używaj znaku cudzysłowu (") wewnątrz żadnej wartości tekstowej (notes, planTitle, philosophy, progressionNotes, warmupProtocol, cooldownProtocol, sessionName). Jeśli chcesz coś zacytować lub oznaczyć cale/calówki — użyj apostrofu (') albo słowa "cal", NIGDY znaku ".
+- NIGDY nie wstawiaj znaku nowej linii wewnątrz wartości tekstowej — pisz każdą wartość jako jedną ciągłą linię.
+- Jeśli w tekście musisz podać skrót w cudzysłowie (np. nazwa metody), zapisz go bez cudzysłowów albo w apostrofach, np. Cluster: 2+2+2 zamiast "Cluster: 2+2+2".`;
 }
 
 function buildContinuationPrompt(chunkKeys) {
@@ -7868,7 +7903,9 @@ PROGRESJA: ${progInstruction}
 ZASADY OBJĘTOŚCI: nie zmieniaj liczby serii drastycznie tydzień do tygodnia (max ±1 seria), chyba że to tydzień Deload (wtedy -30 do -50% objętości) lub Szczyt (możliwy wzrost intensywności kosztem objętości). Zachowaj sensowną, ciągłą progresję ciężaru/RPE zgodną z metodą progresji.
 
 FORMAT (zwróć DOKŁADNIE tyle samo sesji i ćwiczeń, w tej samej kolejności, tylko z polami "name" i tygodniami):
-{"sessions":[{"sessionName":"(dokładnie ta sama nazwa sesji co podano)","exercises":[{"name":"(dokładnie ta sama nazwa ćwiczenia co podano)",${wEx}}]}]}`;
+{"sessions":[{"sessionName":"(dokładnie ta sama nazwa sesji co podano)","exercises":[{"name":"(dokładnie ta sama nazwa ćwiczenia co podano)",${wEx}}]}]}
+
+⚠️ KRYTYCZNE DLA POPRAWNOŚCI JSON: NIGDY nie używaj znaku cudzysłowu (") wewnątrz żadnej wartości tekstowej. NIGDY nie wstawiaj znaku nowej linii wewnątrz wartości.`;
 }
 
 function mergeChunkIntoPlan(basePlan, chunkPlan, chunkKeys) {

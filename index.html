@@ -8972,6 +8972,34 @@ function exportPlanPDF(plan) {
   w.document.close();
 }
 
+// Zamienia ciągły tekst na czytelną wypunktowaną listę (min. 14px, większa interlinia) — używane w raporcie PDF
+function reportBullets(text) {
+  if (!text) return '';
+  const bullets = text
+    .replace(/\s+/g, ' ')
+    .split(/(?<=\.)(?=\s[A-ZŁŚŹĆĄĘ🏋💪🦵🔥📈⚠️NEAT])/u)
+    .map(s => s.trim())
+    .filter(Boolean);
+  if (bullets.length <= 1) {
+    return `<div style="font-size:14px;line-height:1.8;color:#333;">${text}</div>`;
+  }
+  return `<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+    ${bullets.map(b => `<li style="display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.8;color:#333;">
+      <span style="color:#e8302a;font-size:12px;margin-top:4px;flex-shrink:0;">●</span>
+      <span>${b}</span>
+    </li>`).join('')}
+  </ul>`;
+}
+
+// Konwertuje RPE na czytelny label z odpowiednikiem RIR (Reps In Reserve)
+function rpeRirLabel(rpe) {
+  if (!rpe) return '–';
+  const n = parseFloat(String(rpe).replace(',', '.'));
+  if (isNaN(n)) return String(rpe);
+  const rir = Math.max(0, Math.round(10 - n));
+  return `RPE ${rpe} <span style="color:#999;font-size:10px;">(RIR ${rir})</span>`;
+}
+
 function exportFullReport() {
   const hasPlan = !!currentPlanData?.sessions?.length;
   const hasDiet = !!currentDietPlan;
@@ -9014,6 +9042,41 @@ function exportFullReport() {
   .print-btn{background:#e8302a;color:white;border:none;border-radius:8px;padding:10px 30px;font-size:13px;font-weight:600;cursor:pointer;display:block;margin:20px auto;}
   @page{size:A4 landscape;margin:10mm;}
   @media print{.print-btn{display:none!important;}.page-break{page-break-before:always;}table{font-size:9px;}th,td{padding:4px 5px;}}
+
+  /* ── NOWE: karty informacyjne (Progresja/Rozgrzewka) ── */
+  .info-cards-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0;}
+  @media(max-width:700px){.info-cards-row{grid-template-columns:1fr;}}
+  .info-card{background:#fff;border:1px solid #eee;border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .info-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .info-card-icon{font-size:20px;}
+  .info-card-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#e8302a;}
+
+  /* ── NOWE: bloki sesji z przełącznikiem tygodni ── */
+  .session-block{margin:18px 0;page-break-inside:avoid;}
+  .week-tabs{display:flex;gap:4px;flex-wrap:wrap;}
+  .week-tab{background:#f0f0f0;border:1px solid #ddd;border-bottom:none;border-radius:6px 6px 0 0;padding:6px 14px;font-size:11px;font-weight:600;color:#666;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .week-tab.active{background:#1a1a2e;color:#fff;border-color:#1a1a2e;}
+  .week-panel{border:1px solid #ddd;border-radius:0 8px 8px 8px;overflow:hidden;}
+  .week-panel-label{display:none;background:#f0f0f0;padding:5px 12px;font-size:10px;font-weight:700;color:#555;letter-spacing:.5px;}
+  .ex-name-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .priority-badge{display:inline-block;background:#e8302a;color:#fff;font-size:8px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;text-transform:uppercase;white-space:nowrap;}
+
+  /* ── NOWE: responsywność mobilna — tabela zamienia się w stos kart ── */
+  @media(max-width:700px){
+    .session-table thead{display:none;}
+    .session-table, .session-table tbody, .session-table tr, .session-table td{display:block;width:100%;}
+    .session-table tr{border:1px solid #ddd;border-radius:10px;margin-bottom:10px;padding:10px 12px;background:#fff;}
+    .session-table td{border:none;padding:5px 0;font-size:14px;}
+    .session-table td[data-label]::before{content:attr(data-label);display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:2px;}
+    .session-table td.ex-name-td{font-size:16px;font-weight:700;padding-bottom:8px;border-bottom:1px solid #f0f0f0;margin-bottom:6px;}
+  }
+
+  /* ── NOWE: przy druku pokaż WSZYSTKIE tygodnie (nie tylko aktywną zakładkę) ── */
+  @media print{
+    .week-tabs{display:none!important;}
+    .week-panel{display:block!important;border-radius:8px;margin-bottom:14px;page-break-inside:avoid;}
+    .week-panel-label{display:block!important;}
+  }
 </style></head><body><div class="page">`;
 
   // OKŁADKA
@@ -9037,28 +9100,59 @@ function exportFullReport() {
       <div class="macro-card"><div class="macro-label">Progresja</div><div class="macro-val" style="font-size:11px;color:#1a1a2e;">${plan.progressionType||'AI'}</div></div>
     </div>`;
 
-    if (plan.progressionNotes) h += `<div class="note-box"><strong>📈 Progresja:</strong> ${plan.progressionNotes}</div>`;
-    if (plan.warmupProtocol) h += `<div class="note-box"><strong>🔥 Rozgrzewka:</strong> ${plan.warmupProtocol}</div>`;
+    // NOWE: dwie osobne karty z ikonami zamiast jednej scalonej ramki
+    let infoCardsHtml = '';
+    if (plan.progressionNotes) infoCardsHtml += `<div class="info-card">
+      <div class="info-card-head"><span class="info-card-icon">📈</span><span class="info-card-title">ZASADY PROGRESJI</span></div>
+      ${reportBullets(plan.progressionNotes)}
+    </div>`;
+    if (plan.warmupProtocol) infoCardsHtml += `<div class="info-card">
+      <div class="info-card-head"><span class="info-card-icon">🔥</span><span class="info-card-title">ROZGRZEWKA</span></div>
+      ${reportBullets(plan.warmupProtocol)}
+    </div>`;
+    if (infoCardsHtml) h += `<div class="info-cards-row">${infoCardsHtml}</div>`;
 
     const weekKeys = plan.phases ? Object.keys(plan.phases) : ['w1'];
     const weekCols = weekKeys;
 
-    (plan.sessions||[]).forEach(session => {
+    (plan.sessions||[]).forEach((session, si) => {
+      const sid = `s${si}`;
+      h += `<div class="session-block">`;
       h += `<div class="session-h">${session.sessionName||'Sesja'}</div>`;
       if (session.exercises?.length) {
-        h += `<table><thead><tr><th style="width:30%">Ćwiczenie</th>`;
-        weekCols.forEach(w => h += `<th style="text-align:center;">${(plan.phases?.[w]||w).substring(0,8)}</th>`);
-        h += `<th>Uwagi</th></tr></thead><tbody>`;
-        session.exercises.forEach(ex => {
-          h += `<tr><td style="font-weight:600;">${ex.name||''}</td>`;
-          weekCols.forEach(w => {
-            const wd = ex[w]||{};
-            h += `<td style="text-align:center;font-size:10px;">${wd.s?`${wd.s}×${wd.r||'?'} @${wd.rpe||'?'}`:'-'}</td>`;
-          });
-          h += `<td style="font-size:9px;color:#666;">${(ex.notes||'').substring(0,50)}</td></tr>`;
+        // Zakładki tygodni (na ekranie/w podglądzie) — przy druku ukryte, pokazują się wszystkie tygodnie po kolei
+        h += `<div class="week-tabs">`;
+        weekCols.forEach((wk, wi) => {
+          h += `<button type="button" class="week-tab${wi===0?' active':''}" onclick="showReportWeek('${sid}',${wi})">Tydzień ${wi+1}</button>`;
         });
-        h += `</tbody></table>`;
+        h += `</div>`;
+
+        weekCols.forEach((wk, wi) => {
+          const label = plan.phases?.[wk] || wk;
+          h += `<div class="week-panel" data-session="${sid}" data-week="${wi}" style="display:${wi===0?'block':'none'};">`;
+          h += `<div class="week-panel-label">TYDZIEŃ ${wi+1} — ${label}</div>`;
+          h += `<table class="session-table"><thead><tr>
+            <th style="width:30%;">Ćwiczenie</th>
+            <th style="text-align:center;">Serie × Powt.</th>
+            <th style="text-align:center;">RPE / RIR</th>
+            <th>Pauza / Kluczowa wskazówka</th>
+          </tr></thead><tbody>`;
+          session.exercises.forEach((ex, ei) => {
+            const wd = ex[wk] || {};
+            const isPriority = ei < 2;
+            h += `<tr>
+              <td class="ex-name-td" data-label="Ćwiczenie">
+                <div class="ex-name-cell">${isPriority?'<span class="priority-badge">🎯 Priorytet</span>':''}<span>${ex.name||''}</span></div>
+              </td>
+              <td data-label="Serie × Powt." style="text-align:center;font-size:14px;font-weight:600;">${wd.s?`${wd.s}×${wd.r||'?'}`:'–'}</td>
+              <td data-label="RPE / RIR" style="text-align:center;font-size:13px;">${rpeRirLabel(wd.rpe)}</td>
+              <td data-label="Pauza / Kluczowa wskazówka" style="font-size:12px;color:#555;">${wd.rest?`⏱ ${wd.rest}`:''}${wd.rest && ex.notes ? ' · ' : ''}${ex.notes||''}</td>
+            </tr>`;
+          });
+          h += `</tbody></table></div>`;
+        });
       }
+      h += `</div>`;
     });
   }
 
@@ -9098,6 +9192,18 @@ function exportFullReport() {
 
   h += `<button class="print-btn" onclick="window.print()">🖨 Drukuj / Zapisz PDF</button>`;
   h += `<div class="footer">PROGRESS AI v2.0 · Plan wygenerowany przez AI · Progress Studio Treningu Personalnego, Wrocław · ${new Date().toLocaleDateString('pl')}</div>`;
+  h += `<script>
+    function showReportWeek(sid, idx) {
+      document.querySelectorAll('.week-panel[data-session="' + sid + '"]').forEach(function(p){
+        p.style.display = (parseInt(p.getAttribute('data-week'), 10) === idx) ? 'block' : 'none';
+      });
+      document.querySelectorAll('.session-block').forEach(function(block){
+        if (block.querySelector('.week-panel[data-session="' + sid + '"]')) {
+          block.querySelectorAll('.week-tab').forEach(function(btn, i){ btn.classList.toggle('active', i === idx); });
+        }
+      });
+    }
+  <\/script>`;
   h += `</div></body></html>`;
 
   w.document.write(h);

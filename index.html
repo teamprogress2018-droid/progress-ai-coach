@@ -7678,25 +7678,44 @@ async function callAPI(system, userMsg, maxTokens, images) {
   function fixEmbeddedQuotes(str) {
     let out = '';
     let inString = false;
-    for (let i = 0; i < str.length; i++) {
+    let i = 0;
+    while (i < str.length) {
       const ch = str[i];
       if (!inString) {
         out += ch;
         if (ch === '"') inString = true;
+        i++;
         continue;
       }
-      // jesteśmy wewnątrz stringa
-      if (ch === '\\') { out += ch + (str[i+1]||''); i++; continue; }
+      if (ch === '\\') { out += ch + (str[i+1]||''); i += 2; continue; }
       if (ch === '"') {
-        let j = i + 1;
-        while (j < str.length && /\s/.test(str[j])) j++;
+        // Znajdź całą serię sąsiadujących cudzysłowów/białych znaków — jeśli zabłąkany
+        // cudzysłów sąsiaduje bezpośrednio z prawdziwym zamknięciem, poprzednia wersja
+        // się myliła. Ta wersja patrzy na całą serię naraz i poprawnie rozróżnia,
+        // który cudzysłów w serii jest prawdziwym końcem stringa.
+        let j = i;
+        const quotePositions = [];
+        while (j < str.length && (str[j] === '"' || /\s/.test(str[j]))) {
+          if (str[j] === '"') quotePositions.push(j);
+          j++;
+        }
         const next = str[j];
         const isRealEnd = next === undefined || [',',':','}',']'].includes(next);
-        if (isRealEnd) { out += ch; inString = false; }
-        else { out += '\\"'; } // zabłąkany cudzysłów — escapuj i kontynuuj string
+        const lastQuotePos = quotePositions[quotePositions.length - 1];
+        for (let k = i; k < j; k++) {
+          if (str[k] === '"') {
+            const isLastQuote = (k === lastQuotePos);
+            out += (isRealEnd && isLastQuote) ? '"' : '\\"';
+          } else {
+            out += str[k]; // zachowaj oryginalną spację
+          }
+        }
+        if (isRealEnd) inString = false;
+        i = j;
         continue;
       }
       out += ch;
+      i++;
     }
     return out;
   }

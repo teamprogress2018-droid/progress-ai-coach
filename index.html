@@ -8491,6 +8491,8 @@ function renderPlan(plan) {
             <div style="flex:1;min-width:0;">
               <!-- KRÓL: duży, pogrubiony, wyraźny -->
               <div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.25;letter-spacing:-0.1px;">${ex.name||''}</div>
+              <!-- Superset: drugie ćwiczenie wykonywane bez przerwy zaraz po tym -->
+              ${ex.superset ? `<div style="display:flex;align-items:center;gap:5px;margin-top:5px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 8px;width:fit-content;"><span style="font-size:11px;">🔗</span><span style="font-size:12px;font-weight:600;color:var(--gr);">+ ${ex.superset.name}</span><span style="font-size:9px;color:var(--tx3);">(bez przerwy)</span></div>` : ''}
               <!-- Uwagi: mniejsze, szare, po 2px odstępu -->
               ${exNote?`<div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.75;text-align:left;font-style:italic;padding-left:2px;">💡 ${exNote}</div>`:''}
             </div>
@@ -8600,15 +8602,26 @@ function renderPlan(plan) {
 let currentWeekIndex = 0;
 
 const EXERCISE_LIBRARY = {
-  'Klatka': ['Wyciskanie sztangi (ławka płaska)','Wyciskanie hantli (skos +30°)','Dipsy na poręczach','Rozpiętki na Pec Deck','Wyciskanie na maszynie Hammer','Wyciskanie hantli płasko'],
-  'Plecy': ['Podciąganie nachwyt szerokim chwytem','Wiosłowanie sztangą w opadzie','Ściąganie drążka wyciągiem górnym','Wiosłowanie jednorącz hantlą','Pullover na wyciągu','Wiosłowanie T-bar'],
-  'Barki': ['OHP (Overhead Press)','Wyciskanie hantli nad głowę','Wznosy bokiem','Face Pull','Arnold Press','Wznosy w opadzie (tylny akton)'],
-  'Biceps': ['Uginanie ze sztangą','Uginanie na modlitewniku (Scott Bench)','Uginanie młotkowe (Hammer Curl)','Uginanie na ławce skośnej'],
-  'Triceps': ['Wyciskanie wąskim chwytem','Prostowanie na wyciągu (Pushdown)','Francuskie wyciskanie','Dipsy tricepsowe'],
-  'Nogi': ['Przysiad ze sztangą (Back Squat)','Hack Squat / Suwnica','Przysiad bułgarski','Leg Press','Leg Extension','Wykroki chodzone'],
-  'Pośladki / Tył uda': ['Martwy ciąg klasyczny','RDL (Romanian Deadlift)','Hip Thrust','Leg Curl leżąc/siedząc','Good Morning'],
-  'Core': ['Plank','Dead Bug','Ab Wheel Rollout','Cable Crunch','Pallof Press','Leg Raises w zwisie','Bird-Dog'],
+  'Klatka': ['Wyciskanie sztangi (ławka płaska)','Wyciskanie sztangi (skos dodatni)','Wyciskanie sztangi (skos ujemny)','Wyciskanie hantli (skos +30°)','Wyciskanie hantli płasko','Wyciskanie hantli (skos ujemny)','Dipsy na poręczach','Dipsy z obciążeniem','Rozpiętki na Pec Deck','Rozpiętki z hantlami (płasko)','Rozpiętki na wyciągu (kable, skos dodatni)','Rozpiętki na wyciągu (kable, skos ujemny)','Wyciskanie na maszynie Hammer','Wyciskanie na maszynie (skos)','Pompki klasyczne','Pompki na poręczach wąsko','Wyciskanie hantli jednorącz na ławce','Cable Crossover (góra-dół)','Cable Crossover (dół-góra)','Landmine Press (jednorącz)'],
+  'Plecy': ['Podciąganie nachwyt szerokim chwytem','Podciąganie podchwytem (Chin-up)','Podciąganie neutralnym chwytem','Podciąganie z obciążeniem','Wiosłowanie sztangą w opadzie (nachwyt)','Wiosłowanie sztangą w opadzie (podchwyt)','Ściąganie drążka wyciągiem górnym (szeroki)','Ściąganie drążka wyciągiem górnym (wąski/neutralny)','Wiosłowanie jednorącz hantlą','Wiosłowanie oburącz hantlami w opadzie','Pullover na wyciągu','Pullover z hantlem','Wiosłowanie T-bar','Wiosłowanie na maszynie (Hammer Row)','Wiosłowanie w podporze na ławce (Chest-Supported Row)','Wiosłowanie wyciągiem dolnym (Seated Cable Row)','Face Pull (plecy górne)','Shrugi ze sztangą','Shrugi z hantlami','Martwy ciąg klasyczny (jako plecy/full body)'],
+  'Barki': ['OHP (Overhead Press) — sztanga','Wyciskanie hantli nad głowę (siedząc)','Wyciskanie hantli nad głowę (stojąc)','Arnold Press','Wyciskanie w Smith Machine nad głową','Wznosy bokiem (hantle)','Wznosy bokiem na wyciągu (kabel)','Wznosy bokiem na maszynie','Face Pull (barki tylne)','Wznosy w opadzie (tylny akton, hantle)','Odwrotne rozpiętki na maszynie (Reverse Pec Deck)','Wznosy w opadzie na wyciągu','Upright Row (wiosłowanie wysokie)','Cable Y-Raise','Landmine Press (barki)'],
+  'Biceps': ['Uginanie ze sztangą prostą','Uginanie ze sztangą łamaną (EZ-bar)','Uginanie na modlitewniku (Scott Bench)','Uginanie młotkowe (Hammer Curl)','Uginanie na ławce skośnej (Incline Curl)','Uginanie jednorącz z hantlem stojąc','Uginanie na wyciągu dolnym (Cable Curl)','Uginanie linką (Rope Hammer Curl)','Uginanie koncentryczne siedząc (Concentration Curl)','Uginanie 21s','Spider Curl (na ławce skośnej twarzą w dół)'],
+  'Triceps': ['Wyciskanie sztangi wąskim chwytem (Close-Grip Bench)','Prostowanie na wyciągu górnym (linka prosta)','Prostowanie na wyciągu górnym (lina/rope)','Francuskie wyciskanie leżąc (Skull Crusher)','Francuskie wyciskanie siedząc','Dipsy tricepsowe (ławka)','Dipsy tricepsowe na poręczach (obciążone)','Prostowanie ramienia w opadzie (Kickback)','Wyciskanie nad głowę z linką (Overhead Rope Extension)','Wyciskanie hantla jednorącz nad głowę','Diamond Push-up'],
+  'Nogi (czworogłowe)': ['Przysiad ze sztangą (Back Squat)','Przysiad przedni (Front Squat)','Hack Squat / Suwnica','Przysiad bułgarski (Bulgarian Split Squat)','Leg Press','Leg Extension','Wykroki chodzone','Wykroki stacjonarne','Przysiad w Smith Machine','Goblet Squat (z hantlem/kettlebell)','Sissy Squat','Step-up na ławkę'],
+  'Pośladki / Tył uda': ['Martwy ciąg klasyczny (Conventional Deadlift)','Martwy ciąg sumo (Sumo Deadlift)','RDL — Martwy ciąg rumuński (Romanian Deadlift)','Hip Thrust ze sztangą','Hip Thrust na maszynie','Leg Curl leżąc (Lying Leg Curl)','Leg Curl siedząc (Seated Leg Curl)','Good Morning','Wykroki w zakroku (Reverse Lunge)','Kettlebell Swing','Odwodzenie bioder na maszynie (Hip Abduction)','Cable Pull-Through'],
+  'Łydki': ['Wspięcia na palce stojąc (Standing Calf Raise)','Wspięcia na palce siedząc (Seated Calf Raise)','Wspięcia na palce na suwnicy/Leg Press','Wspięcia na palce jednonóż z hantlem'],
+  'Core': ['Plank (deska)','Plank boczny (Side Plank)','Dead Bug','Ab Wheel Rollout','Cable Crunch (na wyciągu klęcząc)','Pallof Press','Leg Raises w zwisie (Hanging Leg Raise)','Leg Raises leżąc','Bird-Dog','Brzuszki na skosie (Decline Sit-up)','Rosyjskie skręty (Russian Twist)','Mountain Climbers','Hollow Body Hold'],
 };
+
+// Skrócona lista popularnych ćwiczeń łączonych (supersetów) — podpowiedzi w interfejsie
+const SUPERSET_PRESETS = [
+  {a:'Wyciskanie hantli (skos +30°)', b:'Rozpiętki z hantlami (płasko)'},
+  {a:'Podciąganie nachwyt szerokim chwytem', b:'Uginanie ze sztangą prostą'},
+  {a:'Wyciskanie sztangi wąskim chwytem (Close-Grip Bench)', b:'Prostowanie na wyciągu górnym (linka prosta)'},
+  {a:'Przysiad ze sztangą (Back Squat)', b:'Leg Extension'},
+  {a:'RDL — Martwy ciąg rumuński (Romanian Deadlift)', b:'Leg Curl leżąc (Lying Leg Curl)'},
+  {a:'Wznosy bokiem (hantle)', b:'Face Pull (barki tylne)'},
+];
 
 function openExModal(si, ei) {
   const ex = currentPlanData.sessions[si].exercises[ei];
@@ -8633,6 +8646,32 @@ function openExModal(si, ei) {
       <textarea id="exm-notes" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--tx1);font-size:12px;outline:none;resize:vertical;margin-bottom:12px;">${(ex.notes||ex.note||'').replace(/</g,'&lt;')}</textarea>
 
       <button onclick="exSaveEdit(${si},${ei})" style="width:100%;padding:10px;background:var(--gr);color:#0d0d0d;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:18px;">💾 Zapisz zmiany</button>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--gr);margin-bottom:6px;">🔗 SERIA ŁĄCZONA (SUPERSET)</div>
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:10px;">Drugie ćwiczenie wykonywane od razu po tym, bez przerwy — dopiero po obu następuje odpoczynek.</div>
+        ${ex.superset ? `
+          <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:9px;color:var(--gr);font-family:'DM Mono',monospace;text-transform:uppercase;">Połączone z:</div>
+              <div style="font-size:13px;font-weight:600;color:var(--tx1);">${ex.superset.name}</div>
+            </div>
+            <button onclick="exRemoveSuperset(${si},${ei})" style="background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.25);border-radius:6px;padding:5px 10px;color:var(--ac);font-size:11px;cursor:pointer;">✕ Usuń</button>
+          </div>
+        ` : `
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <select id="exm-superset-lib" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--tx1);font-size:12px;outline:none;">
+              <option value="">— wybierz z biblioteki —</option>
+              ${libOptions}
+            </select>
+            <button onclick="exAddSuperset(${si},${ei},'lib')" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:8px 14px;color:var(--gr);font-size:11px;font-weight:600;cursor:pointer;">+ Dodaj</button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <input id="exm-superset-manual" placeholder="albo wpisz własne ćwiczenie..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--tx1);font-size:12px;outline:none;">
+            <button onclick="exAddSuperset(${si},${ei},'manual')" style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:8px 14px;color:var(--gr);font-size:11px;font-weight:600;cursor:pointer;">+ Dodaj</button>
+          </div>
+        `}
+      </div>
 
       <div style="border-top:1px solid var(--border);padding-top:14px;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--ac);margin-bottom:10px;">🔄 ZAMIEŃ NA INNE — powód: brak sprzętu w studio itp.</div>
@@ -8664,6 +8703,26 @@ function openExModal(si, ei) {
 }
 
 function closeExModal(){ document.getElementById('ex-edit-overlay')?.remove(); }
+
+function exAddSuperset(si, ei, source){
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  let name = '';
+  if (source === 'lib') name = document.getElementById('exm-superset-lib')?.value || '';
+  else name = document.getElementById('exm-superset-manual')?.value?.trim() || '';
+  if (!name) return;
+  ex.superset = { name, notes: '' };
+  openExModal(si, ei); // odśwież modal, żeby pokazać dodany superset
+  renderPlan(currentPlanData);
+  showWeek(currentWeekIndex);
+}
+
+function exRemoveSuperset(si, ei){
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  delete ex.superset;
+  openExModal(si, ei);
+  renderPlan(currentPlanData);
+  showWeek(currentWeekIndex);
+}
 
 function exSaveEdit(si, ei){
   const ex = currentPlanData.sessions[si].exercises[ei];
@@ -9506,7 +9565,7 @@ async function exportWorkoutToExcel(planData) {
           r1.getCell(3).value = wd.s || '';
           r1.getCell(4).value = wd.r || '';
           r1.getCell(5).value = wd.rpe ? `RPE ${wd.rpe}${rirVal!==null?` (RIR ${rirVal})`:''}` : '';
-          r1.getCell(6).value = [wd.rest ? `⏱ ${wd.rest}` : '', ex.notes || ''].filter(Boolean).join(' · ');
+          r1.getCell(6).value = [wd.rest ? `⏱ ${wd.rest}` : '', ex.superset ? `🔗 Superset: ${ex.superset.name} (bez przerwy)` : '', ex.notes || ''].filter(Boolean).join(' · ');
           // Kolumny WYKONANIE — puste, do wypełnienia przez klienta
           r1.getCell(7).value = null;
           r1.getCell(8).value = null;

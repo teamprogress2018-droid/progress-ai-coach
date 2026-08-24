@@ -1052,6 +1052,7 @@ button:disabled{opacity:.5;cursor:not-allowed;}
     <div class="tl-sub" id="tl-session-label">Push A · śr 11.06 · 0:00</div>
     <div style="margin-left:auto;display:flex;gap:6px;">
       <button onclick="openVideoAnalysis()" style="background:rgba(232,48,42,0.1);border:1px solid rgba(232,48,42,0.25);border-radius:8px;padding:5px 10px;color:var(--ac);font-size:11px;cursor:pointer;">🎬 Analiza wideo</button>
+      <button onclick="tlOpenHistoryBrowser()" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);border-radius:8px;padding:5px 10px;color:var(--gr);font-size:11px;cursor:pointer;">📜 Historia treningów</button>
       <button onclick="openDeloadCalculator()" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:5px 10px;color:var(--yw);font-size:11px;cursor:pointer;">⚠️ Deload</button>
       <button style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:8px;padding:5px 12px;color:var(--gr);font-size:11px;cursor:pointer;" onclick="tlShowSummary()">✓ Zakończ</button>
     </div>
@@ -6775,9 +6776,14 @@ function tlSelectDay(idx){
 function tlShowSummary(){
   const today=new Date().toISOString().split('T')[0];
   let totalTonnage=0,totalSets=0;
-  Object.values(tlTrainingLog).forEach(exLog=>{
+  const sessionExercises=[];
+  Object.entries(tlTrainingLog).forEach(([exName,exLog])=>{
     const todayLog=exLog.find(e=>e.date===today);
-    if(todayLog)todayLog.sets.forEach(s=>{totalTonnage+=s.kg*s.reps;totalSets++;});
+    if(todayLog){
+      let exTonnage=0;
+      todayLog.sets.forEach(s=>{totalTonnage+=s.kg*s.reps;exTonnage+=s.kg*s.reps;totalSets++;});
+      sessionExercises.push({name:exName,sets:todayLog.sets,tonnage:exTonnage});
+    }
   });
   const dMin=Math.floor(tlStopwatchSeconds/60);
   const card=document.getElementById('tl-summary-card');if(!card)return;
@@ -6785,6 +6791,81 @@ function tlShowSummary(){
   card.querySelector('.tl-sum-title').textContent=totalSets>0?`${totalSets} serii wykonanych!`:'Trening zakończony!';
   card.querySelector('.tl-sum-sub').textContent=totalTonnage>0?`Tonaż: ${Math.round(totalTonnage)} kg · Czas: ${dMin} min`:`Czas treningu: ${dMin} min`;
   clearInterval(tlStopwatch);tlStopwatchRunning=false;
+
+  // Zapisz całą sesję jako jeden rekord historii — żeby można było do niej wrócić
+  if(sessionExercises.length>0){
+    try{
+      const labelEl=document.getElementById('tl-session-label');
+      const sessionName=(labelEl?.textContent||'Trening').split('·')[0].trim();
+      const key='tl_sessions_'+(document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+      const sessions=JSON.parse(localStorage.getItem(key)||'[]');
+      // Nadpisz jeśli już jest zapis z dzisiaj (np. dogrywanie serii po powrocie do zakładki), inaczej dodaj nowy
+      const existingIdx=sessions.findIndex(s=>s.date===today);
+      const record={date:today,sessionName,durationMin:dMin,totalTonnage:Math.round(totalTonnage),totalSets,exercises:sessionExercises,savedAt:new Date().toISOString()};
+      if(existingIdx>=0)sessions[existingIdx]=record;else sessions.push(record);
+      localStorage.setItem(key,JSON.stringify(sessions));
+    }catch(e){console.warn('Nie udało się zapisać historii treningu:',e);}
+  }
+}
+
+function tlGetSessionHistory(){
+  try{
+    const key='tl_sessions_'+(document.getElementById('client-name')?.value||'klient').toLowerCase().replace(/\s+/g,'_');
+    return JSON.parse(localStorage.getItem(key)||'[]').sort((a,b)=>b.date.localeCompare(a.date));
+  }catch(e){return[];}
+}
+
+function tlOpenHistoryBrowser(){
+  const clientName=document.getElementById('client-name')?.value||'Klient';
+  const sessions=tlGetSessionHistory();
+  document.getElementById('tl-history-overlay')?.remove();
+  const overlay=document.createElement('div');
+  overlay.id='tl-history-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:950;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  overlay.innerHTML=`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:92%;max-width:640px;max-height:85vh;overflow-y:auto;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;color:var(--tx1);">📜 HISTORIA TRENINGÓW — ${clientName}</div>
+        <button onclick="document.getElementById('tl-history-overlay').remove()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--tx2);border-radius:8px;padding:5px 11px;cursor:pointer;font-size:12px;">✕</button>
+      </div>
+      ${sessions.length===0
+        ? `<div style="text-align:center;padding:40px 20px;color:var(--tx3);"><div style="font-size:32px;margin-bottom:10px;">🗂️</div><div style="font-size:13px;">Brak zapisanych treningów dla tego klienta.</div><div style="font-size:11px;margin-top:6px;">Ukończ trening (przycisk "✓ Zakończ") — zapisze się tutaj automatycznie.</div></div>`
+        : sessions.map((s,i)=>`
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;">
+            <div onclick="tlToggleHistorySession(${i})" style="padding:12px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--tx1);">${s.sessionName}</div>
+                <div style="font-size:10px;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:2px;">${new Date(s.date).toLocaleDateString('pl',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
+              </div>
+              <div style="display:flex;gap:10px;align-items:center;">
+                <div style="text-align:right;">
+                  <div style="font-size:14px;font-weight:700;color:var(--ac);">${s.totalTonnage} kg</div>
+                  <div style="font-size:9px;color:var(--tx3);">${s.totalSets} serii · ${s.durationMin} min</div>
+                </div>
+                <span style="color:var(--tx3);font-size:11px;" id="tl-hist-arrow-${i}">▾</span>
+              </div>
+            </div>
+            <div id="tl-hist-detail-${i}" style="display:none;padding:0 14px 12px;border-top:1px solid var(--border);">
+              ${s.exercises.map(ex=>`
+                <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                  <div style="font-size:12px;font-weight:600;color:var(--tx1);margin-bottom:4px;">${ex.name}</div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    ${ex.sets.map((set,si)=>`<span style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;">${si+1}: ${set.kg}kg×${set.reps}${set.rpe?` @${set.rpe}`:''}</span>`).join('')}
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function tlToggleHistorySession(i){
+  const detail=document.getElementById(`tl-hist-detail-${i}`);
+  const arrow=document.getElementById(`tl-hist-arrow-${i}`);
+  if(!detail)return;
+  const isOpen=detail.style.display==='block';
+  detail.style.display=isOpen?'none':'block';
+  if(arrow)arrow.textContent=isOpen?'▾':'▴';
 }
 // ===== END TRENING LIVE JS =====
 

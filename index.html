@@ -8294,10 +8294,13 @@ function renderPlan(plan) {
               ${exNote?`<div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.75;text-align:left;font-style:italic;padding-left:2px;">💡 ${exNote}</div>`:''}
             </div>
 
-            <!-- RPE badge + przycisk wideo -->
+            <!-- RPE badge + przyciski edycji/zamiany/wideo -->
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
               ${rpe?`<div style="font-size:10px;color:${sessionCol};background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 9px;font-family:'DM Mono',monospace;font-weight:700;">RPE ${rpe}</div>`:''}
-              ${exerciseVideoButtonHtml(ex.name, cellBase)}
+              <div style="display:flex;gap:4px;">
+                <button onclick="openExModal(${si},${ei})" title="Edytuj / zamień ćwiczenie" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx2);font-size:12px;">🔄</button>
+                ${exerciseVideoButtonHtml(ex.name, cellBase)}
+              </div>
             </div>
           </div>
 
@@ -8392,7 +8395,144 @@ function renderPlan(plan) {
   if (weekKeys.length > 1) showWeek(0);
 }
 
+// ═══════════════ EDYCJA / ZAMIANA ĆWICZENIA ═══════════════
+let currentWeekIndex = 0;
+
+const EXERCISE_LIBRARY = {
+  'Klatka': ['Wyciskanie sztangi (ławka płaska)','Wyciskanie hantli (skos +30°)','Dipsy na poręczach','Rozpiętki na Pec Deck','Wyciskanie na maszynie Hammer','Wyciskanie hantli płasko'],
+  'Plecy': ['Podciąganie nachwyt szerokim chwytem','Wiosłowanie sztangą w opadzie','Ściąganie drążka wyciągiem górnym','Wiosłowanie jednorącz hantlą','Pullover na wyciągu','Wiosłowanie T-bar'],
+  'Barki': ['OHP (Overhead Press)','Wyciskanie hantli nad głowę','Wznosy bokiem','Face Pull','Arnold Press','Wznosy w opadzie (tylny akton)'],
+  'Biceps': ['Uginanie ze sztangą','Uginanie na modlitewniku (Scott Bench)','Uginanie młotkowe (Hammer Curl)','Uginanie na ławce skośnej'],
+  'Triceps': ['Wyciskanie wąskim chwytem','Prostowanie na wyciągu (Pushdown)','Francuskie wyciskanie','Dipsy tricepsowe'],
+  'Nogi': ['Przysiad ze sztangą (Back Squat)','Hack Squat / Suwnica','Przysiad bułgarski','Leg Press','Leg Extension','Wykroki chodzone'],
+  'Pośladki / Tył uda': ['Martwy ciąg klasyczny','RDL (Romanian Deadlift)','Hip Thrust','Leg Curl leżąc/siedząc','Good Morning'],
+  'Core': ['Plank','Dead Bug','Ab Wheel Rollout','Cable Crunch','Pallof Press','Leg Raises w zwisie','Bird-Dog'],
+};
+
+function openExModal(si, ei) {
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  document.getElementById('ex-edit-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'ex-edit-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  const libOptions = Object.entries(EXERCISE_LIBRARY).map(([grp, arr]) =>
+    `<optgroup label="${grp}">${arr.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('')}</optgroup>`
+  ).join('');
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:92%;max-width:520px;max-height:88vh;overflow-y:auto;padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;color:var(--tx1);">✏️ EDYTUJ ĆWICZENIE</div>
+        <button onclick="closeExModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--tx2);border-radius:8px;padding:5px 11px;cursor:pointer;font-size:12px;">✕</button>
+      </div>
+
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">Nazwa ćwiczenia</div>
+      <input id="exm-name" value="${(ex.name||'').replace(/"/g,'&quot;')}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--tx1);font-size:13px;outline:none;margin-bottom:12px;">
+
+      <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">Wskazówka / tip</div>
+      <textarea id="exm-notes" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--tx1);font-size:12px;outline:none;resize:vertical;margin-bottom:12px;">${(ex.notes||ex.note||'').replace(/</g,'&lt;')}</textarea>
+
+      <button onclick="exSaveEdit(${si},${ei})" style="width:100%;padding:10px;background:var(--gr);color:#0d0d0d;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:18px;">💾 Zapisz zmiany</button>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--ac);margin-bottom:10px;">🔄 ZAMIEŃ NA INNE — powód: brak sprzętu w studio itp.</div>
+
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">Z biblioteki ćwiczeń</div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <select id="exm-lib" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--tx1);font-size:12px;outline:none;">
+            <option value="">— wybierz —</option>
+            ${libOptions}
+          </select>
+          <button onclick="exSwapFromLibrary(${si},${ei})" style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:8px 14px;color:var(--ac);font-size:11px;font-weight:600;cursor:pointer;">Zamień</button>
+        </div>
+
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">AI zaproponuje zamiennik</div>
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <input id="exm-ai-reason" placeholder="np. brak wyciągu górnego w tym studio, ból barku..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--tx1);font-size:12px;outline:none;">
+          <button onclick="exSwapWithAI(${si},${ei})" id="exm-ai-btn" style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:8px 14px;color:var(--ac);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">🤖 Zaproponuj</button>
+        </div>
+        <div id="exm-ai-result" style="margin-bottom:8px;"></div>
+
+        <div style="font-size:9px;color:var(--tx3);font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:5px;">Wpisz własne</div>
+        <div style="display:flex;gap:6px;">
+          <input id="exm-manual" placeholder="Nazwa własnego ćwiczenia..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--tx1);font-size:12px;outline:none;">
+          <button onclick="exSwapManual(${si},${ei})" style="background:rgba(232,48,42,0.12);border:1px solid rgba(232,48,42,0.3);border-radius:8px;padding:8px 14px;color:var(--ac);font-size:11px;font-weight:600;cursor:pointer;">Zamień</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeExModal(){ document.getElementById('ex-edit-overlay')?.remove(); }
+
+function exSaveEdit(si, ei){
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  ex.name = document.getElementById('exm-name')?.value?.trim() || ex.name;
+  ex.notes = document.getElementById('exm-notes')?.value || '';
+  closeExModal();
+  renderPlan(currentPlanData);
+  showWeek(currentWeekIndex);
+}
+
+function exSwapFromLibrary(si, ei){
+  const val = document.getElementById('exm-lib')?.value;
+  if(!val) return;
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  ex.name = val;
+  ex.notes = (ex.notes ? ex.notes + ' · ' : '') + 'Zamieniono z biblioteki (brak sprzętu w studio)';
+  closeExModal();
+  renderPlan(currentPlanData);
+  showWeek(currentWeekIndex);
+}
+
+function exSwapManual(si, ei){
+  const val = document.getElementById('exm-manual')?.value?.trim();
+  if(!val) return;
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  ex.name = val;
+  closeExModal();
+  renderPlan(currentPlanData);
+  showWeek(currentWeekIndex);
+}
+
+async function exSwapWithAI(si, ei){
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  const reason = document.getElementById('exm-ai-reason')?.value || '';
+  const btn = document.getElementById('exm-ai-btn');
+  const resultEl = document.getElementById('exm-ai-result');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  if (resultEl) resultEl.innerHTML = '<div style="font-size:11px;color:var(--tx3);">AI szuka zamiennika...</div>';
+
+  const profile = typeof getClientProfileShort === 'function' ? getClientProfileShort() : '';
+  const system = 'Jesteś trenerem personalnym NSCA. Zaproponuj JEDEN konkretny zamiennik ćwiczenia zachowujący ten sam cel treningowy (partia, wzorzec ruchu), biorąc pod uwagę ograniczenia sprzętowe podane przez trenera. Odpowiadasz WYŁĄCZNIE w JSON: {"name":"nazwa ćwiczenia","reason":"krótkie uzasadnienie max 100 znaków"}';
+  const userMsg = `Ćwiczenie do zamiany: "${ex.name}". Powód zamiany: ${reason || 'brak konkretnego sprzętu w tym studio'}.\n${profile}`;
+
+  try {
+    const r = await callAPI(system, userMsg, 300);
+    if (!r || !r.name) throw new Error('Brak propozycji');
+    const safeName = r.name.replace(/'/g, "\\'").replace(/"/g,'&quot;');
+    if (resultEl) resultEl.innerHTML = `<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:8px 10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--gr);">${r.name}</div>
+      <div style="font-size:10px;color:var(--tx3);margin:3px 0 6px;">${r.reason||''}</div>
+      <button onclick="exApplyAISwap(${si},${ei},'${safeName}')" style="width:100%;background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.3);border-radius:6px;padding:6px;color:var(--gr);font-size:11px;font-weight:600;cursor:pointer;">✓ Zastosuj tę propozycję</button>
+    </div>`;
+  } catch(e) {
+    if (resultEl) resultEl.innerHTML = `<div style="font-size:11px;color:var(--ac);">Błąd: ${e.message}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 Zaproponuj'; }
+  }
+}
+
+function exApplyAISwap(si, ei, name){
+  const ex = currentPlanData.sessions[si].exercises[ei];
+  ex.name = name;
+  ex.notes = (ex.notes ? ex.notes + ' · ' : '') + 'Zamieniono przez AI (ograniczenia sprzętowe)';
+  closeExModal();
+  renderPlan(currentPlanData);
+  showWeek(currentWeekIndex);
+}
+
 function showWeek(wi) {
+  currentWeekIndex = wi;
   const plan = currentPlanData;
   if (!plan) return;
   const phases = plan.phases || {};

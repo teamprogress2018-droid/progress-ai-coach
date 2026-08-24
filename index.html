@@ -9000,6 +9000,25 @@ function rpeRirLabel(rpe) {
   return `RPE ${rpe} <span style="color:#999;font-size:10px;">(RIR ${rir})</span>`;
 }
 
+// Buduje komórkę tygodnia z wizualną progresją: rosnąca intensywność koloru tła
+// im dalszy tydzień + strzałka pokazująca wzrost/spadek RPE względem poprzedniego tygodnia
+function weekCellHtml(current, prev, weekIndex, totalWeeks) {
+  if (!current || !current.s) return '<span style="color:#ccc;">–</span>';
+  const rpeNow = parseFloat(String(current.rpe||'').replace(',', '.'));
+  const rpePrev = prev && prev.rpe ? parseFloat(String(prev.rpe).replace(',', '.')) : null;
+  let trendIcon = '';
+  if (!isNaN(rpeNow) && rpePrev !== null && !isNaN(rpePrev)) {
+    if (rpeNow > rpePrev) trendIcon = '<span style="color:#2a8a4a;font-size:10px;font-weight:700;"> ▲</span>';
+    else if (rpeNow < rpePrev) trendIcon = '<span style="color:#c0392b;font-size:10px;font-weight:700;"> ▼</span>';
+  }
+  const intensity = totalWeeks > 1 ? weekIndex / (totalWeeks - 1) : 0;
+  const bg = `rgba(232,48,42,${(0.04 + intensity * 0.16).toFixed(3)})`;
+  return `<div style="background:${bg};border-radius:6px;padding:6px 4px;">
+    <div style="font-size:14px;font-weight:700;color:#1a1a2e;">${current.s}×${current.r||'?'}${trendIcon}</div>
+    <div style="font-size:10px;color:#888;margin-top:2px;">RPE ${current.rpe||'?'}</div>
+  </div>`;
+}
+
 function exportFullReport() {
   const hasPlan = !!currentPlanData?.sessions?.length;
   const hasDiet = !!currentDietPlan;
@@ -9051,17 +9070,12 @@ function exportFullReport() {
   .info-card-icon{font-size:20px;}
   .info-card-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#e8302a;}
 
-  /* ── NOWE: bloki sesji z przełącznikiem tygodni ── */
+  /* ── Bloki sesji ── */
   .session-block{margin:18px 0;page-break-inside:avoid;}
-  .week-tabs{display:flex;gap:4px;flex-wrap:wrap;}
-  .week-tab{background:#f0f0f0;border:1px solid #ddd;border-bottom:none;border-radius:6px 6px 0 0;padding:6px 14px;font-size:11px;font-weight:600;color:#666;cursor:pointer;font-family:'DM Sans',sans-serif;}
-  .week-tab.active{background:#1a1a2e;color:#fff;border-color:#1a1a2e;}
-  .week-panel{border:1px solid #ddd;border-radius:0 8px 8px 8px;overflow:hidden;}
-  .week-panel-label{display:none;background:#f0f0f0;padding:5px 12px;font-size:10px;font-weight:700;color:#555;letter-spacing:.5px;}
   .ex-name-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
   .priority-badge{display:inline-block;background:#e8302a;color:#fff;font-size:8px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;text-transform:uppercase;white-space:nowrap;}
 
-  /* ── NOWE: responsywność mobilna — tabela zamienia się w stos kart ── */
+  /* ── Responsywność mobilna — tabela zamienia się w stos kart ── */
   @media(max-width:700px){
     .session-table thead{display:none;}
     .session-table, .session-table tbody, .session-table tr, .session-table td{display:block;width:100%;}
@@ -9069,13 +9083,6 @@ function exportFullReport() {
     .session-table td{border:none;padding:5px 0;font-size:14px;}
     .session-table td[data-label]::before{content:attr(data-label);display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:2px;}
     .session-table td.ex-name-td{font-size:16px;font-weight:700;padding-bottom:8px;border-bottom:1px solid #f0f0f0;margin-bottom:6px;}
-  }
-
-  /* ── NOWE: przy druku pokaż WSZYSTKIE tygodnie (nie tylko aktywną zakładkę) ── */
-  @media print{
-    .week-tabs{display:none!important;}
-    .week-panel{display:block!important;border-radius:8px;margin-bottom:14px;page-break-inside:avoid;}
-    .week-panel-label{display:block!important;}
   }
 </style></head><body><div class="page">`;
 
@@ -9115,42 +9122,31 @@ function exportFullReport() {
     const weekKeys = plan.phases ? Object.keys(plan.phases) : ['w1'];
     const weekCols = weekKeys;
 
-    (plan.sessions||[]).forEach((session, si) => {
-      const sid = `s${si}`;
+    (plan.sessions||[]).forEach((session) => {
       h += `<div class="session-block">`;
       h += `<div class="session-h">${session.sessionName||'Sesja'}</div>`;
       if (session.exercises?.length) {
-        // Zakładki tygodni (na ekranie/w podglądzie) — przy druku ukryte, pokazują się wszystkie tygodnie po kolei
-        h += `<div class="week-tabs">`;
-        weekCols.forEach((wk, wi) => {
-          h += `<button type="button" class="week-tab${wi===0?' active':''}" onclick="showReportWeek('${sid}',${wi})">Tydzień ${wi+1}</button>`;
-        });
-        h += `</div>`;
+        h += `<table class="session-table"><thead><tr>
+          <th style="width:22%;">Ćwiczenie</th>
+          ${weekCols.map((wk,wi) => `<th style="text-align:center;">Tydzień ${wi+1}<br><span style="font-weight:400;font-size:9px;color:#888;">${plan.phases?.[wk]||''}</span></th>`).join('')}
+          <th>Pauza / Kluczowa wskazówka</th>
+        </tr></thead><tbody>`;
 
-        weekCols.forEach((wk, wi) => {
-          const label = plan.phases?.[wk] || wk;
-          h += `<div class="week-panel" data-session="${sid}" data-week="${wi}" style="display:${wi===0?'block':'none'};">`;
-          h += `<div class="week-panel-label">TYDZIEŃ ${wi+1} — ${label}</div>`;
-          h += `<table class="session-table"><thead><tr>
-            <th style="width:30%;">Ćwiczenie</th>
-            <th style="text-align:center;">Serie × Powt.</th>
-            <th style="text-align:center;">RPE / RIR</th>
-            <th>Pauza / Kluczowa wskazówka</th>
-          </tr></thead><tbody>`;
-          session.exercises.forEach((ex, ei) => {
-            const wd = ex[wk] || {};
-            const isPriority = ei < 2;
-            h += `<tr>
-              <td class="ex-name-td" data-label="Ćwiczenie">
-                <div class="ex-name-cell">${isPriority?'<span class="priority-badge">🎯 Priorytet</span>':''}<span>${ex.name||''}</span></div>
-              </td>
-              <td data-label="Serie × Powt." style="text-align:center;font-size:14px;font-weight:600;">${wd.s?`${wd.s}×${wd.r||'?'}`:'–'}</td>
-              <td data-label="RPE / RIR" style="text-align:center;font-size:13px;">${rpeRirLabel(wd.rpe)}</td>
-              <td data-label="Pauza / Kluczowa wskazówka" style="font-size:12px;color:#555;">${wd.rest?`⏱ ${wd.rest}`:''}${wd.rest && ex.notes ? ' · ' : ''}${ex.notes||''}</td>
-            </tr>`;
+        session.exercises.forEach((ex, ei) => {
+          const isPriority = ei < 2;
+          h += `<tr>
+            <td class="ex-name-td" data-label="Ćwiczenie">
+              <div class="ex-name-cell">${isPriority?'<span class="priority-badge">🎯 Priorytet</span>':''}<span>${ex.name||''}</span></div>
+            </td>`;
+          weekCols.forEach((wk, wi) => {
+            const current = ex[wk];
+            const prev = wi > 0 ? ex[weekCols[wi-1]] : null;
+            h += `<td data-label="Tydzień ${wi+1}" style="text-align:center;">${weekCellHtml(current, prev, wi, weekCols.length)}</td>`;
           });
-          h += `</tbody></table></div>`;
+          const firstWd = ex[weekCols[0]] || {};
+          h += `<td data-label="Pauza / Kluczowa wskazówka" style="font-size:12px;color:#555;">${firstWd.rest?`⏱ ${firstWd.rest}`:''}${firstWd.rest && ex.notes ? ' · ' : ''}${ex.notes||''}</td></tr>`;
         });
+        h += `</tbody></table>`;
       }
       h += `</div>`;
     });
@@ -9192,18 +9188,6 @@ function exportFullReport() {
 
   h += `<button class="print-btn" onclick="window.print()">🖨 Drukuj / Zapisz PDF</button>`;
   h += `<div class="footer">PROGRESS AI v2.0 · Plan wygenerowany przez AI · Progress Studio Treningu Personalnego, Wrocław · ${new Date().toLocaleDateString('pl')}</div>`;
-  h += `<script>
-    function showReportWeek(sid, idx) {
-      document.querySelectorAll('.week-panel[data-session="' + sid + '"]').forEach(function(p){
-        p.style.display = (parseInt(p.getAttribute('data-week'), 10) === idx) ? 'block' : 'none';
-      });
-      document.querySelectorAll('.session-block').forEach(function(block){
-        if (block.querySelector('.week-panel[data-session="' + sid + '"]')) {
-          block.querySelectorAll('.week-tab').forEach(function(btn, i){ btn.classList.toggle('active', i === idx); });
-        }
-      });
-    }
-  <\/script>`;
   h += `</div></body></html>`;
 
   w.document.write(h);

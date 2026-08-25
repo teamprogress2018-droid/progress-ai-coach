@@ -9598,12 +9598,24 @@ async function exportWorkoutToExcel(planData) {
     // ═══ ZAKŁADKI 2..N: PO JEDNEJ NA TYDZIEŃ (skrócone nazwy: "T1 - Faza") ═══
     // Kolumny: [1]Ćwiczenie [2]🎥Wideo [3]Serie [4]Powtórzenia [5]RPE/RIR [6]Pauza/Wskazówka
     //          [7]Ciężar(kg) [8]Wykonane Powt. [9]Odczute RPE [10]Notatki [11]Sugerowany ciężar (auto-progresja)
+    const usedSheetNames = new Set(['Przegląd']);
     weekKeys.forEach((wk, wi) => {
       const phaseLabel = phases[wk] || '';
-      const shortPhase = phaseLabel.split(/[\s(]/)[0] || '';
+      // POPRAWKA: usuń znaki niedozwolone w nazwach zakładek Excela (* ? : \ / [ ])
+      const safePhaseLabel = phaseLabel.replace(/[*?:\\/\[\]]/g, '-');
+      const shortPhase = safePhaseLabel.split(/[\s(]/)[0] || '';
       // POPRAWKA: zwięzłe nazwy zakładek — "T1 - Faza" (np. "T1 - Adaptacja", "T4 - Deload")
       let sheetName = `T${wi + 1}${shortPhase ? ' - ' + shortPhase : ''}`;
+      sheetName = sheetName.replace(/[*?:\\/\[\]]/g, '-'); // podwójne zabezpieczenie
       if (sheetName.length > 31) sheetName = sheetName.substring(0, 31);
+      // POPRAWKA: unikalność — jeśli nazwa się powtarza (np. dwa tygodnie "Hipertrofia"), dopisz numer
+      if (usedSheetNames.has(sheetName)) {
+        let suffix = 2;
+        let candidate = `${sheetName.substring(0, 28)} ${suffix}`;
+        while (usedSheetNames.has(candidate)) { suffix++; candidate = `${sheetName.substring(0, 28)} ${suffix}`; }
+        sheetName = candidate;
+      }
+      usedSheetNames.add(sheetName);
       const ws = wb.addWorksheet(sheetName, { views: [{ showGridLines: false }] });
 
       const COLS = ['Ćwiczenie','🎥','Serie','Powtórzenia','RPE/RIR','Pauza / Wskazówka','Ciężar (kg)','Wykonane Powt.','Odczute RPE','Notatki klienta','Sugerowany ciężar (kolejny trening)'];

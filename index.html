@@ -9383,20 +9383,26 @@ function exportFullReport() {
 const XLSX_FONT = 'Segoe UI'; // jednolita bezszeryfowa czcionka w całym arkuszu (zakaz Cambria/Times)
 
 const XLSX_COLORS = {
-  dayHeaderBg: 'FFB91C1C',        // ciemnoczerwone tło nagłówka dnia/sesji
+  pageBg: 'FF0D0D0D',              // niemal czarne tło całej strony (jak panel)
+  cardBg: 'FF161616',              // ciemna karta (Zasady progresji, Rozgrzewka, kafelki)
+  dayHeaderBg: 'FF1A0A0A',         // ciemnoczerwono-czarny nagłówek dnia/sesji (gradient-like)
   dayHeaderText: 'FFFFFFFF',
-  tableHeaderBg: 'FF334155',      // ciemnoszare tło nagłówka tabeli
+  tableHeaderBg: 'FF1C1C1C',       // ciemnoszare tło nagłówka tabeli
   tableHeaderText: 'FFFFFFFF',
-  accentRed: 'FFB91C1C',          // czerwony akcent — priorytet, tytuły sekcji
-  priorityTag: 'FFB91C1C',
-  clientInputBg: 'FFF8FAFC',      // bardzo jasnoszare pola klienta
+  accentRed: 'FFE8302A',           // dokładny czerwony akcent panelu
+  priorityTag: 'FFE8302A',
+  exerciseRowBg: 'FF161616',       // ciemna karta wiersza ćwiczenia (zwykłe)
+  exerciseRowBgPriority: 'FF1F1010', // cieplejsza ciemna karta — priorytet
+  planTextOnDark: 'FFE5E1DC',      // jasny tekst danych planu na ciemnym tle
+  clientInputBg: 'FFF8FAFC',       // bardzo jasnoszare pola klienta — kontrast na ciemnym tle
   clientInputBorder: 'FFE2E8F0',
-  clientInputBorderPriority: 'FFFCA5A5', // czerwona sub-ramka dla priorytetów
-  bodyText: 'FF1E1E1E',
-  mutedText: 'FF64748B',
-  sectionTitleText: 'FFB91C1C',
-  summaryBg: 'FFF1F5F9',
-  border: 'FFE2E8F0',
+  clientInputBorderPriority: 'FFE8302A',
+  bodyText: 'FFF3EDE4',            // jasny tekst (na ciemnym tle strony)
+  mutedText: 'FF9A9086',
+  sectionTitleText: 'FFE8302A',
+  summaryBg: 'FF1A0A0A',
+  border: 'FF2A2A2A',
+  tileAccentTop: 'FFE8302A',
 };
 
 function xlsxHeaderRow(ws, values, rowIdx) {
@@ -9419,14 +9425,91 @@ function xlsxBulletRows(ws, startRow, text, colSpan) {
   const items = bullets.length > 1 ? bullets : [text];
   items.forEach(txt => {
     const row = ws.getRow(r);
-    row.getCell(1).value = '●  ' + txt;
+    row.getCell(1).value = { richText: [
+      { font: { name: XLSX_FONT, bold: true, color: { argb: XLSX_COLORS.accentRed }, size: 10 }, text: '●  ' },
+      { font: { name: XLSX_FONT, color: { argb: XLSX_COLORS.bodyText }, size: 10 }, text: txt }
+    ]};
     ws.mergeCells(r, 1, r, colSpan);
     row.getCell(1).alignment = { wrapText: true, vertical: 'top', indent: 1 };
-    row.getCell(1).font = { name: XLSX_FONT, size: 10, color: { argb: XLSX_COLORS.bodyText } };
+    row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
     row.height = Math.max(20, Math.ceil(txt.length / 90) * 18);
     r++;
   });
   return r;
+}
+
+function xlsxSplitBullets(text) {
+  if (!text) return [];
+  const bullets = String(text).replace(/\s+/g,' ').split(/(?<=\.)(?=\s[A-ZŁŚŹĆĄĘ])/u).map(s=>s.trim()).filter(Boolean);
+  return bullets.length > 1 ? bullets : (text ? [text] : []);
+}
+
+// Rząd kafelków (np. Sesje/tydzień, Tygodnie, Progresja) — ciemna karta + czerwony akcent na górze
+function xlsxInfoTiles(ws, startRow, tiles) {
+  const headRow = ws.getRow(startRow);
+  const numRow = ws.getRow(startRow + 1);
+  tiles.forEach((t, idx) => {
+    const startCol = idx * 3 + 1;
+    ws.mergeCells(startRow, startCol, startRow, startCol + 2);
+    ws.mergeCells(startRow + 1, startCol, startRow + 1, startCol + 2);
+    const labelCell = ws.getCell(startRow, startCol);
+    labelCell.value = t.label;
+    labelCell.font = { name: XLSX_FONT, size: 8, bold: true, color: { argb: XLSX_COLORS.mutedText } };
+    labelCell.alignment = { horizontal: 'center', vertical: 'bottom' };
+    labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
+    labelCell.border = { top: { style: 'medium', color: { argb: XLSX_COLORS.accentRed } } };
+
+    const valCell = ws.getCell(startRow + 1, startCol);
+    valCell.value = t.value;
+    valCell.font = { name: XLSX_FONT, size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    valCell.alignment = { horizontal: 'center', vertical: 'top' };
+    valCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
+  });
+  headRow.height = 16;
+  numRow.height = 28;
+  return startRow + 2;
+}
+
+// Trzy karty obok siebie (np. Zasady progresji / Rozgrzewka / Schłodzenie) — jak panel trenerski
+function xlsxThreeCards(ws, startRow, cards) {
+  let r = startRow;
+  const headerRow = ws.getRow(r);
+  cards.forEach((card, idx) => {
+    const startCol = idx * 3 + 1;
+    ws.mergeCells(r, startCol, r, startCol + 2);
+    const cell = ws.getCell(r, startCol);
+    cell.value = `${card.icon} ${card.title}`;
+    cell.font = { name: XLSX_FONT, bold: true, size: 11, color: { argb: XLSX_COLORS.sectionTitleText } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
+    cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    cell.border = { top: { style: 'medium', color: { argb: XLSX_COLORS.accentRed } } };
+  });
+  headerRow.height = 24;
+  r++;
+
+  const bulletsArr = cards.map(c => xlsxSplitBullets(c.text));
+  const maxLen = Math.max(0, ...bulletsArr.map(b => b.length));
+  for (let i = 0; i < maxLen; i++) {
+    const row = ws.getRow(r);
+    cards.forEach((card, idx) => {
+      const startCol = idx * 3 + 1;
+      ws.mergeCells(r, startCol, r, startCol + 2);
+      const cell = ws.getCell(r, startCol);
+      const txt = bulletsArr[idx][i];
+      if (txt) {
+        cell.value = { richText: [
+          { font: { name: XLSX_FONT, bold: true, color: { argb: XLSX_COLORS.accentRed }, size: 9 }, text: '●  ' },
+          { font: { name: XLSX_FONT, color: { argb: XLSX_COLORS.bodyText }, size: 9 }, text: txt }
+        ]};
+      }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
+      cell.alignment = { wrapText: true, vertical: 'top', indent: 1 };
+    });
+    const tallestTxt = Math.max(1, ...cards.map((c, idx) => (bulletsArr[idx][i] || '').length));
+    row.height = Math.max(18, Math.ceil(tallestTxt / 34) * 15);
+    r++;
+  }
+  return r + 1;
 }
 
 function xlsxAutoWidth(ws, widths) {
@@ -9458,9 +9541,9 @@ async function exportWorkoutToExcel(planData) {
 
     // ═══ ZAKŁADKA 1: PRZEGLĄD & ZASADY ═══
     const wsOverview = wb.addWorksheet('Przegląd', { views: [{ showGridLines: false }] });
-    xlsxAutoWidth(wsOverview, [4, 30, 34, 30, 30]);
+    xlsxAutoWidth(wsOverview, [15, 15, 15, 15, 15, 15, 15, 15, 15]);
 
-    wsOverview.mergeCells('A1:E2');
+    wsOverview.mergeCells('A1:I2');
     const titleCell = wsOverview.getCell('A1');
     titleCell.value = plan.planTitle || `Plan treningowy — ${name}`;
     titleCell.font = { name: XLSX_FONT, bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
@@ -9469,46 +9552,47 @@ async function exportWorkoutToExcel(planData) {
     wsOverview.getRow(1).height = 40;
 
     let r = 4;
-    const infoRow = wsOverview.getRow(r);
-    infoRow.values = ['', `Klient: ${name}`, `Split: ${plan.split || '–'}`, `${plan.sessionsPerWeek || '–'} sesji/tydzień`, `${weekKeys.length} tygodni`];
-    // POPRAWKA: wrapText + większa wysokość wiersza, żeby długi opis splitu (C4) się nie ucinał
-    infoRow.eachCell(c => { c.font = { name: XLSX_FONT, bold: true, size: 10, color: { argb: XLSX_COLORS.bodyText } }; c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; });
-    infoRow.height = 34;
+    // Klient + Split — dwie szerokie karty, wrapText żeby długi opis splitu się nie ucinał
+    wsOverview.mergeCells(r, 1, r, 4);
+    wsOverview.mergeCells(r, 5, r, 9);
+    const klientCell = wsOverview.getCell(r, 1);
+    klientCell.value = `Klient: ${name}`;
+    const splitCell = wsOverview.getCell(r, 5);
+    splitCell.value = `Split: ${plan.split || '–'}`;
+    [klientCell, splitCell].forEach(c => {
+      c.font = { name: XLSX_FONT, bold: true, size: 10, color: { argb: XLSX_COLORS.bodyText } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    });
+    wsOverview.getRow(r).height = 34;
     r += 2;
 
-    if (plan.progressionNotes) {
-      wsOverview.getCell(`A${r}`).value = '📈 ZASADY PROGRESJI';
-      wsOverview.mergeCells(r, 1, r, 5);
-      wsOverview.getCell(`A${r}`).font = { name: XLSX_FONT, bold: true, size: 11, color: { argb: XLSX_COLORS.sectionTitleText } };
-      r += 1;
-      r = xlsxBulletRows(wsOverview, r, plan.progressionNotes, 5);
-      r += 1;
-    }
-    if (plan.warmupProtocol) {
-      wsOverview.getCell(`A${r}`).value = '🔥 ROZGRZEWKA';
-      wsOverview.mergeCells(r, 1, r, 5);
-      wsOverview.getCell(`A${r}`).font = { name: XLSX_FONT, bold: true, size: 11, color: { argb: XLSX_COLORS.sectionTitleText } };
-      r += 1;
-      r = xlsxBulletRows(wsOverview, r, plan.warmupProtocol, 5);
-      r += 1;
-    }
-    if (plan.cooldownProtocol) {
-      wsOverview.getCell(`A${r}`).value = '🧊 SCHŁODZENIE';
-      wsOverview.mergeCells(r, 1, r, 5);
-      wsOverview.getCell(`A${r}`).font = { name: XLSX_FONT, bold: true, size: 11, color: { argb: XLSX_COLORS.sectionTitleText } };
-      r += 1;
-      r = xlsxBulletRows(wsOverview, r, plan.cooldownProtocol, 5);
-      r += 1;
-    }
+    // Kafelki: Sesje/tydzień, Tygodnie, Progresja — jak panel trenerski
+    r = xlsxInfoTiles(wsOverview, r, [
+      { label: 'SESJE / TYDZ.', value: plan.sessionsPerWeek || '–' },
+      { label: 'TYGODNIE', value: weekKeys.length },
+      { label: 'PROGRESJA', value: (PROGRESSION_LABELS?.[planProgression]?.name || planProgression || 'Auto').toUpperCase() },
+    ]);
+    r += 1;
+
+    // Trzy karty obok siebie: Zasady progresji / Rozgrzewka / Schłodzenie
+    r = xlsxThreeCards(wsOverview, r, [
+      { icon: '📈', title: 'ZASADY PROGRESJI', text: plan.progressionNotes },
+      { icon: '🔥', title: 'PROTOKÓŁ ROZGRZEWKI', text: plan.warmupProtocol },
+      { icon: '🧊', title: 'SCHŁODZENIE', text: plan.cooldownProtocol },
+    ]);
+
     const priorityText = document.getElementById('client-priority')?.value;
     const goalText = document.getElementById('client-goal')?.value;
     if (goalText || priorityText) {
       wsOverview.getCell(`A${r}`).value = '🎯 CELE I PRIORYTETY';
-      wsOverview.mergeCells(r, 1, r, 5);
+      wsOverview.mergeCells(r, 1, r, 9);
       wsOverview.getCell(`A${r}`).font = { name: XLSX_FONT, bold: true, size: 11, color: { argb: XLSX_COLORS.sectionTitleText } };
+      wsOverview.getCell(`A${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.cardBg } };
+      wsOverview.getCell(`A${r}`).border = { top: { style: 'medium', color: { argb: XLSX_COLORS.accentRed } } };
       r += 1;
       const goalLine = [goalText, priorityText].filter(Boolean).join(' · Priorytet: ');
-      r = xlsxBulletRows(wsOverview, r, goalLine, 5);
+      r = xlsxBulletRows(wsOverview, r, goalLine, 9);
     }
 
     // ═══ ZAKŁADKI 2..N: PO JEDNEJ NA TYDZIEŃ (skrócone nazwy: "T1 - Faza") ═══
@@ -9582,16 +9666,21 @@ async function exportWorkoutToExcel(planData) {
           [1,2,3,4,5,6,7,8,9,10,11].forEach(ci => {
             const cell = r1.getCell(ci);
             cell.alignment = { vertical: 'middle', horizontal: (ci===1||ci===6||ci===10) ? 'left' : 'center', wrapText: true, indent: (ci===1||ci===6) ? 1 : 0 };
-            const borderColor = (isPriority && ci >= 7 && ci <= 9) ? XLSX_COLORS.clientInputBorderPriority : XLSX_COLORS.border;
-            cell.border = { top:{style:'thin',color:{argb:borderColor}}, bottom:{style:'thin',color:{argb:borderColor}}, left:{style:'thin',color:{argb:borderColor}}, right:{style:'thin',color:{argb:borderColor}} };
+            const rowBg = isPriority ? XLSX_COLORS.exerciseRowBgPriority : XLSX_COLORS.exerciseRowBg;
             if (ci >= 7 && ci <= 10) {
-              // Pola klienta — bardzo jasnoszare tło; priorytety dostają czerwoną sub-ramkę (ustawioną wyżej)
+              // Pola klienta — jasna "wyspa" na ciemnym tle wiersza; priorytety dostają czerwoną sub-ramkę
+              const borderColor = isPriority ? XLSX_COLORS.clientInputBorderPriority : XLSX_COLORS.clientInputBorder;
+              cell.border = { top:{style:'thin',color:{argb:borderColor}}, bottom:{style:'thin',color:{argb:borderColor}}, left:{style:'thin',color:{argb:borderColor}}, right:{style:'thin',color:{argb:borderColor}} };
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.clientInputBg } };
-              cell.font = { name: XLSX_FONT, color: { argb: XLSX_COLORS.bodyText }, size: 10 };
-            } else if (ci === 11) {
-              cell.font = { name: XLSX_FONT, italic: true, bold: true, color: { argb: XLSX_COLORS.mutedText }, size: 9 };
-            } else if (ci !== 1 && ci !== 2) {
-              cell.font = { name: XLSX_FONT, color: { argb: XLSX_COLORS.bodyText }, size: 10 };
+              cell.font = { name: XLSX_FONT, color: { argb: 'FF1E1E1E' }, size: 10 }; // ciemny tekst na jasnym tle pola
+            } else {
+              cell.border = { top:{style:'thin',color:{argb:XLSX_COLORS.border}}, bottom:{style:'thin',color:{argb:XLSX_COLORS.border}}, left:{style:'thin',color:{argb:XLSX_COLORS.border}}, right:{style:'thin',color:{argb:XLSX_COLORS.border}} };
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+              if (ci === 11) {
+                cell.font = { name: XLSX_FONT, italic: true, bold: true, color: { argb: XLSX_COLORS.accentRed }, size: 9 };
+              } else if (ci !== 1 && ci !== 2) {
+                cell.font = { name: XLSX_FONT, color: { argb: XLSX_COLORS.planTextOnDark }, size: 10 };
+              }
             }
           });
           row++;
